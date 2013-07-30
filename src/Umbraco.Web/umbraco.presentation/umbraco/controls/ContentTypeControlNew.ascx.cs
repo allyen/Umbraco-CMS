@@ -553,9 +553,9 @@ jQuery(document).ready(function() {{ refreshDropDowns(); }});
             {
                 string chosenContentTypeIDs = "";
                 ContentType[] contentTypes = _contentType.GetAll();
-                foreach (ContentType ct in contentTypes.OrderBy(x => x.Text))
+                foreach (ContentType ct in contentTypes.OrderBy(x => x.Alias))
                 {
-                    ListItem li = new ListItem(ct.Text, ct.Id.ToString());
+                    ListItem li = new ListItem(ct.Alias, ct.Id.ToString());
                     DualAllowedContentTypes.Items.Add(li);
                     lstAllowedContentTypes.Items.Add(li);
                     foreach (int i in allowedIds)
