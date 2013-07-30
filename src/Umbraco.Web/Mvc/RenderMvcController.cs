@@ -101,6 +101,9 @@ namespace Umbraco.Web.Mvc
 			return View(template, model);
 		}
 
+        public delegate ActionResult IndexActionEventHandler(RenderModel model, System.Web.HttpContextBase context);
+        public static event IndexActionEventHandler OnIndexAction;
+
 		/// <summary>
 		/// The default action to render the front-end view
 		/// </summary>
@@ -108,6 +111,13 @@ namespace Umbraco.Web.Mvc
 		/// <returns></returns>
 		public virtual ActionResult Index(RenderModel model)
 		{
+            if (OnIndexAction != null)
+            {
+                var result = OnIndexAction(model, HttpContext);
+                if (result != null)
+                    return result;
+            }
+
 			return CurrentTemplate(model);
 		}
 
