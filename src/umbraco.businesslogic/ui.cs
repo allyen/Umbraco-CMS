@@ -61,9 +61,7 @@ namespace umbraco
             {
                 return u.Language;
             }
-            var language = Thread.CurrentThread.CurrentCulture.TwoLetterISOLanguageName;
-            if (string.IsNullOrEmpty(language))
-                language = UmbracoDefaultUiLanguage;
+            var language = UmbracoDefaultUiLanguage;
             return language;
         }
 
