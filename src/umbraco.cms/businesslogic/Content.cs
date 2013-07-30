@@ -317,6 +317,11 @@ namespace umbraco.cms.businesslogic
 
         }
 
+        public void ClearXml()
+        {
+            _xml = null;
+        }
+
         /// <summary>
         /// An Xmlrepresentation of a Content object.
         /// </summary>
