@@ -406,7 +406,7 @@ namespace umbraco.cms.presentation.user
                     }
 
                     // Is it using the default membership provider
-                    if (Membership.Providers[UmbracoSettings.DefaultBackofficeProvider] is UsersMembershipProvider)
+                    if (true)
                     {
                         // Save user in membership provider
                         UsersMembershipUser umbracoUser = user as UsersMembershipUser;
@@ -418,6 +418,7 @@ namespace umbraco.cms.presentation.user
                         // Save user details
                         u.Email = email.Text.Trim();
                         u.Language = userLanguage.SelectedValue;
+                        u.UserType = UserType.GetUserType(int.Parse(userType.SelectedValue));
                     }
                     else
                     {
