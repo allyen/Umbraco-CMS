@@ -15,7 +15,7 @@ namespace Umbraco.Core.IO
         {
             get
             {
-                return SystemDirectories.Data + "/access.config";
+                return SystemDirectories.Config + "/access.config";
             }
         }
 
