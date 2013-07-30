@@ -14,7 +14,7 @@ namespace Umbraco.Web.Mvc
         /// <returns></returns>
 		internal static string GetControllerName(Type controllerType)
         {
-            if (!controllerType.Name.EndsWith("Controller"))
+            if (!controllerType.Name.Contains("Controller"))
             {
                 throw new InvalidOperationException("The controller type " + controllerType + " does not follow conventions, MVC Controller class names must be suffixed with the term 'Controller'");
             }
