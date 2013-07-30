@@ -105,10 +105,14 @@ namespace umbraco.cms.businesslogic.template
             
             if (string.IsNullOrEmpty(design))
             {
-                design = @"@inherits Umbraco.Web.Mvc.UmbracoTemplatePage
-@{
-    Layout = null;
-}";
+                design = @"@inherits MlokTemplatePage
++@using Mlok.SitesFramework;
++@using Mlok.SitesFramework.Mvc;
++@using Mlok.SitesFramework.Mvc.Controls;
+ @{
+     Layout = null;
+ }";
+
 
                 if (template.MasterTemplate > 0)
                     design = design.Replace("null", string.Format("\"{0}.cshtml\"", new Template(template.MasterTemplate).Alias.Replace(" ", "")));
