@@ -35,16 +35,26 @@ namespace umbraco.cms.businesslogic.web
 
         static object _locko = new object();
 
+        // Helper fields for xml cache change checking
+        private static readonly object _timestampSyncLock = new object();
+        private static DateTime _lastDiskCacheReadTime = DateTime.MinValue;
+        private static DateTime _lastDiskCacheCheckTime = DateTime.MinValue;
+        private static bool _clearAccessXmlContent = false;
+
 		public static XmlDocument AccessXml 
 		{
             get
             {
-                if (_accessXmlContent == null)
+                CheckDiskCacheForUpdate();
+
+                if (_accessXmlContent == null || _clearAccessXmlContent)
                 {
                     lock (_locko)
                     {
-                        if (_accessXmlContent == null)
+                        if (_accessXmlContent == null || _clearAccessXmlContent)
                         {
+                            _clearAccessXmlContent = false;
+
                             if (_accessXmlSource == null)
                             {
                                 //if we pop it here it'll make for better stack traces ;)
@@ -513,6 +523,8 @@ namespace umbraco.cms.businesslogic.web
 
 		public static bool IsProtected(int DocumentId, string Path) 
 		{
+            CheckDiskCacheForUpdate();
+
 			bool isProtected = false;
 
 			if (!_checkedPages.ContainsKey(DocumentId)) 
@@ -665,6 +677,42 @@ namespace umbraco.cms.businesslogic.web
 			if (AfterAddMembershipUserToDocument != null)
 				AfterAddMembershipUserToDocument(doc, username, e);
 		}
+
+        private static void CheckDiskCacheForUpdate()
+        {
+            // If no distributed calls, no one else will change access.config 
+            if (!UmbracoSettings.UseDistributedCalls)
+                return;
+
+            // Avoid lock, if no checking would occur
+            if (_lastDiskCacheCheckTime > DateTime.UtcNow.AddSeconds(-10.0))
+                return;
+
+            lock (_timestampSyncLock)
+            {
+                if (_lastDiskCacheCheckTime > DateTime.UtcNow.AddSeconds(-10.0))
+                    return;
+
+                _lastDiskCacheCheckTime = DateTime.UtcNow;
+
+                if (GetCacheFileUpdateTime() <= _lastDiskCacheReadTime)
+                    return;
+
+                _lastDiskCacheReadTime = DateTime.UtcNow;
+                _clearAccessXmlContent = true;
+                clearCheckPages();
+            }
+        }
+
+        private static DateTime GetCacheFileUpdateTime()
+        {
+            if (_accessXmlSource != null && File.Exists(_accessXmlSource))
+            {
+                return new FileInfo(_accessXmlSource).LastWriteTimeUtc;
+            }
+
+            return DateTime.MinValue;
+        }
 	}
 
 	public enum ProtectionType 
