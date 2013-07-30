@@ -189,7 +189,7 @@ namespace umbraco.cms.businesslogic.web
 
         public static Domain[] GetDomainsById(int nodeId)
         {
-			return GetDomains().Where(d => d._root == nodeId).ToArray();
+			return GetDomains(true).Where(d => d._root == nodeId).ToArray();
         }
 
         public static bool Exists(string DomainName)
