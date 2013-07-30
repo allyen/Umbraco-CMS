@@ -65,13 +65,15 @@ namespace umbraco.cms.presentation
 
         protected void Button1_Click(object sender, System.EventArgs e)
         {
+            string login = lname.Text.Contains('#') ? lname.Text.Split('#')[1] : lname.Text;
+
             // Authenticate users by using the provider specified in umbracoSettings.config
             if (Membership.Providers[UmbracoSettings.DefaultBackofficeProvider].ValidateUser(lname.Text, passw.Text))
             {
                 if (Membership.Providers[UmbracoSettings.DefaultBackofficeProvider] is ActiveDirectoryMembershipProvider)
                     ActiveDirectoryMapping(lname.Text, Membership.Providers[UmbracoSettings.DefaultBackofficeProvider].GetUser(lname.Text, false).Email);
 
-                BusinessLogic.User u = new User(lname.Text);
+                BusinessLogic.User u = new User(login);
                 doLogin(u);
 
                 // Check if the user should be redirected to live editing
