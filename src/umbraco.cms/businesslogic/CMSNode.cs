@@ -160,7 +160,7 @@ namespace umbraco.cms.businesslogic
         /// <returns>True if there is a CMSNode with the given Guid</returns>
         public static bool IsNode(Guid uniqueID)
         {
-            return (SqlHelper.ExecuteScalar<int>("select count(id) from umbracoNode where uniqueID = @uniqueID", SqlHelper.CreateParameter("@uniqueId", uniqueID)) > 0);
+            return (SqlHelper.ExecuteScalar<int>("select count(id) from umbracoNode where uniqueID = @uniqueId", SqlHelper.CreateParameter("@uniqueId", uniqueID)) > 0);
         }
 
         /// <summary>
