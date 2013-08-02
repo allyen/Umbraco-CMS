@@ -462,6 +462,7 @@
     <Compile Include="Persistence\Querying\IQuery.cs" />
     <Compile Include="Persistence\Querying\ModelToSqlExpressionHelper.cs" />
     <Compile Include="Persistence\Querying\Query.cs" />
+    <Compile Include="Persistence\Querying\QueryHelper.cs" />
     <Compile Include="Persistence\Querying\SqlTranslator.cs" />
     <Compile Include="Persistence\Relators\DictionaryLanguageTextRelator.cs" />
     <Compile Include="Persistence\Relators\UserSectionRelator.cs" />
@@ -665,6 +666,9 @@
     <Compile Include="Publishing\PublishStatus.cs" />
     <Compile Include="Publishing\PublishStatusType.cs" />
     <Compile Include="RenderingEngine.cs" />
+    <Compile Include="Security\AuthenticationExtensions.cs" />
+    <Compile Include="Security\UmbracoBackOfficeIdentity.cs" />
+    <Compile Include="Security\UserData.cs" />
     <Compile Include="Serialization\AbstractSerializationService.cs" />
     <Compile Include="Serialization\Formatter.cs" />
     <Compile Include="Serialization\IFormatter.cs" />
