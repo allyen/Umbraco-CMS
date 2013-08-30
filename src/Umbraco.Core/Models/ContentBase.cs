@@ -293,7 +293,10 @@ namespace Umbraco.Core.Models
         /// <returns><see cref="Property"/> Value as a <see cref="TPassType"/></returns>
         public virtual TPassType GetValue<TPassType>(string propertyTypeAlias)
         {
-            return (TPassType)Properties[propertyTypeAlias].Value;
+            if (Properties[propertyTypeAlias].Value is TPassType)
+                return (TPassType)Properties[propertyTypeAlias].Value;
+
+            return (TPassType)Convert.ChangeType(Properties[propertyTypeAlias].Value, typeof(TPassType));
         }
 
         /// <summary>
@@ -436,5 +439,20 @@ namespace Umbraco.Core.Models
         }
 
         public abstract void ChangeTrashedState(bool isTrashed, int parentId = -20);
+
+        /// <summary>
+        /// We will override this method to ensure that when we reset the dirty properties that we 
+        /// also reset the dirty changes made to the content's Properties (user defined)
+        /// </summary>
+        /// <param name="rememberPreviouslyChangedProperties"></param>
+        internal override void ResetDirtyProperties(bool rememberPreviouslyChangedProperties)
+        {
+            base.ResetDirtyProperties(rememberPreviouslyChangedProperties);
+
+            foreach (var prop in Properties)
+            {
+                prop.ResetDirtyProperties(rememberPreviouslyChangedProperties);
+            }
+        }
     }
 }

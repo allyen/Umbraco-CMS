@@ -46,20 +46,20 @@ namespace Umbraco.Tests.TestHelpers
         //Used to flag if its the first test in the current fixture
         private bool _isFirstTestInFixture = false;
 
+        private ApplicationContext _appContext;
+
         [SetUp]
         public override void Initialize()
         {
             InitializeFirstRunFlags();
-
-            base.Initialize();
-
+            
             var path = TestHelper.CurrentAssemblyDirectory;
             AppDomain.CurrentDomain.SetData("DataDirectory", path);
 
             var dbFactory = new DefaultDatabaseFactory(
                 GetDbConnectionString(),
                 GetDbProviderName());
-            ApplicationContext.Current = new ApplicationContext(
+            _appContext = new ApplicationContext(
 				//assign the db context
                 new DatabaseContext(dbFactory),
 				//assign the service context
@@ -70,6 +70,8 @@ namespace Umbraco.Tests.TestHelpers
                     IsReady = true
                 };
 
+            base.Initialize();
+
             DatabaseContext.Initialize(dbFactory.ProviderName, dbFactory.ConnectionString);
 
             CreateSqlCeDatabase();
@@ -79,7 +81,12 @@ namespace Umbraco.Tests.TestHelpers
             //ensure the configuration matches the current version for tests
             SettingsForTests.ConfigurationStatus = UmbracoVersion.Current.ToString(3);
         }
-        
+
+        protected override void SetupApplicationContext()
+        {
+            ApplicationContext.Current = _appContext;
+        }
+
         /// <summary>
         /// The database behavior to use for the test/fixture
         /// </summary>
@@ -98,7 +105,7 @@ namespace Umbraco.Tests.TestHelpers
         /// </summary>
         protected virtual string GetDbConnectionString()
         {
-            return @"Datasource=|DataDirectory|UmbracoPetaPocoTests.sdf";            
+            return @"Datasource=|DataDirectory|UmbracoPetaPocoTests.sdf;Flush Interval=1;File Access Retry Timeout=10";            
         }
 
         /// <summary>

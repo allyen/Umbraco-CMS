@@ -156,6 +156,7 @@
     <Compile Include="Events\EventExtensions.cs" />
     <Compile Include="Events\MigrationEventArgs.cs" />
     <Compile Include="Events\PublishEventArgs.cs" />
+    <Compile Include="Events\RecycleBinEventArgs.cs" />
     <Compile Include="Events\TypedEventHandler.cs" />
     <Compile Include="Events\MoveEventArgs.cs" />
     <Compile Include="Events\NewEventArgs.cs" />
@@ -237,6 +238,7 @@
     <Compile Include="Models\UmbracoEntity.cs" />
     <Compile Include="Models\UmbracoObjectTypes.cs" />
     <Compile Include="Models\UmbracoObjectTypesExtensions.cs" />
+    <Compile Include="NetworkHelper.cs" />
     <Compile Include="ObjectResolution\ApplicationEventsResolver.cs" />
     <Compile Include="ObjectResolution\ResolverCollection.cs" />
     <Compile Include="Persistence\Caching\InMemoryCacheProvider.cs" />
@@ -458,11 +460,11 @@
     <Compile Include="Persistence\PetaPocoConnectionExtensions.cs" />
     <Compile Include="Persistence\PetaPocoExtensions.cs" />
     <Compile Include="Persistence\PetaPocoSqlExtensions.cs" />
+    <Compile Include="Persistence\Querying\BaseExpressionHelper.cs" />
     <Compile Include="Persistence\Querying\PocoToSqlExpressionHelper.cs" />
     <Compile Include="Persistence\Querying\IQuery.cs" />
     <Compile Include="Persistence\Querying\ModelToSqlExpressionHelper.cs" />
     <Compile Include="Persistence\Querying\Query.cs" />
-    <Compile Include="Persistence\Querying\QueryHelper.cs" />
     <Compile Include="Persistence\Querying\SqlTranslator.cs" />
     <Compile Include="Persistence\Relators\DictionaryLanguageTextRelator.cs" />
     <Compile Include="Persistence\Relators\UserSectionRelator.cs" />
@@ -497,6 +499,7 @@
     <Compile Include="Persistence\Repositories\MediaTypeRepository.cs" />
     <Compile Include="Persistence\Repositories\PermissionRepository.cs" />
     <Compile Include="Persistence\Repositories\PetaPocoRepositoryBase.cs" />
+    <Compile Include="Persistence\Repositories\RecycleBinRepository.cs" />
     <Compile Include="Persistence\Repositories\RelationRepository.cs" />
     <Compile Include="Persistence\Repositories\RelationTypeRepository.cs" />
     <Compile Include="Persistence\Repositories\RepositoryBase.cs" />

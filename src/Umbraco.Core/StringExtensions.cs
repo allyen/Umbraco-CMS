@@ -28,6 +28,27 @@ namespace Umbraco.Core
         [UmbracoWillObsolete("Do not use this constants. See IShortStringHelper.CleanStringForSafeAliasJavaScriptCode.")]
         public const string UmbracoInvalidFirstCharacters = "01234567890";
 
+        internal static string ReplaceNonAlphanumericChars(this string input, char replacement)
+        {
+            //any character that is not alphanumeric, convert to a hyphen
+            var mName = input;
+            foreach (var c in mName.ToCharArray().Where(c => !char.IsLetterOrDigit(c)))
+            {
+                mName = mName.Replace(c, replacement);
+            }
+            return mName;
+        }
+
+        public static string ExceptChars(this string str, HashSet<char> toExclude)
+        {
+            var sb = new StringBuilder(str.Length);
+            foreach (var c in str.Where(c => toExclude.Contains(c) == false))
+            {
+                sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
 		/// <summary>
 		/// Encrypt the string using the MachineKey in medium trust
 		/// </summary>
