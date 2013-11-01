@@ -24,7 +24,7 @@ namespace Umbraco.Web
     /// <summary>
     /// Class that encapsulates Umbraco information of a specific HTTP request
     /// </summary>
-    public class UmbracoContext : DisposableObject
+    public class UmbracoContext : DisposableObject, IDisposeOnRequestEnd
     {
         private const string HttpContextItemName = "Umbraco.Web.UmbracoContext";
         private static readonly object Locker = new object();
@@ -370,8 +370,14 @@ namespace Umbraco.Web
             _umbracoContext = null;
             //ensure not to dispose this!
             Application = null;
-            ContentCache = null;
-            MediaCache = null;     
+
+            //Before we set these to null but in fact these are application lifespan singletons so 
+            //there's no reason we need to set them to null and this also caused a problem with packages
+            //trying to access the cache properties on RequestEnd.
+            //http://issues.umbraco.org/issue/U4-2734
+            //http://our.umbraco.org/projects/developer-tools/301-url-tracker/version-2/44327-Issues-with-URL-Tracker-in-614
+            //ContentCache = null;
+            //MediaCache = null;     
         }
     }
 }
