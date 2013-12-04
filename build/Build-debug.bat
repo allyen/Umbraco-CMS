@@ -14,10 +14,10 @@ SET SRC=N:\web\webcentrum-dev.muni.cz\umbraco-source\Umbraco\build\_BuildOutput\
 SET DEST=N:\web\webcentrum-dev.muni.cz\%1\web
 
 echo. && echo bin:
-robocopy %SRC%\bin %DEST%\bin /S /XO /NJH /NFL /NDL
+robocopy %SRC%\bin %DEST%\bin /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco:
-robocopy %SRC%\umbraco %DEST%\umbraco /S /XO /NJH /NFL /NDL
+robocopy %SRC%\umbraco %DEST%\umbraco /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco_client:
-robocopy %SRC%\umbraco_client %DEST%\umbraco_client /S /XO /NJH /NFL /NDL
+robocopy %SRC%\umbraco_client %DEST%\umbraco_client /S /XO /IS /NJH /NFL /NDL
 
 REM pause
