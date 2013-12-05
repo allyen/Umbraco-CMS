@@ -104,10 +104,10 @@ namespace Umbraco.Core.Models
         }
         
         [DataMember]
-        internal Lazy<int> MasterTemplateId { get; set; }
+        public Lazy<int> MasterTemplateId { get; set; }
 
         [DataMember]
-        internal string MasterTemplateAlias
+        public string MasterTemplateAlias
         {
             get { return _masterTemplateAlias; }
             set
