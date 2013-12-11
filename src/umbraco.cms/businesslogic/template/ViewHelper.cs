@@ -106,12 +106,9 @@ namespace umbraco.cms.businesslogic.template
             if (string.IsNullOrEmpty(design))
             {
                 design = @"@inherits MlokTemplatePage
-+@using Mlok.SitesFramework;
-+@using Mlok.SitesFramework.Mvc;
-+@using Mlok.SitesFramework.Mvc.Controls;
- @{
-     Layout = null;
- }";
+@{
+    Layout = null;
+}";
 
 
                 if (template.MasterTemplate > 0)
