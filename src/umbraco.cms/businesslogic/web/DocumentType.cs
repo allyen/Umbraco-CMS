@@ -578,8 +578,8 @@ namespace umbraco.cms.businesslogic.web
 
             if (!e.Cancel)
             {
-                if (MasterContentType != 0)
-                    _contentType.ParentId = MasterContentType;
+                /*if (MasterContentType != 0)
+                    _contentType.ParentId = MasterContentType;*/
 
                 foreach (var masterContentType in MasterContentTypes)
                 {
