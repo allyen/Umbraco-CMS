@@ -15,7 +15,7 @@ namespace Umbraco.Core.Sync
     /// <summary>
     /// The default server messenger that uses web services to keep servers in sync
     /// </summary>
-    internal class DefaultServerMessenger : IServerMessenger
+    public class DefaultServerMessenger : IServerMessenger
     {
         private readonly Func<Tuple<string, string>> _getUserNamePasswordDelegate;
         private volatile bool _hasResolvedDelegate = false;
@@ -380,6 +380,10 @@ namespace Umbraco.Core.Sync
             return true;
         }
 
+        public delegate void DistributedCallFailedEventHandler(IEnumerable<string> failedServers, ICacheRefresher refresher, MessageType dispatchType,
+            IEnumerable<object> ids, Type idArrayType, string jsonPayload);
+        public static event DistributedCallFailedEventHandler DistributedCallFailed;
+
         protected virtual void PerformDistributedCall(
             IEnumerable<IServerAddress> servers,
             ICacheRefresher refresher,
@@ -459,6 +463,7 @@ namespace Umbraco.Core.Sync
                     var asyncResults = GetAsyncResults(asyncResultsList, out waitHandlesList);
 
                     var errorCount = 0;
+                    var serversWithError = new List<string>();
 
                     // Once for each WaitHandle that we have, wait for a response and log it
                     // We're previously submitted all these requests effectively in parallel and will now retrieve responses on a FIFO basis
@@ -501,6 +506,9 @@ namespace Umbraco.Core.Sync
                         {
                             LogDispatchNodeError(ex);
 
+                            string url = (ex.Response != null) ? ex.Response.ResponseUri.ToString() : "invalid url (responseUri null)";
+                            serversWithError.Add(url);
+
                             errorCount++;
                         }
                         catch (Exception ex)
@@ -510,6 +518,9 @@ namespace Umbraco.Core.Sync
                             errorCount++;
                         }
                     }
+
+                    if (DistributedCallFailed != null && errorCount > 0)
+                        DistributedCallFailed(serversWithError.Where(s => s != null), refresher, dispatchType, ids, idArrayType, jsonPayload);
 
                     LogDispatchBatchResult(errorCount);
                 }
