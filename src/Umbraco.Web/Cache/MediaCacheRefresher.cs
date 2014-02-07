@@ -6,6 +6,7 @@ using Umbraco.Core.Cache;
 using Umbraco.Core.Models;
 using umbraco.interfaces;
 using System.Linq;
+using Umbraco.Core.Persistence.Caching;
 
 namespace Umbraco.Web.Cache
 {
@@ -126,7 +127,8 @@ namespace Umbraco.Web.Cache
                     }
                 });
 
-            
+            InMemoryCacheProvider.Current.Clear();
+            RuntimeCacheProvider.Current.Clear();
         }
     }
 }

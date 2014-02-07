@@ -3,6 +3,7 @@ using Umbraco.Core;
 using Umbraco.Core.Cache;
 using umbraco.cms.businesslogic.member;
 using umbraco.interfaces;
+using Umbraco.Core.Persistence.Caching;
 
 namespace Umbraco.Web.Cache
 {
@@ -48,6 +49,9 @@ namespace Umbraco.Web.Cache
                 ClearCacheByKeySearch(string.Format("{0}_{1}", CacheKeys.MemberLibraryCacheKey, id));
             ApplicationContext.Current.ApplicationCache.
                 ClearCacheByKeySearch(string.Format("{0}{1}", CacheKeys.MemberBusinessLogicCacheKey, id));
+
+            InMemoryCacheProvider.Current.Clear();
+            RuntimeCacheProvider.Current.Clear();
         }
     }
 }
