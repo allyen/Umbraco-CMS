@@ -57,7 +57,7 @@
   INCLUDES 
   *****************************************************
   -->
-  <UsingTask TaskName="TransformXml" AssemblyFile="$(WebPublishingTasks)" />
+  <!--<UsingTask TaskName="TransformXml" AssemblyFile="$(WebPublishingTasks)" />-->
 		
 
   <!-- 
