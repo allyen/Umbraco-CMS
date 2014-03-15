@@ -10,8 +10,8 @@ ReplaceIISExpressPortNumber.exe ..\src\Umbraco.Web.UI\Umbraco.Web.UI.csproj %rel
 %windir%\Microsoft.NET\Framework\v4.0.30319\msbuild.exe "Build-debug.proj" /p:BUILD_RELEASE=%release% /p:BUILD_COMMENT=%comment%
 
 echo off
-SET SRC=N:\web\webcentrum-dev.muni.cz\umbraco-source\Umbraco\build\_BuildOutput\WebApp
-SET DEST=N:\web\webcentrum-dev.muni.cz\%1\web
+SET SRC=c:\w3mu\webcentrum.muni.cz\umbraco-source\Umbraco\build\_BuildOutput\WebApp
+SET DEST=c:\w3mu\webcentrum.muni.cz\%1\web
 
 echo. && echo bin:
 robocopy %SRC%\bin %DEST%\bin /S /XO /IS /NJH /NFL /NDL
