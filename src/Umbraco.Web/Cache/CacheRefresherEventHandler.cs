@@ -156,7 +156,8 @@ namespace Umbraco.Web.Cache
         static void ContentServiceCreated(IContentService sender, Core.Events.NewEventArgs<IContent> e)
         {
             //check if permissions have changed
-            var permissionsChanged = ((Content)e.Entity).WasPropertyDirty("PermissionsChanged");
+            var permissionsChanged = true; //((Content)e.Entity).WasPropertyDirty("PermissionsChanged");
+            // as permissions are everywhere, this happens always - in v6.2 this is moved to ContentServiceSaved!!
             if (permissionsChanged)
             {
                 DistributedCache.Instance.RefreshAllUserPermissionsCache();
