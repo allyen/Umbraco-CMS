@@ -7,6 +7,7 @@ using umbraco.cms.businesslogic.web;
 
 namespace Umbraco.Tests.Routing
 {
+    [DatabaseTestBehavior(DatabaseBehavior.NewDbFileAndSchemaPerFixture)]
     [TestFixture]
     public class ContentFinderByAliasWithDomainsTests : ContentFinderByAliasTests
     {
@@ -18,11 +19,6 @@ namespace Umbraco.Tests.Routing
             TestHelper.DropForeignKeys("umbracoDomains");
 
             InitializeLanguagesAndDomains();
-        }
-
-        protected override DatabaseBehavior DatabaseTestBehavior
-        {
-            get { return DatabaseBehavior.NewSchemaPerFixture; }
         }
 
         void InitializeLanguagesAndDomains()
@@ -52,9 +48,9 @@ namespace Umbraco.Tests.Routing
         }
         
 
-        [TestCase("http://domain1.com/this/is/my/alias", "de-DE", -1001)] // alias to domain's page fails FIXME wanted?
+        [TestCase("http://domain1.com/this/is/my/alias", "de-DE", -1001)] // alias to domain's page fails - no alias on domain's home
         [TestCase("http://domain1.com/page2/alias", "de-DE", 10011)] // alias to sub-page works
-        [TestCase("http://domain1.com/en/flux", "en-US", -10011)] // alias to domain's page fails FIXME wanted?
+        [TestCase("http://domain1.com/en/flux", "en-US", -10011)] // alias to domain's page fails - no alias on domain's home
         [TestCase("http://domain1.com/endanger", "de-DE", 10011)] // alias to sub-page works, even with "en..."
         [TestCase("http://domain1.com/en/endanger", "en-US", -10011)] // no
         [TestCase("http://domain1.com/only/one/alias", "de-DE", 100111)] // ok

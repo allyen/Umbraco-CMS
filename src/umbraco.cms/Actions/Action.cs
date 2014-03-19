@@ -30,9 +30,10 @@ namespace umbraco.BusinessLogic.Actions
     /// which is enabling thirdparty developers to extend the core functionality of
     /// umbraco without changing the codebase.
     /// </summary>
+    [Obsolete("Actions and ActionHandlers are obsolete and should no longer be used")]
     public class Action
     {
-        private static readonly List<IActionHandler> ActionHandlers = new List<IActionHandler>();
+       
         private static readonly Dictionary<string, string> ActionJs = new Dictionary<string, string>();
 
         private static readonly object Lock = new object();
@@ -48,7 +49,7 @@ namespace umbraco.BusinessLogic.Actions
 		/// </summary>
 		/// <remarks>
 		/// TODO: this shouldn't be needed... we should restart the app pool when a package is installed!
-		/// </remarks>
+		/// </remarks>		
 		public static void ReRegisterActionsAndHandlers()
 		{
 			lock (Lock)
@@ -56,81 +57,14 @@ namespace umbraco.BusinessLogic.Actions
                 using (Umbraco.Core.ObjectResolution.Resolution.DirtyBackdoorToConfiguration)
                 {
                     //TODO: Based on the above, this is a big hack as types should all be cleared on package install!
-                    ActionsResolver.Reset();
-                    ActionHandlers.Clear();
+                    ActionsResolver.Reset(false); // and do NOT reset the whole resolution!
 
                     //TODO: Based on the above, this is a big hack as types should all be cleared on package install!
                     ActionsResolver.Current = new ActionsResolver(
 					    () => TypeFinder.FindClassesOfType<IAction>(PluginManager.Current.AssembliesToScan));
-
-                    RegisterIActionHandlers();
                 }
 			}
 		}
-
-        /// <summary>
-        /// Stores all IActionHandlers that have been loaded into memory into a list
-        /// </summary>
-        private static void RegisterIActionHandlers()
-        {
-            if (ActionHandlers.Count == 0)
-            {
-            	ActionHandlers.AddRange(
-            		PluginManager.Current.CreateInstances<IActionHandler>(
-            			PluginManager.Current.ResolveActionHandlers()));                
-            }
-
-        }
-
-        /// <summary>
-        /// Whenever an action is performed upon a document/media/member, this method is executed, ensuring that 
-        /// all registered handlers will have an oppotunity to handle the action.
-        /// </summary>
-        /// <param name="d">The document being operated on</param>
-        /// <param name="action">The action triggered</param>
-        public static void RunActionHandlers(Document d, IAction action)
-        {
-            foreach (IActionHandler ia in ActionHandlers)
-            {
-                try
-                {
-                    foreach (IAction a in ia.ReturnActions())
-                    {
-                        if (a.Alias == action.Alias)
-                        {
-                            // Uncommented for auto publish support
-                            // System.Web.HttpContext.Current.Trace.Write("BusinessLogic.Action.RunActionHandlers", "Running " + ia.HandlerName() + " (matching action: " + a.Alias + ")");
-                            ia.Execute(d, action);
-                        }
-                    }
-                }
-                catch (Exception iaExp)
-                {
-	                LogHelper.Error<Action>(string.Format("Error loading actionhandler '{0}'", ia.HandlerName()), iaExp);
-                }
-            }
-
-            // Run notification
-            // Find current user
-            User u;
-            try
-            {
-                u = User.GetCurrent();
-            }
-            catch
-            {
-                u = User.GetUser(0);
-            }
-            if (u == null)
-            {
-                //GE 2012-02-29
-                //user will be null when using distributed calls
-                //can't easily get the real publishing user to bubble all the way through the distributed call framework
-                //so just check for it and set it to admin, so at least the notification gets sent
-                u = User.GetUser(0);
-            }
-            Notification.GetNotifications(d, u, action);
-        }
 
         /// <summary>
         /// Jacascript for the contextmenu

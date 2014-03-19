@@ -1,6 +1,7 @@
 using System;
 using System.Xml;
 using System.Xml.Serialization;
+using Umbraco.Core.Configuration;
 using Umbraco.Web.Templates;
 using umbraco.interfaces;
 
@@ -22,7 +23,7 @@ namespace umbraco.NodeFactory
 		private string _parsedValue;
 		public string Value
 		{
-            get { return _parsedValue ?? (_parsedValue = TemplateUtilities.ResolveUrlsFromTextString(_value)); }
+            get { return _parsedValue ?? (_parsedValue = TemplateUtilities.ParseInternalLinks(TemplateUtilities.ResolveUrlsFromTextString(_value))); }
 		}
 
 		public Guid Version
@@ -47,7 +48,7 @@ namespace umbraco.NodeFactory
 				// For backward compatibility with 2.x (the version attribute has been removed from 3.0 data nodes)
 				if (PropertyXmlData.Attributes.GetNamedItem("versionID") != null)
 					_version = new Guid(PropertyXmlData.Attributes.GetNamedItem("versionID").Value);
-				_alias = UmbracoSettings.UseLegacyXmlSchema ?
+				_alias = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ?
 				                                            	PropertyXmlData.Attributes.GetNamedItem("alias").Value :
 				                                            	                                                       	PropertyXmlData.Name;
 				_value = xmlHelper.GetNodeValue(PropertyXmlData);

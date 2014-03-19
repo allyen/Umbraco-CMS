@@ -1,8 +1,13 @@
 using System;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using Umbraco.Core;
+using Umbraco.Core.Configuration;
+using Umbraco.Core.Models.EntityBase;
+using Umbraco.Web;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
 using umbraco.BusinessLogic.Actions;
@@ -17,7 +22,7 @@ using ICSharpCode.SharpZipLib.Zip;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 using ICSharpCode.SharpZipLib.Zip.Compression.Streams;
 using ICSharpCode.SharpZipLib.GZip;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using System.Collections.Generic;
 
 namespace umbraco.presentation.translation
@@ -26,7 +31,7 @@ namespace umbraco.presentation.translation
     {
         public _default()
         {
-            CurrentApp = BusinessLogic.DefaultApps.translation.ToString();
+            CurrentApp = DefaultApps.translation.ToString();
 
         }
         protected void Page_Load(object sender, EventArgs e)
@@ -117,7 +122,7 @@ namespace umbraco.presentation.translation
                         {
                             try
                             {
-                                foreach (Task translation in importTranslatationFile(translationFileXml.FullName))
+                                foreach (Task translation in ImportTranslatationFile(translationFileXml.FullName))
                                 {
 
                                     sb.Append("<li>" + translation.Node.Text + " <a target=\"_blank\" href=\"preview.aspx?id=" + translation.Id + "\">" + ui.Text("preview") + "</a></li>");
@@ -141,7 +146,7 @@ namespace umbraco.presentation.translation
                 else
                 {
                     StringBuilder sb = new StringBuilder();
-                    List<Task> l = importTranslatationFile(tempFileName);
+                    List<Task> l = ImportTranslatationFile(tempFileName);
 
                     if (l.Count == 1)
                     {
@@ -166,12 +171,7 @@ namespace umbraco.presentation.translation
             }
         }
 
-        private void hideAll()
-        {
-            pane_uploadFile.Visible = false;
-            pane_tasks.Visible = false;
-        }
-        private List<Task> importTranslatationFile(string tempFileName)
+        private List<Task> ImportTranslatationFile(string tempFileName)
         {
             try
             {
@@ -187,7 +187,7 @@ namespace umbraco.presentation.translation
 
                 foreach (XmlNode taskXml in tasks)
                 {
-                    string xpath = UmbracoSettings.UseLegacyXmlSchema ? "node" : "* [@isDoc]";
+                    string xpath = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "node" : "* [@isDoc]";
                     XmlNode taskNode = taskXml.SelectSingleNode(xpath);
 
                     // validate file
@@ -195,23 +195,15 @@ namespace umbraco.presentation.translation
                     if (t != null)
                     {
                         //user auth and content node validation
-                        if (t.Node.Id == int.Parse(taskNode.Attributes.GetNamedItem("id").Value) && (t.User.Id == base.getUser().Id || t.ParentUser.Id == base.getUser().Id))
+                        if (t.Node.Id == int.Parse(taskNode.Attributes.GetNamedItem("id").Value) && (t.User.Id == UmbracoUser.Id || t.ParentUser.Id == UmbracoUser.Id))
                         {
 
                             // update node contents
-                            Document d = new Document(t.Node.Id);
-                            Document.Import(d.ParentId, getUser(), (XmlElement)taskNode);
-                            BusinessLogic.Actions.Action.RunActionHandlers(d, ActionTranslate.Instance);
+                            var d = new Document(t.Node.Id);
+                            Document.Import(d.ParentId, UmbracoUser, (XmlElement)taskNode);
 
-                            /*                            d.Text = taskNode.Attributes.GetNamedItem("nodeName").Value.Trim();
-
-                                                        // update data elements
-                                                        foreach (XmlNode data in taskNode.SelectNodes("data"))
-                                                            if (data.FirstChild != null)
-                                                                d.getProperty(data.Attributes.GetNamedItem("alias").Value).Value = data.FirstChild.Value;
-                                                            else
-                                                                d.getProperty(data.Attributes.GetNamedItem("alias").Value).Value = "";
-                                                        */
+                            //send notifications! TODO: This should be put somewhere centralized instead of hard coded directly here
+                            ApplicationContext.Services.NotificationService.SendNotification(d.Content, ActionTranslate.Instance, ApplicationContext);
 
                             t.Closed = true;
                             t.Save();

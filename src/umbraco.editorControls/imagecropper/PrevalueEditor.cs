@@ -5,15 +5,15 @@ using umbraco.BusinessLogic;
 using umbraco.editorControls;
 using umbraco.DataLayer;
 using umbraco.interfaces;
-using umbraco.macroRenderings;
 
 namespace umbraco.editorControls.imagecropper
 {
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
     public class PrevalueEditor : PlaceHolder, IDataPrevalue
     {
         private readonly umbraco.cms.businesslogic.datatype.BaseDataType _dataType;
 
-        private propertyTypePicker imagePropertyTypePicker; // this has replaced txtPropertyAlias (a textbox used to enter a property alias)
+        private PropertyTypePicker imagePropertyTypePicker; // this has replaced txtPropertyAlias (a textbox used to enter a property alias)
         private RequiredFieldValidator imagePropertyRequiredFieldValidator;
        
         private CheckBox chkGenerateCrops;
@@ -47,7 +47,7 @@ namespace umbraco.editorControls.imagecropper
 
         public void SetupChildControls() 
         {
-            this.imagePropertyTypePicker = new propertyTypePicker() { ID = "imagePropertyTypePicker" };
+            this.imagePropertyTypePicker = new PropertyTypePicker() { ID = "imagePropertyTypePicker" };
             this.imagePropertyRequiredFieldValidator = new RequiredFieldValidator()
                                                             {
                                                                 ID = "imagePropertyRequiredFieldValidator",

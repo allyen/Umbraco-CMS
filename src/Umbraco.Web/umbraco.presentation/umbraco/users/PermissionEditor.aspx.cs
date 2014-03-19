@@ -10,6 +10,7 @@ using System.Web.UI.WebControls.WebParts;
 using System.Web.UI.HtmlControls;
 using System.Xml;
 using System.IO;
+using Umbraco.Core;
 using umbraco;
 using umbraco.BusinessLogic;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ using umbraco.BusinessLogic.Actions;
 using umbraco.interfaces;
 using umbraco.cms.presentation.Trees;
 using System.Xml.XPath;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.cms.presentation.user
 {
@@ -37,7 +38,7 @@ namespace umbraco.cms.presentation.user
 
 			if (!IsPostBack)
 			{
-				JTree.App = TreeDefinitionCollection.Instance.FindTree<loadContent>().Tree.ApplicationAlias;
+			    JTree.App = Constants.Applications.Content;
 				JTree.ShowContextMenu = false;
 				JTree.IsDialog = true;
 			}
@@ -50,10 +51,13 @@ namespace umbraco.cms.presentation.user
 
             CheckUser(Request.QueryString["id"]);
 
-            ImageButton save = pnlUmbraco.Menu.NewImageButton();
+            var save = pnlUmbraco.Menu.NewButton();
             save.ID = "btnSave";
-            save.ImageUrl = SystemDirectories.Umbraco + "/images/editor/save.gif";
-			save.OnClientClick = "SavePermissions(); return false;";
+            save.ButtonType = uicontrols.MenuButtonType.Primary;
+            save.OnClientClick = "SavePermissions(); return false;";
+            save.Text = ui.Text("save");
+            save.ToolTip = ui.Text("save");
+
 
             nodePermissions.UserID = Convert.ToInt32(Request.QueryString["id"]);
             pnlUmbraco.Text = ui.Text("user", "userPermissions");

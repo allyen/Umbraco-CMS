@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Web;
+using Moq;
 using NUnit.Framework;
-using Rhino.Mocks;
 using Umbraco.Core.Models;
+using Umbraco.Tests.TestHelpers;
 using Umbraco.Tests.TestHelpers.Entities;
 
 namespace Umbraco.Tests.Models
@@ -13,6 +14,66 @@ namespace Umbraco.Tests.Models
     [TestFixture]
     public class ContentTests
     {
+        [SetUp]
+        public void Init()
+        {
+            var config = SettingsForTests.GetDefault();
+            SettingsForTests.ConfigureSettings(config);
+        }
+
+        [TearDown]
+        public void Dispose()
+        {
+            
+        }
+
+        [TestCase("-1,-20,12,34,56", false)]
+        [TestCase("-1,-21,12,34,56", true)]
+        [TestCase("-1,12,34,56", false)]
+        public void Is_Media_In_Recycle_Bin(string path, bool isInBin)
+        {
+            var mediaType = MockedContentTypes.CreateImageMediaType();
+            var media = MockedMedia.CreateMediaFile(mediaType, -1);
+            media.Path = path;
+            media.Id = 34;
+
+            Assert.AreEqual(isInBin, media.IsInRecycleBin());
+        }
+
+        [TestCase("-1,-20,12,34,56", true)]
+        [TestCase("-1,-21,12,34,56", false)]
+        [TestCase("-1,12,34,56", false)]
+        public void Is_Content_In_Recycle_Bin(string path, bool isInBin)
+        {
+            var contentType = MockedContentTypes.CreateSimpleContentType();
+            var content = MockedContent.CreateSimpleContent(contentType);
+            content.Path = path;
+            content.Id = 34;
+
+            Assert.AreEqual(isInBin, content.IsInRecycleBin());
+        }
+
+        [Test]
+        public void Get_Non_Grouped_Properties()
+        {
+            var contentType = MockedContentTypes.CreateSimpleContentType();
+            //add non-grouped properties
+            contentType.AddPropertyType(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "nonGrouped1", Name = "Non Grouped 1", Description = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
+            contentType.AddPropertyType(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "nonGrouped2", Name = "Non Grouped 2", Description = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
+            
+            //ensure that nothing is marked as dirty
+            contentType.ResetDirtyProperties(false);
+
+
+            var content = MockedContent.CreateSimpleContent(contentType);
+            //need to id the p
+
+            var nonGrouped = content.GetNonGroupedProperties();
+
+            Assert.AreEqual(2, nonGrouped.Count());
+            Assert.AreEqual(5, content.Properties.Count());
+        }
+
         [Test]
         public void All_Dirty_Properties_Get_Reset()
         {
@@ -81,14 +142,14 @@ namespace Umbraco.Tests.Models
             var content = MockedContent.CreateTextpageContent(contentType, "Textpage", -1);
 
             var stream = new MemoryStream(System.Text.Encoding.Default.GetBytes("TestContent"));
-            var httpPostedFileBase = MockRepository.GenerateMock<HttpPostedFileBase>();
-            httpPostedFileBase.Stub(x => x.ContentLength).Return(Convert.ToInt32(stream.Length));
-            httpPostedFileBase.Stub(x => x.ContentType).Return("text/plain");
-            httpPostedFileBase.Stub(x => x.FileName).Return("sample.txt");
-            httpPostedFileBase.Stub(x => x.InputStream).Return(stream);
+            var postedFileMock = new Mock<HttpPostedFileBase>();
+            postedFileMock.Setup(x => x.ContentLength).Returns(Convert.ToInt32(stream.Length));
+            postedFileMock.Setup(x => x.ContentType).Returns("text/plain");
+            postedFileMock.Setup(x => x.FileName).Returns("sample.txt");
+            postedFileMock.Setup(x => x.InputStream).Returns(stream);
 
             // Assert
-            content.SetValue("title", httpPostedFileBase);
+            content.SetValue("title", postedFileMock.Object);
 
             // Assert
             Assert.That(content.Properties.Any(), Is.True);
@@ -209,7 +270,7 @@ namespace Umbraco.Tests.Models
             var content = MockedContent.CreateTextpageContent(contentType, "Textpage", -1);
 
             // Act
-            contentType.PropertyGroups["Content"].PropertyTypes.Add(new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+            contentType.PropertyGroups["Content"].PropertyTypes.Add(new PropertyType("test", DataTypeDatabaseType.Ntext)
                                                                         {
                                                                             Alias = "subtitle",
                                                                             Name = "Subtitle",
@@ -233,7 +294,7 @@ namespace Umbraco.Tests.Models
             var content = MockedContent.CreateTextpageContent(contentType, "Textpage", -1);
 
             // Act
-            var propertyType = new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+            var propertyType = new PropertyType("test", DataTypeDatabaseType.Ntext)
                                    {
                                        Alias = "subtitle", Name = "Subtitle", Description = "Optional subtitle", HelpText = "", Mandatory = false, SortOrder = 3, DataTypeDefinitionId = -88
                                    };
@@ -253,7 +314,7 @@ namespace Umbraco.Tests.Models
             var content = MockedContent.CreateTextpageContent(contentType, "Textpage", -1);
 
             // Act
-            var propertyType = new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+            var propertyType = new PropertyType("test", DataTypeDatabaseType.Ntext)
                                    {
                                        Alias = "subtitle",
                                        Name = "Subtitle",
@@ -284,7 +345,7 @@ namespace Umbraco.Tests.Models
             var content = MockedContent.CreateTextpageContent(contentType, "Textpage", -1);
 
             // Act - note that the PropertyType's properties like SortOrder is not updated through the Content object
-            var propertyType = new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+            var propertyType = new PropertyType("test", DataTypeDatabaseType.Ntext)
                                    {
                                        Alias = "title", Name = "Title", Description = "Title description added", HelpText = "", Mandatory = false, SortOrder = 10, DataTypeDefinitionId = -88
                                    };
@@ -472,7 +533,7 @@ namespace Umbraco.Tests.Models
             contentType.ResetDirtyProperties();
 
             // Act
-            var propertyType = new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+            var propertyType = new PropertyType("test", DataTypeDatabaseType.Ntext)
                                    {
                                        Alias = "subtitle",
                                        Name = "Subtitle",
@@ -499,7 +560,7 @@ namespace Umbraco.Tests.Models
                                                                                 new PropertyTypeCollection(
                                                                                     new List<PropertyType>
                                                                                         {
-                                                                                            new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+                                                                                            new PropertyType("test", DataTypeDatabaseType.Ntext)
                                                                                                 {
                                                                                                     Alias = "coauthor",
                                                                                                     Name = "Co-Author",
@@ -532,7 +593,7 @@ namespace Umbraco.Tests.Models
                                                                                 new PropertyTypeCollection(
                                                                                     new List<PropertyType>
                                                                                         {
-                                                                                            new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+                                                                                            new PropertyType("test", DataTypeDatabaseType.Ntext)
                                                                                                 {
                                                                                                     Alias = "coauthor",
                                                                                                     Name = "Co-Author",
@@ -567,7 +628,7 @@ namespace Umbraco.Tests.Models
             var mixin1 = MockedContentTypes.CreateSimpleContentType("mixin1", "Mixin1", new PropertyTypeCollection(
                                                                                     new List<PropertyType>
                                                                                         {
-                                                                                            new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+                                                                                            new PropertyType("test", DataTypeDatabaseType.Ntext)
                                                                                                 {
                                                                                                     Alias = "coauthor",
                                                                                                     Name = "Co-Author",
@@ -581,7 +642,7 @@ namespace Umbraco.Tests.Models
             var mixin2 = MockedContentTypes.CreateSimpleContentType("mixin2", "Mixin2", new PropertyTypeCollection(
                                                                                     new List<PropertyType>
                                                                                         {
-                                                                                            new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+                                                                                            new PropertyType("test", DataTypeDatabaseType.Ntext)
                                                                                                 {
                                                                                                     Alias = "author",
                                                                                                     Name = "Author",

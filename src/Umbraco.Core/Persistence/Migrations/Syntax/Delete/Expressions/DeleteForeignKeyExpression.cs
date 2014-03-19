@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 using Umbraco.Core.Persistence.SqlSyntax;
 
@@ -27,7 +28,7 @@ namespace Umbraco.Core.Persistence.Migrations.Syntax.Delete.Expressions
             if (ForeignKey.ForeignTable == null)
                 throw new ArgumentNullException("Table name not specified, ensure you have appended the OnTable extension. Format should be Delete.ForeignKey(KeyName).OnTable(TableName)");
 
-            if(CurrentDatabaseProvider == DatabaseProviders.MySql)
+            if (CurrentDatabaseProvider == DatabaseProviders.MySql)
             {
                 //MySql naming "convention" for foreignkeys, which aren't explicitly named
                 if (string.IsNullOrEmpty(ForeignKey.Name))
@@ -35,13 +36,13 @@ namespace Umbraco.Core.Persistence.Migrations.Syntax.Delete.Expressions
 
                 return string.Format(SqlSyntaxContext.SqlSyntaxProvider.DeleteConstraint,
                                  SqlSyntaxContext.SqlSyntaxProvider.GetQuotedTableName(ForeignKey.ForeignTable),
-                                 "FOREIGN KEY ",
+                                 "FOREIGN KEY",
                                  SqlSyntaxContext.SqlSyntaxProvider.GetQuotedName(ForeignKey.Name));
             }
 
             if (string.IsNullOrEmpty(ForeignKey.Name))
             {
-                ForeignKey.Name = string.Format("FK_{0}_{1}", ForeignKey.ForeignTable, ForeignKey.PrimaryTable);
+                ForeignKey.Name = string.Format("FK_{0}_{1}_{2}", ForeignKey.ForeignTable, ForeignKey.PrimaryTable, ForeignKey.PrimaryColumns.First());
             }
 
             return string.Format(SqlSyntaxContext.SqlSyntaxProvider.DeleteConstraint,

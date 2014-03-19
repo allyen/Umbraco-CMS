@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Web;
 using System.Xml;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
 using Umbraco.Web;
 using umbraco;
@@ -13,7 +14,7 @@ using umbraco.DataLayer;
 namespace umbraco
 {
 	/// <summary>
-	/// uQuery - static helper methods, previously this class was UmbracoHelper
+	/// uQuery - static helper methods
 	/// </summary>
 	public static partial class uQuery
 	{
@@ -106,7 +107,7 @@ namespace umbraco
 
 			try
 			{
-				isLegacyXmlSchema = UmbracoSettings.UseLegacyXmlSchema;
+				isLegacyXmlSchema = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema;
 			}
 			catch (MissingMethodException)
 			{

@@ -21,7 +21,7 @@ using Umbraco.Web.Templates;
 using umbraco.cms.businesslogic;
 using umbraco.cms.businesslogic.property;
 using umbraco.cms.businesslogic.web;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.presentation.templateControls
 {
@@ -75,7 +75,18 @@ namespace umbraco.presentation.templateControls
                 // handle text before/after
                 xsltTransformedOutput = AddBeforeAfterText(xsltTransformedOutput, helper.FindAttribute(item.LegacyAttributes, "insertTextBefore"), helper.FindAttribute(item.LegacyAttributes, "insertTextAfter"));
                 string finalResult = xsltTransformedOutput.Trim().Length > 0 ? xsltTransformedOutput : GetEmptyText(item);
-                writer.Write(TemplateUtilities.ResolveUrlsFromTextString(finalResult));
+
+                //Don't parse urls if a content item is assigned since that is taken care
+                // of with the value converters
+                if (item.ContentItem == null)
+                {
+                    writer.Write(TemplateUtilities.ResolveUrlsFromTextString(finalResult));
+                }
+                else
+                {
+                    writer.Write(finalResult);
+                }
+                
             }
             catch (Exception renderException)
             {
@@ -148,36 +159,46 @@ namespace umbraco.presentation.templateControls
         /// </summary>
         /// <param name="item">The item.</param>
         protected virtual void ParseMacros(Item item)
-        {
+        {  
             // do nothing if the macros have already been rendered
             if (item.Controls.Count > 0)
                 return;
+            
+            var elementText = GetFieldContents(item);
 
-            string elementText = GetFieldContents(item);
-
-            using (DisposableTimer.DebugDuration<ItemRenderer>("Parsing Macros"))
+            //Don't parse macros if there's a content item assigned since the content value
+            // converters take care of that, just add the already parsed text
+            if (item.ContentItem != null)
             {
-
-                MacroTagParser.ParseMacros(
-                    elementText,
-
-                    //callback for when a text block is parsed
-                    textBlock => item.Controls.Add(new LiteralControl(textBlock)),
-
-                    //callback for when a macro is parsed:
-                    (macroAlias, attributes) =>
-                    {
-                        var macroControl = new Macro
-                                               {
-                                                   Alias = macroAlias
-                                               };
-                        foreach (var i in attributes.Where(i => macroControl.Attributes[i.Key] == null))
-                        {
-                            macroControl.Attributes.Add(i.Key, i.Value);
-                        }
-                        item.Controls.Add(macroControl);
-                    });
+                item.Controls.Add(new LiteralControl(elementText));
             }
+            else
+            {
+                using (DisposableTimer.DebugDuration<ItemRenderer>("Parsing Macros"))
+                {
+
+                    MacroTagParser.ParseMacros(
+                        elementText,
+
+                        //callback for when a text block is parsed
+                        textBlock => item.Controls.Add(new LiteralControl(textBlock)),
+
+                        //callback for when a macro is parsed:
+                        (macroAlias, attributes) =>
+                        {
+                            var macroControl = new Macro
+                            {
+                                Alias = macroAlias
+                            };
+                            foreach (var i in attributes.Where(i => macroControl.Attributes[i.Key] == null))
+                            {
+                                macroControl.Attributes.Add(i.Key, i.Value);
+                            }
+                            item.Controls.Add(macroControl);
+                        });
+                }
+            }
+            
         }
 
         /// <summary>

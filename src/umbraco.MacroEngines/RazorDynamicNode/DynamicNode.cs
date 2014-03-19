@@ -6,8 +6,10 @@ using System.Linq;
 using System.Threading;
 using System.Web;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Dynamics;
 using Umbraco.Core.Logging;
+using Umbraco.Core.Strings;
 using umbraco.interfaces;
 using System.Collections;
 using System.Reflection;
@@ -483,8 +485,19 @@ namespace umbraco.MacroEngines
             //contextAlias is the node which the property data was returned from
             //Guid dataType = ContentType.GetDataType(data.ContextAlias, data.Alias);					
             var dataType = GetDataType(propResult.ContextAlias, propResult.Alias);
-
-            var staticMapping = UmbracoSettings.RazorDataTypeModelStaticMapping
+            
+            //now we need to map to the old object until we can clean all this nonsense up
+            var configMapping = UmbracoConfig.For.UmbracoSettings().Scripting.DataTypeModelStaticMappings
+                                                    .Select(x => new RazorDataTypeModelStaticMappingItem()
+                                                        {
+                                                            DataTypeGuid = x.DataTypeGuid,
+                                                            NodeTypeAlias = x.NodeTypeAlias,
+                                                            PropertyTypeAlias = x.PropertyTypeAlias,
+                                                            Raw = string.Empty,
+                                                            TypeName = x.MappingName
+                                                        }).ToList();
+            
+            var staticMapping = configMapping
                 .FirstOrDefault(mapping => mapping.Applies(dataType, propResult.ContextAlias, propResult.Alias));
             
             if (staticMapping != null)
@@ -644,36 +657,8 @@ namespace umbraco.MacroEngines
 
         private object GetReflectedProperty(string alias)
         {
-            Func<string, Attempt<object>> getMember =
-                    memberAlias =>
-                    {
-                        try
-                        {
-                            return new Attempt<object>(true,
-                                                       n.GetType().InvokeMember(memberAlias,
-                                                                                System.Reflection.BindingFlags.GetProperty |
-                                                                                System.Reflection.BindingFlags.Instance |
-                                                                                System.Reflection.BindingFlags.Public,
-                                                                                null,
-                                                                                n,
-                                                                                null));
-                        }
-                        catch (MissingMethodException ex)
-                        {
-                            return new Attempt<object>(ex);
-                        }
-                    };
-
-            //try with the current casing
-            var attempt = getMember(alias);
-            if (!attempt.Success)
-            {
-                //if we cannot get with the current alias, try changing it's case
-                attempt = alias[0].IsUpperCase()
-                    ? getMember(alias.ConvertCase(StringAliasCaseType.CamelCase))
-                    : getMember(alias.ConvertCase(StringAliasCaseType.PascalCase));
-            }
-
+            var attempt = n.GetType().GetMemberIgnoreCase(n, alias);
+            
             return attempt.Success ? attempt.Result : null;
         }
 
@@ -800,8 +785,8 @@ namespace umbraco.MacroEngines
                             //check that the document element is not one of the disallowed elements
                             //allows RTE to still return as html if it's valid xhtml
                             string documentElement = e.Name.LocalName;
-                            if (UmbracoSettings.NotDynamicXmlDocumentElements.Any(tag =>
-                                                                                  string.Equals(tag, documentElement, StringComparison.CurrentCultureIgnoreCase)) == false)
+                            if (UmbracoConfig.For.UmbracoSettings().Scripting.NotDynamicXmlDocumentElements.Any(tag =>
+                                                                                  string.Equals(tag.Element, documentElement, StringComparison.CurrentCultureIgnoreCase)) == false)
                             {
                                 result = new DynamicXml(e);
                                 return true;

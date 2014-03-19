@@ -3,13 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Web;
 using System.Xml;
 using System.Xml.Serialization;
 using System.Xml.XPath;
+using Umbraco.Core.Configuration;
 using umbraco.cms.businesslogic;
 using umbraco.cms.businesslogic.propertytype;
 using umbraco.interfaces;
 using Umbraco.Core;
+using Umbraco.Web;
 
 namespace umbraco.NodeFactory
 {
@@ -298,7 +301,12 @@ namespace umbraco.NodeFactory
 				_pageXmlNode = ((IHasXmlNode)library.GetXmlNodeById(NodeId.ToString()).Current).GetNode();
 			else
 			{
-				if (presentation.UmbracoContext.Current != null)
+			    if (UmbracoContext.Current != null)
+			    {
+			        var cache = UmbracoContext.Current.ContentCache.InnerCache as Umbraco.Web.PublishedCache.XmlPublishedCache.PublishedContentCache;
+                    _pageXmlNode = cache.GetXml(UmbracoContext.Current, false).DocumentElement;
+			    }
+				else if (presentation.UmbracoContext.Current != null)
 				{
 					_pageXmlNode = umbraco.presentation.UmbracoContext.Current.GetXml().DocumentElement;
 				}
@@ -488,7 +496,7 @@ namespace umbraco.NodeFactory
 					if (_pageXmlNode.Attributes.GetNamedItem("writerID") != null)
 						_writerID = int.Parse(_pageXmlNode.Attributes.GetNamedItem("writerID").Value);
 
-					if (UmbracoSettings.UseLegacyXmlSchema)
+					if (UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema)
 					{
 						if (_pageXmlNode.Attributes.GetNamedItem("nodeTypeAlias") != null)
 							_nodeTypeAlias = _pageXmlNode.Attributes.GetNamedItem("nodeTypeAlias").Value;
@@ -512,12 +520,12 @@ namespace umbraco.NodeFactory
 				}
 
 				// load data
-				string dataXPath = UmbracoSettings.UseLegacyXmlSchema ? "data" : "* [not(@isDoc)]";
+				string dataXPath = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "data" : "* [not(@isDoc)]";
 				foreach (XmlNode n in _pageXmlNode.SelectNodes(dataXPath))
 					_properties.Add(new Property(n));
 
 				// load children
-				string childXPath = UmbracoSettings.UseLegacyXmlSchema ? "node" : "* [@isDoc]";
+				string childXPath = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "node" : "* [@isDoc]";
 				XPathNavigator nav = _pageXmlNode.CreateNavigator();
 				XPathExpression expr = nav.Compile(childXPath);
 				expr.AddSort("@sortOrder", XmlSortOrder.Ascending, XmlCaseOrder.None, "", XmlDataType.Number);
@@ -541,11 +549,9 @@ namespace umbraco.NodeFactory
 
 		public static int getCurrentNodeId()
 		{
-			XmlNode n = ((IHasXmlNode)library.GetXmlNodeCurrent().Current).GetNode();
-			if (n.Attributes == null || n.Attributes.GetNamedItem("id") == null)
-				throw new ArgumentException("Current node is null. This might be due to previewing an unpublished node. As the NodeFactory works with published data, macros using the node factory won't work in preview mode.", "Current node is " + System.Web.HttpContext.Current.Items["pageID"].ToString());
-
-			return int.Parse(n.Attributes.GetNamedItem("id").Value);
+           if (HttpContext.Current.Items["pageID"] == null)
+                throw new InvalidOperationException("There is no current node.");
+		    return (int)HttpContext.Current.Items["pageID"];
 		}
 	}
 }

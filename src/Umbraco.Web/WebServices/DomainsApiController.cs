@@ -7,6 +7,7 @@ using System.Web.Http;
 using Umbraco.Core;
 using Umbraco.Web.WebApi;
 //using umbraco.cms.businesslogic.language;
+using umbraco.BusinessLogic.Actions;
 using umbraco.cms.businesslogic.web;
 
 namespace Umbraco.Web.WebServices
@@ -24,18 +25,20 @@ namespace Umbraco.Web.WebServices
             var node = ApplicationContext.Current.Services.ContentService.GetById(model.NodeId);
 
             if (node == null)
-                throw new HttpResponseException(new HttpResponseMessage(HttpStatusCode.BadRequest)
-                {
-                    Content = new StringContent(string.Format("There is no content node with id {0}.", model.NodeId)),
-                    ReasonPhrase = "Node Not Found."
-                });
+            {
+                var response = Request.CreateResponse(HttpStatusCode.BadRequest);
+                response.Content = new StringContent(string.Format("There is no content node with id {0}.", model.NodeId));
+                response.ReasonPhrase = "Node Not Found.";
+                throw new HttpResponseException(response);
+            }
 
-            if (!UmbracoUser.GetPermissions(node.Path).Contains(global::umbraco.BusinessLogic.Actions.ActionAssignDomain.Instance.Letter))
-                throw new HttpResponseException(new HttpResponseMessage(HttpStatusCode.Unauthorized)
-                    {
-                        Content = new StringContent("You do not have permission to assign domains on that node."),
-                        ReasonPhrase = "Permission Denied."
-                    });
+            if (UmbracoUser.GetPermissions(node.Path).Contains(ActionAssignDomain.Instance.Letter) == false)
+            {
+                var response = Request.CreateResponse(HttpStatusCode.BadRequest);
+                response.Content = new StringContent("You do not have permission to assign domains on that node.");
+                response.ReasonPhrase = "Permission Denied.";
+                throw new HttpResponseException(response);
+            }
 
             model.Valid = true;
             var domains = Routing.DomainHelper.GetNodeDomains(model.NodeId, true);
@@ -61,12 +64,14 @@ namespace Umbraco.Web.WebServices
 
             // process domains
 
-            foreach (var domain in domains.Where(d => model.Domains.All(m => !m.Name.Equals(d.Name, StringComparison.OrdinalIgnoreCase))))
+            // delete every (non-wildcard) domain, that exists in the DB yet is not in the model
+            foreach (var domain in domains.Where(d => d.IsWildcard == false && model.Domains.All(m => m.Name.Equals(d.Name, StringComparison.OrdinalIgnoreCase) == false)))
                 domain.Delete();
 
             var names = new List<string>();
 
-            foreach (var domainModel in model.Domains.Where(m => !string.IsNullOrWhiteSpace(m.Name)))
+            // create or update domains in the model
+            foreach (var domainModel in model.Domains.Where(m => string.IsNullOrWhiteSpace(m.Name) == false))
             {
                 language = languages.FirstOrDefault(l => l.id == domainModel.Lang);
                 if (language == null)
@@ -87,7 +92,7 @@ namespace Umbraco.Web.WebServices
                     Domain.MakeNew(name, model.NodeId, domainModel.Lang);
             }
 
-            model.Valid = model.Domains.All(m => !m.Duplicate);
+            model.Valid = model.Domains.All(m => m.Duplicate == false);
 
             return model;
         }

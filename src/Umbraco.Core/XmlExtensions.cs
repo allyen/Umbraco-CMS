@@ -13,6 +13,12 @@ namespace Umbraco.Core
 	/// </summary>
 	internal static class XmlExtensions
 	{
+
+        public static bool HasAttribute(this XmlAttributeCollection attributes, string attributeName)
+        {
+            return attributes.Cast<XmlAttribute>().Any(x => x.Name == attributeName);
+        }	
+		
         /// <summary>
         /// Selects a list of XmlNode matching an XPath expression.
         /// </summary>
@@ -196,20 +202,20 @@ namespace Umbraco.Core
             }
         }
 
-        /// <summary>
-        /// Converts from an XElement to an XmlElement
-        /// </summary>
-        /// <param name="xElement"></param>
-        /// <returns></returns>
-        public static XmlNode ToXmlElement(this XElement xElement)
-        {
-            var xmlDocument = new XmlDocument();
-            using (var xmlReader = xElement.CreateReader())
-            {
-                xmlDocument.Load(xmlReader);
-            }
-            return xmlDocument.DocumentElement;
-        }
+        ///// <summary>
+        ///// Converts from an XElement to an XmlElement
+        ///// </summary>
+        ///// <param name="xElement"></param>
+        ///// <returns></returns>
+        //public static XmlNode ToXmlElement(this XContainer xElement)
+        //{
+        //    var xmlDocument = new XmlDocument();
+        //    using (var xmlReader = xElement.CreateReader())
+        //    {
+        //        xmlDocument.Load(xmlReader);
+        //    }
+        //    return xmlDocument.DocumentElement;
+        //}
 
         /// <summary>
         /// Converts from an XmlElement to an XElement
@@ -264,7 +270,7 @@ namespace Umbraco.Core
             return xDoc.Root;
         }
 
-        public static XmlNode GetXmlNode(this XElement element)
+        public static XmlNode GetXmlNode(this XContainer element)
         {
             using (XmlReader xmlReader = element.CreateReader())
             {
@@ -274,7 +280,7 @@ namespace Umbraco.Core
             }
         }
 
-        public static XmlNode GetXmlNode(this XElement element, XmlDocument xmlDoc)
+        public static XmlNode GetXmlNode(this XContainer element, XmlDocument xmlDoc)
         {
             using (XmlReader xmlReader = element.CreateReader())
             {
@@ -282,5 +288,6 @@ namespace Umbraco.Core
                 return xmlDoc.DocumentElement;
             }
         }
+
 	}
 }

@@ -1,4 +1,5 @@
 ﻿using Umbraco.Core.Logging;
+using Umbraco.Web;
 
 namespace dashboardUtilities
 {
@@ -9,7 +10,7 @@ namespace dashboardUtilities
     using umbraco;
     using umbraco.BasePages;
     using umbraco.BusinessLogic;
-    using umbraco.IO;
+    using Umbraco.Core.IO;
 
     public partial class FeedProxy : UmbracoEnsuredPage
     {
@@ -32,10 +33,10 @@ namespace dashboardUtilities
                                 {
                                     var response = client.DownloadString(requestUri);
 
-                                    if (!string.IsNullOrEmpty(response))
+                                    if (string.IsNullOrEmpty(response) == false)
                                     {
                                         Response.Clear();
-                                        Response.ContentType = Request.QueryString["type"] ?? MediaTypeNames.Text.Xml;
+                                        Response.ContentType = Request.CleanForXss("type") ?? MediaTypeNames.Text.Xml;
                                         Response.Write(response);
                                     }
                                 }

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using Umbraco.Core.Cache;
 using Umbraco.Core.Models.EntityBase;
 
 namespace Umbraco.Core.Persistence.Caching
 {
+  
     /// <summary>
     /// Defines the implementation of a Cache Provider intented to back a repository
     /// </summary>

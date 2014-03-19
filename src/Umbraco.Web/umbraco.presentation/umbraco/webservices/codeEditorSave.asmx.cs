@@ -11,17 +11,13 @@ using System.Web.Services;
 using System.Web.UI;
 using System.Xml;
 using System.Xml.Xsl;
-using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Web.WebServices;
-using Umbraco.Web;
-using Umbraco.Web.Cache;
-using umbraco.BasePages;
 using umbraco.BusinessLogic;
 using umbraco.cms.businesslogic.macro;
 using umbraco.cms.businesslogic.template;
 using umbraco.cms.businesslogic.web;
-using umbraco.presentation.cache;
 using System.Net;
 using System.Collections;
 using umbraco.NodeFactory;
@@ -37,7 +33,7 @@ namespace umbraco.presentation.webservices
     [ScriptService]
     public class codeEditorSave : UmbracoAuthorizedWebService
     {
-
+       
         [WebMethod]
         public string SaveCss(string fileName, string oldName, string fileContents, int fileID)
         {
@@ -103,7 +99,7 @@ namespace umbraco.presentation.webservices
                     try
                     {
                         // Check if there's any documents yet
-                        string xpath = UmbracoSettings.UseLegacyXmlSchema ? "/root/node" : "/root/*";
+                        string xpath = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "/root/node" : "/root/*";
                         if (content.Instance.XmlContent.SelectNodes(xpath).Count > 0)
                         {
                             var macroXML = new XmlDocument();
@@ -286,7 +282,7 @@ namespace umbraco.presentation.webservices
                         {
                             var engine = MacroEngineFactory.GetByFilename(tempFileName);
                             var tempErrorMessage = "";
-                            var xpath = UmbracoSettings.UseLegacyXmlSchema ? "/root/node" : "/root/*";
+                            var xpath = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "/root/node" : "/root/*";
                             if (
                                 !engine.Validate(fileContents, tempFileName, Node.GetNodeByXpath(xpath),
                                                  out tempErrorMessage))
@@ -384,7 +380,7 @@ namespace umbraco.presentation.webservices
                                           SystemDirectories.Scripts);
                 // validate extension
                 IOHelper.ValidateFileExtension(IOHelper.MapPath(SystemDirectories.Scripts + "/" + filename),
-                                               UmbracoSettings.ScriptFileTypes.Split(',').ToList());
+                                               UmbracoConfig.For.UmbracoSettings().Content.ScriptFileTypes.ToList());
 
 
                 var val = contents;

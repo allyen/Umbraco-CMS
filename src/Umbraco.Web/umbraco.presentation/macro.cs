@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -17,27 +16,31 @@ using System.Web.UI.WebControls;
 using System.Xml;
 using System.Xml.XPath;
 using System.Xml.Xsl;
-using StackExchange.Profiling;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Events;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
+using Umbraco.Core.Macros;
+using Umbraco.Core.Xml.XPath;
 using Umbraco.Core.Profiling;
+using umbraco.interfaces;
 using Umbraco.Web;
 using Umbraco.Web.Cache;
 using Umbraco.Web.Macros;
 using Umbraco.Web.Templates;
 using umbraco.BusinessLogic;
-using umbraco.cms.businesslogic;
 using umbraco.cms.businesslogic.macro;
 using umbraco.cms.businesslogic.member;
 using umbraco.DataLayer;
 using umbraco.NodeFactory;
 using umbraco.presentation.templateControls;
+using Umbraco.Web.umbraco.presentation;
 using Content = umbraco.cms.businesslogic.Content;
 using Macro = umbraco.cms.businesslogic.macro.Macro;
 using MacroErrorEventArgs = Umbraco.Core.Events.MacroErrorEventArgs;
+using System.Linq;
 
 namespace umbraco
 {
@@ -50,6 +53,7 @@ namespace umbraco
 
         /// <summary>Cache for <see cref="GetPredefinedXsltExtensions"/>.</summary>
         private static Dictionary<string, object> _predefinedExtensions;
+        private static XsltSettings _xsltSettings;
         private const string LoadUserControlKey = "loadUserControl";
         private readonly StringBuilder _content = new StringBuilder();
         private const string MacrosAddedKey = "macrosAdded";
@@ -58,6 +62,13 @@ namespace umbraco
         protected static ISqlHelper SqlHelper
         {
             get { return Application.SqlHelper; }
+        }
+
+        static macro()
+        {
+            _xsltSettings = GlobalSettings.ApplicationTrustLevel > AspNetHostingPermissionLevel.Medium
+                ? XsltSettings.TrustedXslt
+                : XsltSettings.Default;
         }
 
         #endregion
@@ -161,12 +172,6 @@ namespace umbraco
 
         private const string XsltExtensionsCacheKey = "UmbracoXsltExtensions";
 
-        private static readonly string XsltExtensionsConfig =
-            IOHelper.MapPath(SystemDirectories.Config + "/xsltExtensions.config");
-
-        private static readonly Func<CacheDependency> _xsltExtensionsDependency =
-            () => new CacheDependency(XsltExtensionsConfig);
-
         /// <summary>
         /// Creates an empty macro object.
         /// </summary>
@@ -231,8 +236,32 @@ namespace umbraco
             return renderMacro(pageElements, pageId);
         }
 
+        /// <summary>
+        /// An event that is raised just before the macro is rendered allowing developers to modify the macro before it executes.
+        /// </summary>
+        public static event TypedEventHandler<macro, MacroRenderingEventArgs> MacroRendering;
+        
+        /// <summary>
+        /// Raises the MacroRendering event
+        /// </summary>
+        /// <param name="e"></param>
+        protected void OnMacroRendering(MacroRenderingEventArgs e)
+        {
+            if (MacroRendering != null)
+                MacroRendering(this, e);
+        }
+
+        /// <summary>
+        /// Renders the macro
+        /// </summary>
+        /// <param name="pageElements"></param>
+        /// <param name="pageId"></param>
+        /// <returns></returns>
         public Control renderMacro(Hashtable pageElements, int pageId)
         {
+            // Event to allow manipulation of Macro Model
+            OnMacroRendering(new MacroRenderingEventArgs(pageElements, pageId));
+
             var macroInfo = (Model.MacroType == MacroTypes.Script && Model.Name.IsNullOrWhiteSpace())
                                 ? string.Format("Render Inline Macro, Cache: {0})", Model.CacheDuration)
                                 : string.Format("Render Macro: {0}, type: {1}, cache: {2})", Name, Model.MacroType, Model.CacheDuration);
@@ -278,7 +307,7 @@ namespace umbraco
                                                 Alias = Model.Alias,
                                                 ItemKey = Model.ScriptName,
                                                 Exception = e,
-                                                Behaviour = UmbracoSettings.MacroErrorBehaviour
+                                                Behaviour = UmbracoConfig.For.UmbracoSettings().Content.MacroErrorBehaviour
                                             };
                                     return GetControlForErrorBehavior("Error loading Partial View script (file: " + ScriptFile + ")", macroErrorEventArgs);
                                 };
@@ -346,7 +375,7 @@ namespace umbraco
                                         Alias = Model.Alias,
                                         ItemKey = Model.TypeName,
                                         Exception = e,
-                                        Behaviour = UmbracoSettings.MacroErrorBehaviour
+                                        Behaviour = UmbracoConfig.For.UmbracoSettings().Content.MacroErrorBehaviour
                                     };
 
                                     macroControl = GetControlForErrorBehavior("Error loading userControl '" + Model.TypeName + "'", macroErrorEventArgs);
@@ -387,7 +416,7 @@ namespace umbraco
                                         Alias = Model.Alias,
                                         ItemKey = Model.TypeAssembly,
                                         Exception = e,
-                                        Behaviour = UmbracoSettings.MacroErrorBehaviour
+                                        Behaviour = UmbracoConfig.For.UmbracoSettings().Content.MacroErrorBehaviour
                                     };
 
                                     macroControl = GetControlForErrorBehavior("Error loading customControl (Assembly: " + Model.TypeAssembly + ", Type: '" + Model.TypeName + "'", macroErrorEventArgs);
@@ -419,7 +448,7 @@ namespace umbraco
                                                 Alias = Model.Alias,
                                                 ItemKey = ScriptFile,
                                                 Exception = e,
-                                                Behaviour = UmbracoSettings.MacroErrorBehaviour
+                                                Behaviour = UmbracoConfig.For.UmbracoSettings().Content.MacroErrorBehaviour
                                             };
 
                                     return GetControlForErrorBehavior("Error loading MacroEngine script (file: " + ScriptFile + ")", macroErrorEventArgs);
@@ -767,7 +796,9 @@ namespace umbraco
             {
                 if (attributes.ContainsKey(mp.Key.ToLower()))
                 {
-                    mp.Value = attributes[mp.Key.ToLower()].ToString();
+                    var item = attributes[mp.Key.ToLower()];
+
+                    mp.Value = item == null ? string.Empty : item.ToString();
                 }
                 else
                 {
@@ -797,14 +828,7 @@ namespace umbraco
 
             try
             {
-                if (GlobalSettings.ApplicationTrustLevel > AspNetHostingPermissionLevel.Medium)
-                {
-                    macroXslt.Load(xslReader, XsltSettings.TrustedXslt, xslResolver);
-                }
-                else
-                {
-                    macroXslt.Load(xslReader, XsltSettings.Default, xslResolver);
-                }
+                macroXslt.Load(xslReader, _xsltSettings, xslResolver);
             }
             finally
             {
@@ -835,21 +859,41 @@ namespace umbraco
             using (DisposableTimer.DebugDuration<macro>("Executing XSLT: " + XsltFile))
             {
                 XmlDocument macroXml = null;
+                MacroNavigator macroNavigator = null;
+                NavigableNavigator contentNavigator = null;
 
-                // get master xml document
-                var cache = UmbracoContext.Current.ContentCache.InnerCache as Umbraco.Web.PublishedCache.XmlPublishedCache.PublishedContentCache;
-                if (cache == null) throw new Exception("Unsupported IPublishedContentCache, only the Xml one is supported.");
-                XmlDocument umbracoXml = cache.GetXml(UmbracoContext.Current, UmbracoContext.Current.InPreviewMode);
-                macroXml = new XmlDocument();
-                macroXml.LoadXml("<macro/>");
-                foreach (var prop in macro.Model.Properties)
+                var canNavigate =
+                    UmbracoContext.Current.ContentCache.XPathNavigatorIsNavigable &&
+                    UmbracoContext.Current.MediaCache.XPathNavigatorIsNavigable;
+
+                if (!canNavigate)
                 {
-                    AddMacroXmlNode(umbracoXml, macroXml, prop.Key, prop.Type, prop.Value);
+                     // get master xml document
+                    var cache = UmbracoContext.Current.ContentCache.InnerCache as Umbraco.Web.PublishedCache.XmlPublishedCache.PublishedContentCache;
+                    if (cache == null) throw new Exception("Unsupported IPublishedContentCache, only the Xml one is supported.");
+                    XmlDocument umbracoXml = cache.GetXml(UmbracoContext.Current, UmbracoContext.Current.InPreviewMode);
+                    macroXml = new XmlDocument();
+                    macroXml.LoadXml("<macro/>");
+                    foreach (var prop in macro.Model.Properties)
+                    {
+                        AddMacroXmlNode(umbracoXml, macroXml, prop.Key, prop.Type, prop.Value);
+                    }
+                }
+                else
+                {
+                    var parameters = new List<MacroNavigator.MacroParameter>();
+                    contentNavigator = UmbracoContext.Current.ContentCache.GetXPathNavigator() as NavigableNavigator;
+                    var mediaNavigator = UmbracoContext.Current.MediaCache.GetXPathNavigator() as NavigableNavigator;
+                    foreach (var prop in macro.Model.Properties)
+                    {
+                        AddMacroParameter(parameters, contentNavigator, mediaNavigator, prop.Key, prop.Type, prop.Value);
+                    }
+                    macroNavigator = new MacroNavigator(parameters);
                 }
 
                 if (HttpContext.Current.Request.QueryString["umbDebug"] != null && GlobalSettings.DebugMode)
                 {
-                    var outerXml = macroXml.OuterXml;
+                    var outerXml = macroXml == null ? macroNavigator.OuterXml : macroXml.OuterXml;
                     return
                         new LiteralControl("<div style=\"border: 2px solid green; padding: 5px;\"><b>Debug from " +
                                            macro.Name +
@@ -865,7 +909,9 @@ namespace umbraco
                     {
                         try
                         {
-                            var transformed = GetXsltTransformResult(macroXml, xsltFile);
+                        var transformed = canNavigate
+                            ? GetXsltTransformResult(macroNavigator, contentNavigator, xsltFile) // better?
+                            : GetXsltTransformResult(macroXml, xsltFile); // document
                             var result = CreateControlsFromText(transformed);
 
                             return result;
@@ -875,7 +921,7 @@ namespace umbraco
                             Exceptions.Add(e);
                             LogHelper.WarnWithException<macro>("Error parsing XSLT file", e);
                             
-                            var macroErrorEventArgs = new MacroErrorEventArgs { Name = Model.Name, Alias = Model.Alias, ItemKey = Model.Xslt, Exception = e, Behaviour = UmbracoSettings.MacroErrorBehaviour };
+                            var macroErrorEventArgs = new MacroErrorEventArgs { Name = Model.Name, Alias = Model.Alias, ItemKey = Model.Xslt, Exception = e, Behaviour = UmbracoConfig.For.UmbracoSettings().Content.MacroErrorBehaviour };
                             var macroControl = GetControlForErrorBehavior("Error parsing XSLT file: \\xslt\\" + XsltFile, macroErrorEventArgs);
                             //if it is null, then we are supposed to throw the (original) exception
                             // see: http://issues.umbraco.org/issue/U4-497 at the end
@@ -893,7 +939,7 @@ namespace umbraco
                     LogHelper.WarnWithException<macro>("Error loading XSLT " + Model.Xslt, true, e);
 
                     // Invoke any error handlers for this macro
-                    var macroErrorEventArgs = new MacroErrorEventArgs { Name = Model.Name, Alias = Model.Alias, ItemKey = Model.Xslt, Exception = e, Behaviour = UmbracoSettings.MacroErrorBehaviour };
+                    var macroErrorEventArgs = new MacroErrorEventArgs { Name = Model.Name, Alias = Model.Alias, ItemKey = Model.Xslt, Exception = e, Behaviour = UmbracoConfig.For.UmbracoSettings().Content.MacroErrorBehaviour };
                     var macroControl = GetControlForErrorBehavior("Error reading XSLT file: \\xslt\\" + XsltFile, macroErrorEventArgs);
                     //if it is null, then we are supposed to throw the (original) exception
                     // see: http://issues.umbraco.org/issue/U4-497 at the end
@@ -1063,122 +1109,10 @@ namespace umbraco
         /// <returns>A dictionary of name/extension instance pairs.</returns>
         public static Dictionary<string, object> GetXsltExtensions()
         {
-            // zb-00041 #29966 : cache the extensions
-
-            // We could cache the extensions in a static variable but then the cache
-            // would not be refreshed when the .config file is modified. An application
-            // restart would be required. Better use the cache and add a dependency.
-			
-			// SD: The only reason the above statement might be true is because the xslt extension .config file is not a 
-            // real config file!! if it was, we wouldn't have this issue. Having these in a static variable would be preferred!
-			//  If you modify a config file, the app restarts and thus all static variables are reset.
-			//  Having this stuff in cache just adds to the gigantic amount of cache data and will cause more cache turnover to happen.
-
-            return ApplicationContext.Current.ApplicationCache.GetCacheItem(
-                XsltExtensionsCacheKey, 
-                CacheItemPriority.NotRemovable, // NH 4.7.1, Changing to NotRemovable
-                null, // no refresh action
-                _xsltExtensionsDependency(), // depends on the .config file
-                TimeSpan.FromDays(1), // expires in 1 day (?)
-                GetXsltExtensionsImpl);
+            return XsltExtensionsResolver.Current.XsltExtensions
+                                         .ToDictionary(x => x.Namespace, x => x.ExtensionObject);
         }
-
-        private static Dictionary<string, object> GetXsltExtensionsImpl()
-        {
-            // fill a dictionary with the predefined extensions
-            var extensions = new Dictionary<string, object>(GetPredefinedXsltExtensions());
-
-            // Load the XSLT extensions configuration
-            var xsltExt = new XmlDocument();
-            xsltExt.Load(XsltExtensionsConfig);
-
-            // add all descendants of the XsltExtensions element
-            foreach (XmlNode xsltEx in xsltExt.SelectSingleNode("/XsltExtensions"))
-            {
-                if (xsltEx.NodeType == XmlNodeType.Element)
-                {
-                    Debug.Assert(xsltEx.Attributes["assembly"] != null, "Extension attribute 'assembly' not specified.");
-                    Debug.Assert(xsltEx.Attributes["type"] != null, "Extension attribute 'type' not specified.");
-                    Debug.Assert(xsltEx.Attributes["alias"] != null, "Extension attribute 'alias' not specified.");
-
-                    // load the extension assembly
-                    string extensionFile =
-                        IOHelper.MapPath(string.Format("{0}/{1}.dll", SystemDirectories.Bin,
-                                                       xsltEx.Attributes["assembly"].Value));
-
-                    Assembly extensionAssembly;
-                    try
-                    {
-                        extensionAssembly = Assembly.LoadFrom(extensionFile);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception(
-                            String.Format(
-                                "Could not load assembly {0} for XSLT extension {1}. Please check config/xsltExtensions.config.",
-                                extensionFile, xsltEx.Attributes["alias"].Value), ex);
-                    }
-
-                    // load the extension type
-                    Type extensionType = extensionAssembly.GetType(xsltEx.Attributes["type"].Value);
-                    if (extensionType == null)
-                        throw new Exception(
-                            String.Format(
-                                "Could not load type {0} ({1}) for XSLT extension {1}. Please check config/xsltExtensions.config.",
-                                xsltEx.Attributes["type"].Value, extensionFile, xsltEx.Attributes["alias"].Value));
-
-                    // create an instance and add it to the extensions list
-                    extensions.Add(xsltEx.Attributes["alias"].Value, Activator.CreateInstance(extensionType));
-                }
-            }
-
-            //also get types marked with XsltExtension attribute
-
-            // zb-00042 #29949 : do not hide errors, refactor
-        	
-			var foundExtensions = Umbraco.Web.PluginManagerExtensions.ResolveXsltExtensions(PluginManager.Current);
-			foreach (var xsltType in foundExtensions)
-            {
-                var tpAttributes = xsltType.GetCustomAttributes(typeof(XsltExtensionAttribute), true);
-                foreach (XsltExtensionAttribute tpAttribute in tpAttributes)
-                {
-                    var ns = !string.IsNullOrEmpty(tpAttribute.Namespace) 
-						? tpAttribute.Namespace 
-						: xsltType.FullName;
-                    extensions.Add(ns, Activator.CreateInstance(xsltType));
-                }
-            }
-
-            return extensions;
-        }
-
-        /// <summary>
-        /// Gets the predefined XSLT extensions.
-        /// </summary>
-        /// <remarks>
-        ///     This is a legacy list of EXSLT extensions.
-        ///     The Umbraco library is not included, because its instance is page specific.
-        /// </remarks>
-        /// <returns>A dictionary of name/extension instance pairs.</returns>
-        public static Dictionary<string, object> GetPredefinedXsltExtensions()
-        {
-            if (_predefinedExtensions == null)
-            {
-                _predefinedExtensions = new Dictionary<string, object>();
-
-                // [LK] U4-86 Move EXSLT references from being predefined in core to xsltExtensions.config
-                //// add predefined EXSLT extensions
-                //m_PredefinedExtensions.Add("Exslt.ExsltCommon", new ExsltCommon());
-                //m_PredefinedExtensions.Add("Exslt.ExsltDatesAndTimes", new ExsltDatesAndTimes());
-                //m_PredefinedExtensions.Add("Exslt.ExsltMath", new ExsltMath());
-                //m_PredefinedExtensions.Add("Exslt.ExsltRegularExpressions", new ExsltRegularExpressions());
-                //m_PredefinedExtensions.Add("Exslt.ExsltStrings", new ExsltStrings());
-                //m_PredefinedExtensions.Add("Exslt.ExsltSets", new ExsltSets());
-            }
-
-            return _predefinedExtensions;
-        }
-
+        
         /// <summary>
         /// Returns an XSLT argument list with all XSLT extensions added,
         /// both predefined and configured ones.
@@ -1215,6 +1149,9 @@ namespace umbraco
 	        TraceInfo("umbracoMacro",
 	                  "Xslt node adding search start (" + macroPropertyAlias + ",'" +
 	                  macroPropertyValue + "')");
+            
+            //TODO: WE need to fix this so that we give control of this stuff over to the actual parameter editors!
+            
             switch (macroPropertyType)
             {
                 case "contentTree":
@@ -1244,13 +1181,7 @@ namespace umbraco
 
                     macroXmlNode.AppendChild(currentNode);
 
-                    break;
-
-                case "contentSubs": // disable that one, it does not work anyway...
-                    //x.LoadXml("<nodes/>");
-                    //x.FirstChild.AppendChild(x.ImportNode(umbracoXml.GetElementById(contentId), true));
-                    //macroXmlNode.InnerXml = TransformMacroXml(x, "macroGetSubs.xsl");
-                    break;
+                    break;                    
 
                 case "contentAll":
                     macroXmlNode.AppendChild(macroXml.ImportNode(umbracoXml.DocumentElement, true));
@@ -1288,8 +1219,11 @@ namespace umbraco
                     break;
 
                 case "mediaCurrent":
-                    var c = new Content(int.Parse(macroPropertyValue));
-                    macroXmlNode.AppendChild(macroXml.ImportNode(c.ToXml(umbraco.content.Instance.XmlContent, false), true));
+                    if (string.IsNullOrEmpty(macroPropertyValue) == false)
+                    {
+                        var c = new Content(int.Parse(macroPropertyValue));
+                        macroXmlNode.AppendChild(macroXml.ImportNode(c.ToXml(umbraco.content.Instance.XmlContent, false), true));
+                    }
                     break;
 
                 default:
@@ -1297,6 +1231,101 @@ namespace umbraco
                     break;
             }
             macroXml.FirstChild.AppendChild(macroXmlNode);
+        }
+
+        // add parameters to the macro parameters collection
+        private void AddMacroParameter(ICollection<MacroNavigator.MacroParameter> parameters,
+            NavigableNavigator contentNavigator, NavigableNavigator mediaNavigator,
+            string macroPropertyAlias,string macroPropertyType, string macroPropertyValue)
+        {
+            // if no value is passed, then use the current "pageID" as value
+            var contentId = macroPropertyValue == string.Empty ? UmbracoContext.Current.PageId.ToString() : macroPropertyValue;
+
+	        TraceInfo("umbracoMacro",
+	                  "Xslt node adding search start (" + macroPropertyAlias + ",'" +
+	                  macroPropertyValue + "')");
+
+            // beware! do not use the raw content- or media- navigators, but clones !!
+
+            switch (macroPropertyType)
+            {
+                case "contentTree":
+                    parameters.Add(new MacroNavigator.MacroParameter(
+                        macroPropertyAlias,
+                        contentNavigator.CloneWithNewRoot(contentId), // null if not found - will be reported as empty
+                        attributes: new Dictionary<string, string> { { "nodeID", contentId } }));
+
+                    break;
+
+                case "contentPicker":
+                    parameters.Add(new MacroNavigator.MacroParameter(
+                        macroPropertyAlias,
+                        contentNavigator.CloneWithNewRoot(contentId), // null if not found - will be reported as empty
+                        0));
+                    break;
+
+                case "contentSubs":
+                    parameters.Add(new MacroNavigator.MacroParameter(
+                        macroPropertyAlias,
+                        contentNavigator.CloneWithNewRoot(contentId), // null if not found - will be reported as empty
+                        1));
+                    break;
+
+                case "contentAll":
+                    parameters.Add(new MacroNavigator.MacroParameter(macroPropertyAlias, contentNavigator.Clone()));
+                    break;
+
+                case "contentRandom":
+                    var nav = contentNavigator.Clone();
+                    if (nav.MoveToId(contentId))
+                    {
+                        var descendantIterator = nav.Select("./* [@isDoc]");
+                        if (descendantIterator.MoveNext())
+                        {
+                            // not empty - and won't change
+                            var descendantCount = descendantIterator.Count;
+
+                            int index;
+                            var r = library.GetRandom();
+                            lock (r)
+                            {
+                                index = r.Next(descendantCount);
+                            }
+
+                            while (index > 0 && descendantIterator.MoveNext())
+                                index--;
+
+                            var node = descendantIterator.Current.UnderlyingObject as INavigableContent;
+                            if (node != null)
+                            {
+                                nav = contentNavigator.CloneWithNewRoot(node.Id.ToString(CultureInfo.InvariantCulture));
+                                parameters.Add(new MacroNavigator.MacroParameter(macroPropertyAlias, nav, 0));                                
+                            }
+                            else
+                                throw new InvalidOperationException("Iterator contains non-INavigableContent elements.");
+                        }
+                        else
+							TraceWarn("umbracoMacro",
+									  "Error adding random node - parent (" + macroPropertyValue +
+									  ") doesn't have children!");
+                    }
+                    else
+                        TraceWarn("umbracoMacro",
+                                  "Error adding random node - parent (" + macroPropertyValue +
+                                  ") doesn't exists!");
+                    break;
+
+                case "mediaCurrent":
+                    parameters.Add(new MacroNavigator.MacroParameter(
+                        macroPropertyAlias,
+                        mediaNavigator.CloneWithNewRoot(contentId), // null if not found - will be reported as empty
+                        0));
+                    break;
+
+                default:
+                    parameters.Add(new MacroNavigator.MacroParameter(macroPropertyAlias, HttpContext.Current.Server.HtmlDecode(macroPropertyValue)));
+                    break;
+            }
         }
 
         #endregion
@@ -1312,7 +1341,7 @@ namespace umbraco
 			IMacroEngine engine = null;
 			
 			engine = MacroEngineFactory.GetEngine(PartialViewMacroEngine.EngineName);
-			var ret = engine.Execute(macro, Node.GetCurrent());
+			var ret = engine.Execute(macro, GetCurrentNode());
 
 			// if the macro engine supports success reporting and executing failed, then return an empty control so it's not cached
 			if (engine is IMacroEngineResultStatus)
@@ -1337,13 +1366,13 @@ namespace umbraco
                 engine = MacroEngineFactory.GetByExtension(macro.ScriptLanguage);
                 ret = engine.Execute(
                     macro,
-                    Node.GetCurrent());
+                    GetCurrentNode());
             }
             else
             {
                 string path = IOHelper.MapPath(SystemDirectories.MacroScripts + "/" + macro.ScriptName);
                 engine = MacroEngineFactory.GetByFilename(path);
-                ret = engine.Execute(macro, Node.GetCurrent());
+                ret = engine.Execute(macro, GetCurrentNode());
             }
 
             // if the macro engine supports success reporting and executing failed, then return an empty control so it's not cached
@@ -1358,40 +1387,7 @@ namespace umbraco
             retVal.Result = ret;
             return retVal;
         }
-
-        [Obsolete("Replaced with loadMacroScript", true)]
-        public DLRMacroResult loadMacroDLR(MacroModel macro)
-        {
-            var retVal = new DLRMacroResult();
-            var ret = new LiteralControl();
-            IMacroEngine engine = null;
-            if (!String.IsNullOrEmpty(macro.ScriptCode))
-            {
-                engine = MacroEngineFactory.GetByExtension(macro.ScriptLanguage);
-                ret.Text = engine.Execute(
-                    macro,
-                    Node.GetCurrent());
-            }
-            else
-            {
-                string path = IOHelper.MapPath(SystemDirectories.MacroScripts + "/" + macro.ScriptName);
-                engine = MacroEngineFactory.GetByFilename(path);
-                ret.Text = engine.Execute(macro, Node.GetCurrent());
-            }
-
-            // if the macro engine supports success reporting and executing failed, then return an empty control so it's not cached
-            if (engine is IMacroEngineResultStatus)
-            {
-                var result = engine as IMacroEngineResultStatus;
-                if (!result.Success)
-                {
-                    retVal.ResultException = result.ResultException;
-                }
-            }
-            retVal.Control = ret;
-            return retVal;
-        }
-
+        
         /// <summary>
         /// Loads a custom or webcontrol using reflection into the macro object
         /// </summary>
@@ -1441,156 +1437,55 @@ namespace umbraco
                 return new LiteralControl(string.Format("Unable to create control {0} from assembly {1}",
                                                         controlName, asm.FullName));
 
-            AddCurrentNodeToControl(control, type);
+            AddCurrentNodeToControl(control);
 
             // Properties
-            UpdateControlProperties(type, control, model);
+            UpdateControlProperties(control, model);
             return control;
         }
 
-        private static void UpdateControlProperties(Type type, Control control, MacroModel model)
+        //TODO: SD : We *really* need to get macro's rendering properly with a real macro engine
+        // and move logic like this (after it is completely overhauled) to a UserControlMacroEngine.
+        internal static void UpdateControlProperties(Control control, MacroModel model)
         {
-            foreach (MacroPropertyModel mp in model.Properties)
+            var type = control.GetType();
+
+            foreach (var mp in model.Properties)
             {
-                PropertyInfo prop = type.GetProperty(mp.Key);
+                var prop = type.GetProperty(mp.Key);
                 if (prop == null)
                 {					
 					TraceWarn("macro", string.Format("control property '{0}' doesn't exist or aren't accessible (public)", mp.Key));
                     continue;
                 }
 
-                object propValue = mp.Value;
-                bool propValueSet = false;
-                // Special case for types of webControls.unit
-                if (prop.PropertyType == typeof(Unit))
-                {
-                    propValue = Unit.Parse(propValue.ToString());
-                    propValueSet = true;
-                }
-                else
+                var tryConvert = mp.Value.TryConvertTo(prop.PropertyType);
+                if (tryConvert.Success)
                 {
                     try
                     {
-                        if (mp.CLRType == null)
-                            continue;
-                        var st = (TypeCode)Enum.Parse(typeof(TypeCode), mp.CLRType, true);
-
-                        // Special case for booleans
-                        if (prop.PropertyType == typeof(bool))
-                        {
-                            bool parseResult;
-                            if (
-                                Boolean.TryParse(
-                                    propValue.ToString().Replace("1", "true").Replace("0", "false"),
-                                    out parseResult))
-                                propValue = parseResult;
-                            else
-                                propValue = false;
-                            propValueSet = true;
-
-                        }
-                        else
-                        {
-                            string sPropValue = string.Format("{0}", propValue);
-                            Type propType = prop.PropertyType;
-                            if (!string.IsNullOrWhiteSpace(sPropValue))
-                            {
-                                try
-                                {
-                                    propValue = Convert.ChangeType(propValue, st);
-                                    propValueSet = true;
-                                }
-                                catch (FormatException)
-                                {
-                                    propValue = Convert.ChangeType(propValue, propType);
-                                    propValueSet = true;
-                                }
-                            }
-                            /* NH 06-01-2012: Remove the lines below as they would only get activated if the values are empty
-                        else
-                        {
-                            if (propType != null)
-                            {
-                                if (propType.IsValueType)
-                                {
-                                    propValue = Activator.CreateInstance(propType);
-                                }
-                                else
-                                {
-                                    propValue = null;
-                                }
-                            }
-                        }*/
-                        }
-
-						if (GlobalSettings.DebugMode)
-							TraceInfo("macro.loadControlProperties",
-							          string.Format("Property added '{0}' with value '{1}'",
-							                        mp.Key,
-							                        propValue));
+                        prop.SetValue(control, tryConvert.Result, null);
                     }
-                    catch (Exception PropException)
+                    catch (Exception ex)
                     {
-						LogHelper.WarnWithException<macro>(string.Format(
-										  "Error adding property '{0}' with value '{1}'",
-										  mp.Key, propValue), PropException);
+                        LogHelper.WarnWithException<macro>(string.Format("Error adding property '{0}' with value '{1}'", mp.Key, mp.Value), ex);
+                        if (GlobalSettings.DebugMode)
+                        {
+                            TraceWarn("macro.loadControlProperties", string.Format("Error adding property '{0}' with value '{1}'", mp.Key, mp.Value), ex);
+                        }
+                    }
 
-						if (GlobalSettings.DebugMode)
-						{
-							TraceWarn("macro.loadControlProperties",
-							          string.Format(
-								          "Error adding property '{0}' with value '{1}'",
-								          mp.Key, propValue), PropException);
-						}
+                    if (GlobalSettings.DebugMode)
+                    {
+                        TraceInfo("macro.UpdateControlProperties", string.Format("Property added '{0}' with value '{1}'", mp.Key, mp.Value));
                     }
                 }
-
-                // NH 06-01-2012: Only set value if it has content
-                if (propValueSet)
+                else
                 {
-                    //GE 06-05-2012: Handle Nullable<T> properties
-                    if (prop.PropertyType.IsGenericType && prop.PropertyType.Name == "Nullable`1")
+                    LogHelper.Warn<macro>(string.Format("Error adding property '{0}' with value '{1}'", mp.Key, mp.Value));
+                    if (GlobalSettings.DebugMode)
                     {
-                        Type underlyingType = Nullable.GetUnderlyingType(prop.PropertyType);
-                        if (underlyingType != null)
-                        {
-                            object safeValue = null;
-                            if (propValue != null)
-                            {
-                                if (!(underlyingType == typeof(Guid)))
-                                {
-                                    prop.SetValue(control, Convert.ChangeType(propValue, underlyingType), null);
-                                }
-                                else
-                                {
-                                    Guid g = Guid.Empty;
-                                    if (Guid.TryParse(string.Format("{0}", propValue), out g))
-                                    {
-                                        prop.SetValue(control, g, null);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                prop.SetValue(control, safeValue, null);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        //GE 06-05-2012: Handle Guid properties as Convert.ChangeType throws on string->Guid
-                        if (!(prop.PropertyType == typeof(Guid)))
-                        {
-                            prop.SetValue(control, Convert.ChangeType(propValue, prop.PropertyType), null);
-                        }
-                        else
-                        {
-                            Guid g = Guid.Empty;
-                            if (Guid.TryParse(string.Format("{0}", propValue), out g))
-                            {
-                                prop.SetValue(control, g, null);
-                            }
-                        }
+                        TraceWarn("macro.loadControlProperties", string.Format("Error adding property '{0}' with value '{1}'", mp.Key, mp.Value));
                     }
                 }
             }
@@ -1630,10 +1525,8 @@ namespace umbraco
 
                 TraceInfo(LoadUserControlKey, string.Format("Usercontrol added with id '{0}'", oControl.ID));
 
-                Type type = oControl.GetType();
-
-	            AddCurrentNodeToControl(oControl, type);
-                UpdateControlProperties(type, oControl, model);
+	            AddCurrentNodeToControl(oControl);
+                UpdateControlProperties(oControl, model);
                 return oControl;
             }
             catch (Exception e)
@@ -1643,8 +1536,10 @@ namespace umbraco
             }
         }
 
-        private static void AddCurrentNodeToControl(Control control, Type type)
+        private static void AddCurrentNodeToControl(Control control)
         {
+            var type = control.GetType();
+
             PropertyInfo currentNodeProperty = type.GetProperty("CurrentNode");
             if (currentNodeProperty != null && currentNodeProperty.CanWrite &&
                 currentNodeProperty.PropertyType.IsAssignableFrom(typeof(Node)))
@@ -1931,6 +1826,13 @@ namespace umbraco
             return false;
         }
 
+        private static INode GetCurrentNode()
+        {
+            var id = Node.getCurrentNodeId();
+            var content = UmbracoContext.Current.ContentCache.GetById(id);
+            return CompatibilityHelper.ConvertToNode(content);
+        }
+
         #region Events
 
         /// <summary>
@@ -1952,4 +1854,20 @@ namespace umbraco
 
         #endregion
     }
+
+    /// <summary>
+    /// Event arguments used for the MacroRendering event
+    /// </summary>
+    public class MacroRenderingEventArgs : EventArgs
+    {
+        public Hashtable PageElements { get; private set; }
+        public int PageId { get; private set; }
+
+        public MacroRenderingEventArgs(Hashtable pageElements, int pageId)
+        {
+            PageElements = pageElements;
+            PageId = pageId;
+        }
+    }
+
 }

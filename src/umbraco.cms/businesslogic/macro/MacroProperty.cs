@@ -2,7 +2,8 @@ using System;
 using System.Data;
 using System.Xml;
 using System.Runtime.CompilerServices;
-
+using Umbraco.Core;
+using Umbraco.Core.PropertyEditors;
 using umbraco.DataLayer;
 using umbraco.BusinessLogic;
 using System.Collections.Generic;
@@ -18,17 +19,9 @@ namespace umbraco.cms.businesslogic.macro
     /// A MacroProperty uses it's MacroPropertyType to define which underlaying component should be used when
     /// rendering the MacroProperty editor aswell as which datatype its containing.
     /// </summary>
+    [Obsolete("This is no longer used, use the IMacroService and related models instead")]
     public class MacroProperty
     {
-
-        int _id;
-        int _sortOrder;
-        bool _public;
-        string _alias;
-        string _name;
-        cms.businesslogic.macro.Macro m_macro;
-        cms.businesslogic.macro.MacroPropertyType _type;
-
         protected static ISqlHelper SqlHelper
         {
             get { return Application.SqlHelper; }
@@ -47,92 +40,118 @@ namespace umbraco.cms.businesslogic.macro
         /// <param name="Id">Id</param>
         public MacroProperty(int Id)
         {
-            _id = Id;
-            setup();
+            this.Id = Id;
+            Setup();
         }
 
         /// <summary>
         /// The sortorder
         /// </summary>
-        public int SortOrder
-        {
-            get { return _sortOrder; }
-            set { _sortOrder = value; }
-        }
+        public int SortOrder { get; set; }
 
         /// <summary>
-        /// If set to true, the user will be presented with an editor to input data.
-        /// 
-        /// If not, the field can be manipulated by a default value given by the MacroPropertyType, this is s
+        /// This is not used for anything
         /// </summary>
-        [Obsolete]
-        public bool Public
-        {
-            get { return _public; }
-            set { _public = value; }
-        }
+        [Obsolete("This is not used for anything and will be removed in future versions")]
+        public bool Public { get; set; }
 
         /// <summary>
-        /// The alias if of the macroproperty, this is used in the special macro element
-        /// <?UMBRACO_MACRO macroAlias="value"></?UMBRACO_MACRO>
-        /// 
+        /// The macro property alias
         /// </summary>
-        public string Alias
-        {
-            get { return _alias; }
-            set { _alias = value; }
-        }
+        public string Alias { get; set; }
 
         /// <summary>
         /// The userfriendly name
         /// </summary>
-        public string Name
-        {
-            get { return _name; }
-            set { _name = value; }
-        }
+        public string Name { get; set; }
 
         /// <summary>
         /// Gets the id.
         /// </summary>
         /// <value>The id.</value>
-        public int Id
-        {
-            get { return _id; }
-        }
+        public int Id { get; private set; }
 
         /// <summary>
         /// Gets or sets the macro.
         /// </summary>
         /// <value>The macro.</value>
-        public Macro Macro
-        {
-            get { return m_macro; }
-            set { m_macro = value; }
-        }
+        public Macro Macro { get; set; }
+
+        private MacroPropertyType _type;
+        private string _parameterEditorAlias;
 
         /// <summary>
         /// The basetype which defines which component is used in the UI for editing content
         /// </summary>
+        [Obsolete("This is no longer used and will be removed in future versions")]
         public MacroPropertyType Type
         {
-            get { return _type; }
-            set { _type = value; }
+            get
+            {
+                if (_type == null)
+                {
+                    //we'll try to create one based on the resolved new parameter editors
+                    var found = ParameterEditorResolver.Current.GetByAlias(ParameterEditorAlias);
+                    if (found == null)
+                    {
+                        return null;
+                    }
+                    var type = new MacroPropertyType
+                        {
+                            Alias = ParameterEditorAlias,
+                            Id = 0,
+                            Assembly = found.GetType().Namespace,
+                            //NOTE: In v6 macro parameter's stored in the database used to 
+                            // expose a CLR type but we no longer support that, instead we'll just attempt
+                            // to convert the value to the CLR type - It's also important to note that the
+                            // ONLY place this BaseType is ever used is to assign to the umbraco.cms.businesslogic.macro.MacroPropertyModel.CLRType
+                            // property, which is then used when attempting to render a UserControl macro. So basically
+                            // it is completely pointless since we already know the CLR property type of the UserControl
+                            // property and we're just going to do the conversion anyways since it is always essentially a string.
+                            BaseType = "String",
+                            Type = found.GetType().Name
+                        };
+                    _type = type;
+                }
+                return _type;
+            }
+            set { _type = Type; }
         }
 
-
-        private void setup()
+        /// <summary>
+        /// The macro parameter editor alias used to render the editor
+        /// </summary>
+        public string ParameterEditorAlias
         {
-            using (IRecordsReader dr = SqlHelper.ExecuteReader("select macro, macroPropertyHidden, macroPropertyType, macroPropertySortOrder, macroPropertyAlias, macroPropertyName from cmsMacroProperty where id = @id", SqlHelper.CreateParameter("@id", _id)))
+            get { return _parameterEditorAlias; }
+            set
+            {
+                //try to get the new mapped parameter editor
+                var mapped = LegacyParameterEditorAliasConverter.GetNewAliasFromLegacyAlias(value, false);
+                if (mapped.IsNullOrWhiteSpace() == false)
+                {
+                    _parameterEditorAlias = mapped;
+                }
+                else
+                {
+                    _parameterEditorAlias = value;    
+                }
+                
+            }
+        }
+
+        private void Setup()
+        {
+            using (var dr = SqlHelper.ExecuteReader("select macro, editorAlias, macroPropertySortOrder, macroPropertyAlias, macroPropertyName from cmsMacroProperty where id = @id", SqlHelper.CreateParameter("@id", Id)))
             {
                 if (dr.Read())
                 {
-                    m_macro = new Macro(dr.GetInt("macro"));
-                    _public = dr.GetBoolean("macroPropertyHidden");
-                    _sortOrder = (int)dr.GetByte("macroPropertySortOrder");
-                    _alias = dr.GetString("macroPropertyAlias");
-                    _name = dr.GetString("macroPropertyName");
-                    _type = new MacroPropertyType(dr.GetShort("macroPropertyType"));
+                    Macro = new Macro(dr.GetInt("macro"));
+                    SortOrder = (int)dr.GetByte("macroPropertySortOrder");
+                    Alias = dr.GetString("macroPropertyAlias");
+                    Name = dr.GetString("macroPropertyName");
+                    Type = null;
+                    ParameterEditorAlias = dr.GetString("editorAlias");
                 }
                 else
                 {
@@ -146,28 +165,28 @@ namespace umbraco.cms.businesslogic.macro
         /// </summary>
         public void Delete()
         {
-            SqlHelper.ExecuteNonQuery("delete from cmsMacroProperty where id = @id", SqlHelper.CreateParameter("@id", this._id));
+            SqlHelper.ExecuteNonQuery("delete from cmsMacroProperty where id = @id", SqlHelper.CreateParameter("@id", this.Id));
         }
 
         public void Save()
         {
-            if (_id == 0)
+            if (Id == 0)
             {
-                MacroProperty mp =
-                    MakeNew(m_macro, Public, Alias, Name, Type);
-                _id = mp.Id;
+                MacroProperty mp = MakeNew(Macro, Alias, Name, ParameterEditorAlias);
+                Id = mp.Id;
 
             }
             else
             {
-                SqlHelper.ExecuteNonQuery("UPDATE cmsMacroProperty set macro = @macro, macroPropertyHidden = @show, macropropertyAlias = @alias, macroPropertyName = @name, macroPropertyType = @type, macroPropertySortOrder = @so WHERE id = @id",
-    SqlHelper.CreateParameter("@id", Id),
-    SqlHelper.CreateParameter("@macro", Macro.Id),
-    SqlHelper.CreateParameter("@show", Public),
-    SqlHelper.CreateParameter("@alias", Alias),
-    SqlHelper.CreateParameter("@name", Name),
-    SqlHelper.CreateParameter("@type", Type.Id),
-    SqlHelper.CreateParameter("@so", SortOrder));
+                SqlHelper.ExecuteNonQuery("UPDATE cmsMacroProperty set macro = @macro, " +
+                                          "macropropertyAlias = @alias, macroPropertyName = @name, " +
+                                          "editorAlias = @editorAlias, macroPropertySortOrder = @so WHERE id = @id",
+                                          SqlHelper.CreateParameter("@id", Id),
+                                          SqlHelper.CreateParameter("@macro", Macro.Id),
+                                          SqlHelper.CreateParameter("@alias", Alias),
+                                          SqlHelper.CreateParameter("@name", Name),
+                                          SqlHelper.CreateParameter("@editorAlias", ParameterEditorAlias),
+                                          SqlHelper.CreateParameter("@so", SortOrder));
             }
         }
 
@@ -180,10 +199,9 @@ namespace umbraco.cms.businesslogic.macro
         {
             XmlElement doc = xd.CreateElement("property");
 
-            doc.Attributes.Append(xmlHelper.addAttribute(xd, "name", this.Name));
-            doc.Attributes.Append(xmlHelper.addAttribute(xd, "alias", this.Alias));
-            doc.Attributes.Append(xmlHelper.addAttribute(xd, "show", this.Public.ToString()));
-            doc.Attributes.Append(xmlHelper.addAttribute(xd, "propertyType", this.Type.Alias));
+            doc.Attributes.Append(XmlHelper.AddAttribute(xd, "name", this.Name));
+            doc.Attributes.Append(XmlHelper.AddAttribute(xd, "alias", this.Alias));
+            doc.Attributes.Append(XmlHelper.AddAttribute(xd, "propertyType", this.ParameterEditorAlias));
 
             return doc;
         }
@@ -193,12 +211,12 @@ namespace umbraco.cms.businesslogic.macro
         /// <summary>
         /// Retieve all MacroProperties of a macro
         /// </summary>
-        /// <param name="MacroId">Macro identifier</param>
+        /// <param name="macroId">Macro identifier</param>
         /// <returns>All MacroProperties of a macro</returns>
-        public static MacroProperty[] GetProperties(int MacroId)
+        public static MacroProperty[] GetProperties(int macroId)
         {
             var props = new List<MacroProperty>();
-            using (IRecordsReader dr = SqlHelper.ExecuteReader("select id from cmsMacroProperty where macro = @macroId order by macroPropertySortOrder, id ASC", SqlHelper.CreateParameter("@macroId", MacroId)))
+            using (IRecordsReader dr = SqlHelper.ExecuteReader("select id from cmsMacroProperty where macro = @macroId order by macroPropertySortOrder, id ASC", SqlHelper.CreateParameter("@macroId", macroId)))
             {                
                 while (dr.Read())
                 {
@@ -208,25 +226,39 @@ namespace umbraco.cms.businesslogic.macro
             }
         }
 
+        
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        [Obsolete("This method is no longer supported because MacroPropertyType no longer has a function")]
+        public static MacroProperty MakeNew(Macro macro, bool show, string alias, string name, MacroPropertyType propertyType)
+        {
+            return MakeNew(macro, alias, name, propertyType.Alias);
+        }
+
         /// <summary>
         /// Creates a new MacroProperty on a macro
         /// </summary>
-        /// <param name="M">The macro</param>
-        /// <param name="show">Will the editor be able to input data</param>
+        /// <param name="macro">The macro</param>
         /// <param name="alias">The alias of the property</param>
         /// <param name="name">Userfriendly MacroProperty name</param>
-        /// <param name="propertyType">The MacroPropertyType of the property</param>
+        /// <param name="editorAlias">The Alias of the parameter editor</param>
         [MethodImpl(MethodImplOptions.Synchronized)]
-        public static MacroProperty MakeNew(Macro M, bool show, string alias, string name, MacroPropertyType propertyType)
+        public static MacroProperty MakeNew(Macro macro, string alias, string name, string editorAlias)
         {
+
+            //try to get the new mapped parameter editor
+            var mapped = LegacyParameterEditorAliasConverter.GetNewAliasFromLegacyAlias(editorAlias, false);
+            if (mapped.IsNullOrWhiteSpace() == false)
+            {
+                editorAlias = mapped;
+            }
+
             int macroPropertyId = 0;
             // The method is synchronized
-            SqlHelper.ExecuteNonQuery("INSERT INTO cmsMacroProperty (macro, macroPropertyHidden, macropropertyAlias, macroPropertyName, macroPropertyType) VALUES (@macro, @show, @alias, @name, @type)",
-                SqlHelper.CreateParameter("@macro", M.Id),
-                SqlHelper.CreateParameter("@show", show),
+            SqlHelper.ExecuteNonQuery("INSERT INTO cmsMacroProperty (macro, macropropertyAlias, macroPropertyName, editorAlias) VALUES (@macro, @alias, @name, @editorAlias)",
+                SqlHelper.CreateParameter("@macro", macro.Id),
                 SqlHelper.CreateParameter("@alias", alias),
                 SqlHelper.CreateParameter("@name", name),
-                SqlHelper.CreateParameter("@type", propertyType.Id));
+                SqlHelper.CreateParameter("@editorAlias", editorAlias));
             macroPropertyId = SqlHelper.ExecuteScalar<int>("SELECT MAX(id) FROM cmsMacroProperty");
             return new MacroProperty(macroPropertyId);
         }

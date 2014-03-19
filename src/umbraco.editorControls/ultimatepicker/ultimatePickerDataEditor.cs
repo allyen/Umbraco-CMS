@@ -10,6 +10,7 @@ using ClientDependency.Core;
 namespace umbraco.editorControls.ultimatepicker
 {
     [ValidationProperty("IsValid")]
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
     public class ultimatePickerDataEditor : UpdatePanel, IDataEditor
     {
         private IData _data;
@@ -409,7 +410,7 @@ namespace umbraco.editorControls.ultimatepicker
             string autoCompleteScript =
                  "jQuery(\"#"
                  + childtxt.ClientID + "\").autocomplete(\""
-                 + umbraco.IO.IOHelper.ResolveUrl(umbraco.IO.SystemDirectories.Umbraco)
+                 + Umbraco.Core.IO.IOHelper.ResolveUrl(Umbraco.Core.IO.SystemDirectories.Umbraco)
                  + "/webservices/UltimatePickerAutoCompleteHandler.ashx\",{minChars: 2,max: 100, extraParams:{id:\"" + parentNodeId.ToString() + "\",showchildren:\"" + config[3] + "\",filter:\"" + config[2] + "\",rnd:\"" + DateTime.Now.Ticks + "\"}});";
 
 

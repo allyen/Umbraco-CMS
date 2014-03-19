@@ -7,6 +7,7 @@ using System.Web.Mvc;
 using System.Web.Routing;
 using System.Web.Security;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Core.Cache;
 using Umbraco.Core.Logging;
@@ -30,11 +31,7 @@ namespace umbraco.BasePages
         private User _user;
         private bool _userisValidated = false;
         private ClientTools _clientTools;
-
-        // ticks per minute 600,000,000 
-        private const long TicksPrMinute = 600000000;
-        private static readonly int UmbracoTimeOutInMinutes = GlobalSettings.TimeOutInMinutes;
-
+        
         /// <summary>
         /// The path to the umbraco root folder
         /// </summary>
@@ -137,28 +134,24 @@ namespace umbraco.BasePages
             ClientTools.RefreshAdmin(Seconds);
         }
 
+        //NOTE: This is basically replicated in WebSecurity because this class exists in a poorly placed assembly. - also why it is obsolete.
         private void ValidateUser()
         {
-            if ((umbracoUserContextID != ""))
-            {
-                uid = GetUserId(umbracoUserContextID);
-                timeout = GetTimeout(umbracoUserContextID);
+            var ticket = Context.GetUmbracoAuthTicket();
 
-                if (timeout > DateTime.Now.Ticks)
+            if (ticket != null)
+            {
+                if (ticket.Expired == false)
                 {
-                    _user = BusinessLogic.User.GetUser(uid);
+                    _user = BusinessLogic.User.GetUser(GetUserId(""));
 
                     // Check for console access
-                    if (_user.Disabled || (_user.NoConsole && GlobalSettings.RequestIsInUmbracoApplication(HttpContext.Current) && !GlobalSettings.RequestIsLiveEditRedirector(HttpContext.Current)))
+                    if (_user.Disabled || (_user.NoConsole && GlobalSettings.RequestIsInUmbracoApplication(Context)))
                     {
                         throw new ArgumentException("You have no priviledges to the umbraco console. Please contact your administrator");
                     }
-                    else
-                    {
-                        _userisValidated = true;
-                        UpdateLogin();
-                    }
-
+                    _userisValidated = true;
+                    UpdateLogin();
                 }
                 else
                 {
@@ -169,83 +162,64 @@ namespace umbraco.BasePages
             {
                 throw new InvalidOperationException("The user has no umbraco contextid - try logging in");
             }
-
         }
 
         /// <summary>
         /// Gets the user id.
         /// </summary>
-        /// <param name="umbracoUserContextID">The umbraco user context ID.</param>
+        /// <param name="umbracoUserContextID">This is not used</param>
         /// <returns></returns>
-        //[Obsolete("Use Umbraco.Web.Security.WebSecurity.GetUserId instead")]
+        [Obsolete("This method is no longer used, use the GetUserId() method without parameters instead")]
         public static int GetUserId(string umbracoUserContextID)
         {
-            //need to parse to guid
-            Guid gid;
-            if (!Guid.TryParse(umbracoUserContextID, out gid))
-            {
-                return -1;
-            }
-
-            var id = ApplicationContext.Current.ApplicationCache.GetCacheItem<int?>(
-                CacheKeys.UserContextCacheKey + umbracoUserContextID,
-                new TimeSpan(0, UmbracoTimeOutInMinutes / 10, 0),
-                () => SqlHelper.ExecuteScalar<int?>(
-                    "select userID from umbracoUserLogins where contextID = @contextId",
-                    SqlHelper.CreateParameter("@contextId", gid)));
-            if (id == null)
-                return -1;
-            return id.Value;    
+            return GetUserId();
         }
 
+        /// <summary>
+        /// Gets the currnet user's id.
+        /// </summary>
+        /// <returns></returns>
+        public static int GetUserId()
+        {
+            var identity = HttpContext.Current.GetCurrentIdentity(true);
+            if (identity == null)
+                return -1;
+            return Convert.ToInt32(identity.Id);
+        }
 
         // Added by NH to use with webservices authentications
         /// <summary>
         /// Validates the user context ID.
         /// </summary>
-        /// <param name="currentUmbracoUserContextID">The umbraco user context ID.</param>
+        /// <param name="currentUmbracoUserContextID">This doesn't do anything</param>
         /// <returns></returns>
-        //[Obsolete("Use Umbraco.Web.Security.WebSecurity.ValidateUserContextId instead")]
+        [Obsolete("This method is no longer used, use the ValidateCurrentUser() method instead")]
         public static bool ValidateUserContextID(string currentUmbracoUserContextID)
         {
-            if (!currentUmbracoUserContextID.IsNullOrWhiteSpace())
-            {
-                var uid = GetUserId(currentUmbracoUserContextID);
-                var timeout = GetTimeout(currentUmbracoUserContextID);
-
-                if (timeout > DateTime.Now.Ticks)
-                {
-                    return true;
-                }
-	            var user = BusinessLogic.User.GetUser(uid);
-                //TODO: We don't actually log anyone out here, not sure why we're logging ??
-				LogHelper.Info<BasePage>("User {0} (Id:{1}) logged out", () => user.Name, () => user.Id);
-            }
-            return false;
+            return ValidateCurrentUser();
         }
 
-        internal static long GetTimeout(string umbracoUserContextId)
+        /// <summary>
+        /// Validates the currently logged in user and ensures they are not timed out
+        /// </summary>
+        /// <returns></returns>
+        public static bool ValidateCurrentUser()
         {
-            return ApplicationContext.Current.ApplicationCache.GetCacheItem(
-                CacheKeys.UserContextTimeoutCacheKey + umbracoUserContextId,
-                new TimeSpan(0, UmbracoTimeOutInMinutes / 10, 0),
-                () => GetTimeout(true));
+            var identity = HttpContext.Current.GetCurrentIdentity(true);
+            if (identity != null)
+            {
+                return true;
+            }
+            return false;
         }
 
         //[Obsolete("Use Umbraco.Web.Security.WebSecurity.GetTimeout instead")]
         public static long GetTimeout(bool bypassCache)
         {
-            if (UmbracoSettings.KeepUserLoggedIn)
-                RenewLoginTimeout();
-
-            if (bypassCache)
-            {
-                return SqlHelper.ExecuteScalar<long>("select timeout from umbracoUserLogins where contextId=@contextId",
-                                                          SqlHelper.CreateParameter("@contextId", new Guid(umbracoUserContextID))
-                                        );
-            }
-            else
-                return GetTimeout(umbracoUserContextID);
+            var ticket = HttpContext.Current.GetUmbracoAuthTicket();
+            if (ticket.Expired) return 0;
+            var ticks = ticket.Expiration.Ticks - DateTime.Now.Ticks;         
+            return ticks;
         }
 
         // Changed to public by NH to help with webservice authentication
@@ -253,55 +227,16 @@ namespace umbraco.BasePages
         /// Gets or sets the umbraco user context ID.
         /// </summary>
         /// <value>The umbraco user context ID.</value>
-        //[Obsolete("Use Umbraco.Web.Security.WebSecurity.UmbracoUserContextId instead")]
+        [Obsolete("Returns the current user's unique umbraco sesion id - this cannot be set and isn't intended to be used in your code")]
         public static string umbracoUserContextID
         {
             get
             {
-                var authTicket = HttpContext.Current.GetUmbracoAuthTicket();
-                if (authTicket == null)
-                {
-                    return "";
-                }
-                var identity = authTicket.CreateUmbracoIdentity();
-                if (identity == null)
-                {
-                    HttpContext.Current.UmbracoLogout();
-                    return "";
-                }
-                return identity.UserContextId;
+                var identity = HttpContext.Current.GetCurrentIdentity(true);
+                return identity == null ? "" : identity.SessionId;
             }
             set
             {
-                if (value.IsNullOrWhiteSpace())
-                {
-                    HttpContext.Current.UmbracoLogout();
-                }
-                else
-                {
-                    var uid = GetUserId(value);
-                    if (uid == -1)
-                    {
-                        HttpContext.Current.UmbracoLogout();
-                    }
-                    else
-                    {
-                        var user = BusinessLogic.User.GetUser(uid);
-                        HttpContext.Current.CreateUmbracoAuthTicket(
-                            new UserData
-                                {
-                                    Id = uid,
-                                    AllowedApplications = user.Applications.Select(x => x.alias).ToArray(),
-                                    Culture = ui.Culture(user),
-                                    RealName = user.Name,
-                                    Roles = new string[] {user.UserType.Alias},
-                                    StartContentNode = user.StartNodeId,
-                                    StartMediaNode = user.StartMediaId,
-                                    UserContextId = value,
-                                    Username = user.LoginName
-                                });
-                    }
-                }
             }
         }
 
@@ -311,61 +246,38 @@ namespace umbraco.BasePages
         /// </summary>
         public void ClearLogin()
         {
-            DeleteLogin();
-            umbracoUserContextID = "";
-        }
-
-        private void DeleteLogin()
-        {
-            // Added try-catch in case login doesn't exist in the database
-            // Either due to old cookie or running multiple sessions on localhost with different port number
-            try
-            {
-                SqlHelper.ExecuteNonQuery(
-                "DELETE FROM umbracoUserLogins WHERE contextId = @contextId",
-                SqlHelper.CreateParameter("@contextId", umbracoUserContextID));
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Error<BasePage>(string.Format("Login with contextId {0} didn't exist in the database", umbracoUserContextID), ex);
-            }
+            Context.UmbracoLogout();
         }
 
         private void UpdateLogin()
         {
-            // only call update if more than 1/10 of the timeout has passed
-            if (timeout - (((TicksPrMinute * UmbracoTimeOutInMinutes) * 0.8)) < DateTime.Now.Ticks)
-                SqlHelper.ExecuteNonQuery(
-                    "UPDATE umbracoUserLogins SET timeout = @timeout WHERE contextId = @contextId",
-                    SqlHelper.CreateParameter("@timeout", DateTime.Now.Ticks + (TicksPrMinute * UmbracoTimeOutInMinutes)),
-                    SqlHelper.CreateParameter("@contextId", umbracoUserContextID));
+            Context.RenewUmbracoAuthTicket();
         }
 
-        //[Obsolete("Use Umbraco.Web.Security.WebSecurity.RenewLoginTimeout instead")]
         public static void RenewLoginTimeout()
         {
-            // only call update if more than 1/10 of the timeout has passed
-            SqlHelper.ExecuteNonQuery(
-                "UPDATE umbracoUserLogins SET timeout = @timeout WHERE contextId = @contextId",
-                SqlHelper.CreateParameter("@timeout", DateTime.Now.Ticks + (TicksPrMinute * UmbracoTimeOutInMinutes)),
-                SqlHelper.CreateParameter("@contextId", umbracoUserContextID));
+            HttpContext.Current.RenewUmbracoAuthTicket();           
         }
 
         /// <summary>
         /// Logs a user in.
         /// </summary>
         /// <param name="u">The user</param>
-        //[Obsolete("Use Umbraco.Web.Security.WebSecurity.PerformLogin instead")]
         public static void doLogin(User u)
         {
-            Guid retVal = Guid.NewGuid();
-            SqlHelper.ExecuteNonQuery(
-                                      "insert into umbracoUserLogins (contextID, userID, timeout) values (@contextId,'" + u.Id + "','" +
-                                      (DateTime.Now.Ticks + (TicksPrMinute * UmbracoTimeOutInMinutes)).ToString() +
-                                      "') ",
-                                      SqlHelper.CreateParameter("@contextId", retVal));
-            umbracoUserContextID = retVal.ToString();
+            HttpContext.Current.CreateUmbracoAuthTicket(new UserData(Guid.NewGuid().ToString("N"))
+            {
+                Id = u.Id,
+                AllowedApplications = u.GetApplications().Select(x => x.alias).ToArray(),
+                RealName = u.Name,
+                //currently we only have one user type!
+                Roles = new[] { u.UserType.Alias },
+                StartContentNode = u.StartNodeId,
+                StartMediaNode = u.StartMediaId,
+                Username = u.LoginName,
+                Culture = ui.Culture(u.Language)
 
+            });
 			LogHelper.Info<BasePage>("User {0} (Id: {1}) logged in", () => u.Name, () => u.Id);
         }
 
@@ -439,6 +351,18 @@ namespace umbraco.BasePages
             /// Warning icon
             /// </summary>
             warning
+        }
+
+        protected override void OnInit(EventArgs e)
+        {
+            base.OnInit(e);
+
+            //This must be set on each page to mitigate CSRF attacks which ensures that this unique token 
+            // is added to the viewstate of each request
+            if (umbracoUserContextID.IsNullOrWhiteSpace() == false)
+            {
+                ViewStateUserKey = umbracoUserContextID;
+            }
         }
 
         /// <summary>

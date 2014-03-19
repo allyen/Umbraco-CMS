@@ -10,7 +10,7 @@ using Umbraco.Tests.TestHelpers;
 using Umbraco.Web;
 using Umbraco.Web.Routing;
 using umbraco.BusinessLogic;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using umbraco.cms.businesslogic.cache;
 using umbraco.cms.businesslogic.template;
 
@@ -32,8 +32,10 @@ namespace Umbraco.Tests.Routing
             //SettingsForTests.ReservedPaths = "~/umbraco,~/install/";
             //SettingsForTests.ReservedUrls = "~/config/splashes/booting.aspx,~/install/default.aspx,~/config/splashes/noNodes.aspx,~/VSEnterpriseHelper.axd";
 
+		    Directory.CreateDirectory(Path.GetDirectoryName(IOHelper.MapPath(SystemFiles.NotFoundhandlersConfig, false)));
+
 			//create the not found handlers config
-			using (var sw = File.CreateText(Umbraco.Core.IO.IOHelper.MapPath(Umbraco.Core.IO.SystemFiles.NotFoundhandlersConfig, false)))
+			using (var sw = File.CreateText(IOHelper.MapPath(SystemFiles.NotFoundhandlersConfig, false)))
 			{
 				sw.Write(@"<NotFoundHandlers>
 	<notFound assembly='umbraco' type='SearchForAlias' />

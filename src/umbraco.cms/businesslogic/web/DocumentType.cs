@@ -3,6 +3,7 @@ using System.Collections;
 using System.Text;
 using System.Xml;
 using System.Linq;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Persistence.Caching;
@@ -86,7 +87,7 @@ namespace umbraco.cms.businesslogic.web
         public static string GenerateXmlDocumentType()
         {
             StringBuilder dtd = new StringBuilder();
-            if (UmbracoSettings.UseLegacyXmlSchema)
+            if (UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema)
             {
                 dtd.AppendLine("<!ELEMENT node ANY> <!ATTLIST node id ID #REQUIRED>  <!ELEMENT data ANY>");
             }
@@ -452,10 +453,7 @@ namespace umbraco.cms.businesslogic.web
                 {
                     throw new ArgumentException("Can't delete a Document Type used as a Master Content Type. Please remove all references first!");
                 }
-
-                // Remove from cache
-                FlushFromCache(Id);
-
+                
                 ApplicationContext.Current.Services.ContentTypeService.Delete(_contentType);
 
                 clearTemplates();
@@ -547,6 +545,7 @@ namespace umbraco.cms.businesslogic.web
                     var tabx = xd.CreateElement("Tab");
                     tabx.AppendChild(XmlHelper.AddTextNode(xd, "Id", propertyTypeGroup.Id.ToString()));
                     tabx.AppendChild(XmlHelper.AddTextNode(xd, "Caption", propertyTypeGroup.Name));
+                    tabx.AppendChild(XmlHelper.AddTextNode(xd, "SortOrder", propertyTypeGroup.SortOrder.ToString()));
                     tabs.AppendChild(tabx);
                 }
             }
@@ -590,11 +589,6 @@ namespace umbraco.cms.businesslogic.web
                 var current = User.GetCurrent();
                 int userId = current == null ? 0 : current.Id;
                 ApplicationContext.Current.Services.ContentTypeService.Save(_contentType, userId);
-
-                //Ensure that DocumentTypes are reloaded from db by clearing cache.
-                //NOTE Would be nice if we could clear cache by type instead of emptying the entire cache.
-                InMemoryCacheProvider.Current.Clear();
-                RuntimeCacheProvider.Current.Clear();//Runtime cache is used for Content, so we clear that as well
 
                 base.Save();
                 FireAfterSave(e);

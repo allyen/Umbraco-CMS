@@ -11,17 +11,13 @@ namespace Umbraco.Core.Models.Rdbms
         [Column("id")]
         [PrimaryKeyColumn]
         public int Id { get; set; }
-
-        [Column("macroPropertyHidden")]
-        [Constraint(Default = "0")]
-        public bool Hidden { get; set; }
-
-        [Column("macroPropertyType")]
-        [ForeignKey(typeof(MacroPropertyTypeDto))]
-        public short Type { get; set; }
+        
+        [Column("editorAlias")]        
+        public string EditorAlias { get; set; }
 
         [Column("macro")]
         [ForeignKey(typeof(MacroDto))]
+        [Index(IndexTypes.UniqueNonClustered, Name = "IX_cmsMacroProperty_Alias", ForColumns = "macro, macroPropertyAlias")]
         public int Macro { get; set; }
 
         [Column("macroPropertySortOrder")]

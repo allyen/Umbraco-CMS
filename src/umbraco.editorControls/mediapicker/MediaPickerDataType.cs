@@ -3,12 +3,8 @@ using Umbraco.Core;
 
 namespace umbraco.editorControls.mediapicker
 {
-    //TODO: Properly rename this for a major release
-    public class MediaPickerDataType : MemberPickerDataType
-    { }
-
-    [Obsolete("Renamed to MediaPickerDataType because.. that is what it was all along")]
-    public class MemberPickerDataType : cms.businesslogic.datatype.BaseDataType, interfaces.IDataType
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
+    public class MediaPickerDataType : cms.businesslogic.datatype.BaseDataType, interfaces.IDataType
     {
         private interfaces.IDataEditor _editor;
         private interfaces.IData _baseData;
@@ -25,13 +21,13 @@ namespace umbraco.editorControls.mediapicker
         }
 
 
-		public override Guid Id
-		{
-			get
-			{
-				return new Guid(Constants.PropertyEditors.MediaPicker);
-			}
-		}
+        public override Guid Id
+        {
+            get
+            {
+                return new Guid(Constants.PropertyEditors.MediaPicker);
+            }
+        }
 
 
         public override string DataTypeName

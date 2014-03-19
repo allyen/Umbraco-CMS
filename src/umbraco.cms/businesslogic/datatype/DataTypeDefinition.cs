@@ -1,7 +1,12 @@
 using System;
 using System.Collections;
+using System.Globalization;
+using System.Data;
 using System.Linq;
 using Umbraco.Core.Cache;
+using Umbraco.Core.Persistence;
+using Umbraco.Core.Persistence.SqlSyntax;
+using Umbraco.Core.PropertyEditors;
 using umbraco.DataLayer;
 using System.Xml;
 using umbraco.cms.businesslogic.media;
@@ -11,6 +16,9 @@ using Umbraco.Core;
 
 namespace umbraco.cms.businesslogic.datatype
 {
+
+    
+
     /// <summary>
     /// Datatypedefinitions is the basic buildingblocks of umbraco's documents/medias/members generic datastructure 
     /// 
@@ -19,15 +27,16 @@ namespace umbraco.cms.businesslogic.datatype
     /// are used amongst other for enabling shared prevalues.
     /// 
     /// </summary>
+    [Obsolete("This class is no longer used and will be removed from the codebase in the future.")]
     public class DataTypeDefinition : CMSNode
     {
         #region Private fields
-        private Guid _controlId;
+        private string _propertyEditorAlias;
 
-        private static Guid _objectType = new Guid(Constants.ObjectTypes.DataType);
-	    private string _dbType;
+        private static readonly Guid ObjectType = new Guid(Constants.ObjectTypes.DataType);
+        private string _text1;
 
-	    #endregion
+        #endregion
 
         #region Constructors
 
@@ -46,6 +55,13 @@ namespace umbraco.cms.businesslogic.datatype
         #endregion
 
         #region Public Properties
+
+        public override string Text
+        {
+            get { return _text1 ?? (_text1 = base.Text); }
+            set { _text1 = value; }
+        }
+
         /// <summary>
         /// The associated datatype, which delivers the methods for editing data, editing prevalues see: umbraco.interfaces.IDataType
         /// </summary>
@@ -53,14 +69,30 @@ namespace umbraco.cms.businesslogic.datatype
         {
             get
             {
-                if (_controlId == Guid.Empty) 
+                if (_propertyEditorAlias.IsNullOrWhiteSpace()) 
                     return null;
-                
-                controls.Factory factory = new controls.Factory();
-                var dt = factory.DataType(_controlId);
 
+                //Attempt to resolve a legacy control id from the alias. If one is not found we'll generate one - 
+                // the reason one will not be found is if there's a new v7 property editor created that doesn't have a legacy
+                // property editor predecessor.
+                //So, we'll generate an id for it based on the alias which will remain consistent, but then we'll try to resolve a legacy
+                // IDataType which of course will not exist. In this case we'll have to create a new one on the fly for backwards compatibility but 
+                // this instance will have limited capabilities and will really only work for saving data so the legacy APIs continue to work.
+                var controlId = LegacyPropertyEditorIdToAliasConverter.GetLegacyIdFromAlias(_propertyEditorAlias, LegacyPropertyEditorIdToAliasConverter.NotFoundLegacyIdResponseBehavior.GenerateId);
+
+                var dt = DataTypesResolver.Current.GetById(controlId.Value);
+                
                 if (dt != null)
+                {
                     dt.DataTypeDefinitionId = Id;
+                }
+                else
+                {
+                    //Ok so it was not found, we can only assume that this is because this is a new property editor that does not have a legacy predecessor.
+                    //we'll have to attempt to generate one at runtime.
+                    dt = BackwardsCompatibleDataType.Create(_propertyEditorAlias, controlId.Value, Id);
+                }
+                    
 
                 return dt;
             }
@@ -71,23 +103,27 @@ namespace umbraco.cms.businesslogic.datatype
                 if (value == null)
                     throw new InvalidOperationException("The value passed in is null. The DataType property cannot be set to a null value");
 
-                SqlHelper.ExecuteNonQuery("update cmsDataType set controlId = @id where nodeID = " + this.Id.ToString(),
-                    SqlHelper.CreateParameter("@id", value.Id));
-                _controlId = value.Id;
+                var alias = LegacyPropertyEditorIdToAliasConverter.GetAliasFromLegacyId(value.Id, true);
+
+                SqlHelper.ExecuteNonQuery("update cmsDataType set propertyEditorAlias = @alias where nodeID = " + this.Id,
+                    SqlHelper.CreateParameter("@alias", alias));
+
+                
+
+                _propertyEditorAlias = alias;
             }
-        } 
-	    internal string DbType
-	    {
-            get { return _dbType; }
-        } 
+        }
+
+        internal string DbType { get; private set; }
+
         #endregion
 
         #region Public methods
         public override void delete()
         {
-            DeleteEventArgs e = new DeleteEventArgs();
+            var e = new DeleteEventArgs();
             FireBeforeDelete(e);
-            if (!e.Cancel)
+            if (e.Cancel == false)
             {
                 //first clear the prevalues
                 PreValues.DeleteByDataTypeDefinition(this.Id);
@@ -120,25 +156,46 @@ namespace umbraco.cms.businesslogic.datatype
         /// </summary>
         public override void Save()
         {
+            //Cannot change to a duplicate alias
+            var exists = Database.ExecuteScalar<int>(@"SELECT COUNT(*) FROM cmsDataType
+INNER JOIN umbracoNode ON cmsDataType.nodeId = umbracoNode.id
+WHERE umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("text") + @"= @name
+AND umbracoNode.id <> @id",
+                    new { id = this.Id, name = this.Text });
+            if (exists > 0)
+            {
+                ApplicationContext.Current.ApplicationCache.RuntimeCache.ClearCacheItem(
+                    string.Format("{0}{1}", CacheKeys.DataTypeCacheKey, this.Id));
+
+                throw new DuplicateNameException("A data type with the name " + this.Text + " already exists");
+            }
+
+            //this actually does the persisting.
+            base.Text = _text1;
+
             OnSaving(EventArgs.Empty);
         }
 
         public XmlElement ToXml(XmlDocument xd)
         {
-            XmlElement dt = xd.CreateElement("DataType");
+            //here we need to get the property editor alias from it's id
+            var alias = LegacyPropertyEditorIdToAliasConverter.GetAliasFromLegacyId(DataType.Id, true);
+
+            var dt = xd.CreateElement("DataType");
             dt.Attributes.Append(xmlHelper.addAttribute(xd, "Name", Text));
-            dt.Attributes.Append(xmlHelper.addAttribute(xd, "Id", this.DataType.Id.ToString()));
-            dt.Attributes.Append(xmlHelper.addAttribute(xd, "Definition", this.UniqueId.ToString()));
-            dt.Attributes.Append(xmlHelper.addAttribute(xd, "DatabaseType", this.DbType));
+            //The 'ID' when exporting is actually the property editor alias (in pre v7 it was the IDataType GUID id)
+            dt.Attributes.Append(xmlHelper.addAttribute(xd, "Id", alias));
+            dt.Attributes.Append(xmlHelper.addAttribute(xd, "Definition", UniqueId.ToString()));
+            dt.Attributes.Append(xmlHelper.addAttribute(xd, "DatabaseType", DbType));
 
             // templates
-            XmlElement prevalues = xd.CreateElement("PreValues");
-            foreach (DictionaryEntry item in PreValues.GetPreValues(this.Id))
+            var prevalues = xd.CreateElement("PreValues");
+            foreach (DictionaryEntry item in PreValues.GetPreValues(Id))
             {
-                XmlElement prevalue = xd.CreateElement("PreValue");
-                prevalue.Attributes.Append(xmlHelper.addAttribute(xd, "Id", ((PreValue)item.Value).Id.ToString()));
+                var prevalue = xd.CreateElement("PreValue");
+                prevalue.Attributes.Append(xmlHelper.addAttribute(xd, "Id", ((PreValue)item.Value).Id.ToString(CultureInfo.InvariantCulture)));
                 prevalue.Attributes.Append(xmlHelper.addAttribute(xd, "Value", ((PreValue)item.Value).Value));
-
+                prevalue.Attributes.Append(xmlHelper.addAttribute(xd, "Alias", ((PreValue)item.Value).Alias));
                 prevalues.AppendChild(prevalue);
             }
 
@@ -149,26 +206,24 @@ namespace umbraco.cms.businesslogic.datatype
         #endregion
 
         #region Static methods
+
+        [Obsolete("Do not use this method, it will not function correctly because legacy property editors are not supported in v7")]
         public static DataTypeDefinition Import(XmlNode xmlData)
         {
-            string _name = xmlData.Attributes["Name"].Value;
-            string _id = xmlData.Attributes["Id"].Value;
-            string _def = xmlData.Attributes["Definition"].Value;
+            var name = xmlData.Attributes["Name"].Value;
+            var id = xmlData.Attributes["Id"].Value;
+            var def = xmlData.Attributes["Definition"].Value;
 
 
             //Make sure that the dtd is not already present
-            if (!CMSNode.IsNode(new Guid(_def)))
+            if (IsNode(new Guid(def)) == false)
             {
-                BusinessLogic.User u = BusinessLogic.User.GetCurrent();
+                var u = BusinessLogic.User.GetCurrent() ?? BusinessLogic.User.GetUser(0);
 
-                if (u == null)
-                    u = BusinessLogic.User.GetUser(0);
-
-                var f = new controls.Factory();
-                DataTypeDefinition dtd = MakeNew(u, _name, new Guid(_def));
-                var dataType = f.DataType(new Guid(_id));
+                var dtd = MakeNew(u, name, new Guid(def));
+                var dataType = DataTypesResolver.Current.GetById(new Guid(id));
                 if (dataType == null)
-                    throw new NullReferenceException("Could not resolve a data type with id " + _id);
+                    throw new NullReferenceException("Could not resolve a data type with id " + id);
 
                 dtd.DataType = dataType;
                 dtd.Save();
@@ -176,11 +231,11 @@ namespace umbraco.cms.businesslogic.datatype
                 //add prevalues
                 foreach (XmlNode xmlPv in xmlData.SelectNodes("PreValues/PreValue"))
                 {
-                    XmlAttribute val = xmlPv.Attributes["Value"];
+                    var val = xmlPv.Attributes["Value"];
 
                     if (val != null)
                     {
-                        PreValue p = new PreValue(0, 0, val.Value);
+                        var p = new PreValue(0, 0, val.Value);
                         p.DataTypeId = dtd.Id;
                         p.Save();
                     }
@@ -198,17 +253,17 @@ namespace umbraco.cms.businesslogic.datatype
         /// <returns>A list of all datatypedefinitions</returns>
         public static DataTypeDefinition[] GetAll()
         {
-            SortedList retvalSort = new SortedList();
-            Guid[] tmp = CMSNode.getAllUniquesFromObjectType(_objectType);
-            DataTypeDefinition[] retval = new DataTypeDefinition[tmp.Length];
-            for (int i = 0; i < tmp.Length; i++)
+            var retvalSort = new SortedList();
+            var tmp = getAllUniquesFromObjectType(ObjectType);
+            var retval = new DataTypeDefinition[tmp.Length];
+            for (var i = 0; i < tmp.Length; i++)
             {
-                DataTypeDefinition dt = DataTypeDefinition.GetDataTypeDefinition(tmp[i]);
-                retvalSort.Add(dt.Text + "|||" + Guid.NewGuid().ToString(), dt);
+                var dt = GetDataTypeDefinition(tmp[i]);
+                retvalSort.Add(dt.Text + "|||" + Guid.NewGuid(), dt);
             }
 
-            IDictionaryEnumerator ide = retvalSort.GetEnumerator();
-            int counter = 0;
+            var ide = retvalSort.GetEnumerator();
+            var counter = 0;
             while (ide.MoveNext())
             {
                 retval[counter] = (DataTypeDefinition)ide.Value;
@@ -237,18 +292,21 @@ namespace umbraco.cms.businesslogic.datatype
         /// <returns></returns>
         public static DataTypeDefinition MakeNew(BusinessLogic.User u, string Text, Guid UniqueId)
         {
+            //Cannot add a duplicate data type
+            var exists = Database.ExecuteScalar<int>(@"SELECT COUNT(*) FROM cmsDataType
+INNER JOIN umbracoNode ON cmsDataType.nodeId = umbracoNode.id
+WHERE umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("text") + "= @name", new { name = Text });
+            if (exists > 0)
+            {
+                throw new DuplicateNameException("A data type with the name " + Text + " already exists");
+            }
 
-            int newId = CMSNode.MakeNew(-1, _objectType, u.Id, 1, Text, UniqueId).Id;
-            cms.businesslogic.datatype.controls.Factory f = new cms.businesslogic.datatype.controls.Factory();
+            var newId = MakeNew(-1, ObjectType, u.Id, 1, Text, UniqueId).Id;
 
-            // initial control id changed to empty to ensure that it'll always work no matter if 3rd party configurators fail
-            // ref: http://umbraco.codeplex.com/workitem/29788
-            Guid FirstcontrolId = Guid.Empty;
+            //insert empty prop ed alias
+            SqlHelper.ExecuteNonQuery("Insert into cmsDataType (nodeId, propertyEditorAlias, dbType) values (" + newId + ",'','Ntext')");
 
-            SqlHelper.ExecuteNonQuery("Insert into cmsDataType (nodeId, controlId, dbType) values (" + newId.ToString() + ",@controlId,'Ntext')",
-                SqlHelper.CreateParameter("@controlId", FirstcontrolId));
-
-            DataTypeDefinition dtd = new DataTypeDefinition(newId);
+            var dtd = new DataTypeDefinition(newId);
             dtd.OnNew(EventArgs.Empty);
 
             return dtd;
@@ -261,19 +319,18 @@ namespace umbraco.cms.businesslogic.datatype
         /// <returns>A list of datatypedefinitions which are based on the IDataType specified</returns>
         public static DataTypeDefinition GetByDataTypeId(Guid DataTypeId)
         {
-            int dfId = 0;
+            var dfId = 0;
             // When creating a datatype and not saving it, it will be null, so we need this check
-            foreach (DataTypeDefinition df in DataTypeDefinition.GetAll().Where(x => x.DataType != null))
+            foreach (var df in GetAll().Where(x => x.DataType != null))
+            {
                 if (df.DataType.Id == DataTypeId)
                 {
                     dfId = df.Id;
                     break;
                 }
+            }
 
-            if (dfId == 0)
-                return null;
-            else
-                return new DataTypeDefinition(dfId);
+            return dfId == 0 ? null : new DataTypeDefinition(dfId);
         }
 
         /// <summary>
@@ -286,7 +343,9 @@ namespace umbraco.cms.businesslogic.datatype
             Type typeOfData = Data.GetType();
 
             while (typeOfData.BaseType != new Object().GetType())
+            {
                 typeOfData = typeOfData.BaseType;
+            }
 
             return (typeOfData.FullName == "umbraco.cms.businesslogic.datatype.DefaultData");
         }
@@ -312,12 +371,12 @@ namespace umbraco.cms.businesslogic.datatype
         {
             base.setupNode();
 
-            using (IRecordsReader dr = SqlHelper.ExecuteReader("select dbType, controlId from cmsDataType where nodeId = '" + this.Id.ToString() + "'"))
+            using (var dr = SqlHelper.ExecuteReader("select dbType, propertyEditorAlias from cmsDataType where nodeId = '" + this.Id.ToString() + "'"))
             {
                 if (dr.Read())
                 {
-                    _controlId = dr.GetGuid("controlId");
-                    _dbType = dr.GetString("dbType");
+                    _propertyEditorAlias = dr.GetString("propertyEditorAlias");
+                    DbType = dr.GetString("dbType");
                 }
                 else
                     throw new ArgumentException("No dataType with id = " + this.Id.ToString() + " found");

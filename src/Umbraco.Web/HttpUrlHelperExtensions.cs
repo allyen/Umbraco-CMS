@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Web.Http.Routing;
 using Umbraco.Core;
 using Umbraco.Web.Mvc;
@@ -21,6 +22,23 @@ namespace Umbraco.Web
             where T : UmbracoApiController
         {
             return url.GetUmbracoApiService(actionName, typeof(T), id);
+        }
+
+        public static string GetUmbracoApiService<T>(this UrlHelper url, Expression<Func<T, object>> methodSelector)
+            where T : UmbracoApiController
+        {
+            var method = ExpressionHelper.GetMethodInfo(methodSelector);
+            var methodParams = ExpressionHelper.GetMethodParams(methodSelector);
+            if (method == null)
+            {
+                throw new MissingMethodException("Could not find the method " + methodSelector + " on type " + typeof(T) + " or the result ");
+            }
+
+            if (methodParams.Any() == false)
+            {
+                return url.GetUmbracoApiService<T>(method.Name);    
+            }
+            return url.GetUmbracoApiService<T>(method.Name, methodParams.Values.First());
         }
 
         /// <summary>
@@ -48,7 +66,7 @@ namespace Umbraco.Web
                 //set the area to the plugin area
                 area = metaData.AreaName;
             }
-            return url.GetUmbracoApiService(actionName, ControllerExtensions.GetControllerName(apiControllerType), area);
+            return url.GetUmbracoApiService(actionName, ControllerExtensions.GetControllerName(apiControllerType), area, id);
         }
 
         /// <summary>
@@ -84,11 +102,11 @@ namespace Umbraco.Web
                 routeName = string.Format("umbraco-{0}-{1}", "api", controllerName);
                 if (id == null)
                 {
-                    return url.Link(routeName, new {controller = controllerName, action = actionName});
+                    return url.Route(routeName, new { controller = controllerName, action = actionName, httproute = "" });
                 }
                 else
                 {
-                    return url.Link(routeName, new {controller = controllerName, action = actionName, id = id});
+                    return url.Route(routeName, new { controller = controllerName, action = actionName, id = id, httproute = "" });
                 }
             }
             else
@@ -96,11 +114,11 @@ namespace Umbraco.Web
                 routeName = string.Format("umbraco-{0}-{1}-{2}", "api", area, controllerName);
                 if (id == null)
                 {
-                    return url.Link(routeName, new {controller = controllerName, action = actionName, area = area});
+                    return url.Route(routeName, new { controller = controllerName, action = actionName, httproute = "" });
                 }
                 else
                 {
-                    return url.Link(routeName, new { controller = controllerName, action = actionName, area = area, id = id });
+                    return url.Route(routeName, new { controller = controllerName, action = actionName, id = id, httproute = "" });
                 }
             }
         }

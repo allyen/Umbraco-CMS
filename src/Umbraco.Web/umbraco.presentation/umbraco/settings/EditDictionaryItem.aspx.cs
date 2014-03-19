@@ -9,7 +9,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Web.UI.HtmlControls;
 using umbraco.cms.presentation.Trees;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.settings
 {
@@ -38,11 +38,12 @@ namespace umbraco.settings
 			
             uicontrols.Pane p = new uicontrols.Pane();
 
-			ImageButton save = Panel1.Menu.NewImageButton();
-			save.Click += new System.Web.UI.ImageClickEventHandler(save_click);
-			save.AlternateText = ui.Text("save");
-            save.ImageUrl = SystemDirectories.Umbraco + "/images/editor/save.gif";
-		    save.ID = "save";
+			var save = Panel1.Menu.NewButton();
+            save.Text = ui.Text("save");
+            save.Click += save_Click;
+			save.ToolTip = ui.Text("save");
+            save.ID = "save";
+            save.ButtonType = uicontrols.MenuButtonType.Primary;
 
             Literal txt = new Literal();
             txt.Text = "<p>" + ui.Text("dictionaryItem", "description", currentItem.key, base.getUser()) + "</p><br/>";
@@ -50,18 +51,7 @@ namespace umbraco.settings
 			
 			foreach (cms.businesslogic.language.Language l in cms.businesslogic.language.Language.getAll)
 			{
-                /*
-				uicontrols.TabPage tp = tbv.NewTabPage(l.CultureAlias);
-				tp.HasMenu = false;
-				languageTextbox tmp = new languageTextbox(l.id);
-
-				if (!IsPostBack) 
-					tmp.Text = currentItem.Value(l.id);
-
-				languageFields.Add(tmp);
-				tp.Controls.Add(tmp);
-                 */
-
+              
                 TextBox languageBox = new TextBox();
                 languageBox.TextMode = TextBoxMode.MultiLine;
                 languageBox.ID = l.id.ToString();
@@ -86,8 +76,8 @@ namespace umbraco.settings
             Panel1.Controls.Add(p);
 		}
 
-		private void save_click(object sender, System.Web.UI.ImageClickEventArgs e) {
-			
+        void save_Click(object sender, EventArgs e)
+        {
             foreach (TextBox t in languageFields) 
             {
                 //check for null but allow empty string!

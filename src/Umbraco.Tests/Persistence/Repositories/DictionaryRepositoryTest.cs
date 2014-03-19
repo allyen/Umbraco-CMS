@@ -2,6 +2,8 @@
 using System.Linq;
 using NUnit.Framework;
 using Umbraco.Core.Models;
+using Umbraco.Core.Persistence;
+using Umbraco.Core.Persistence.Caching;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.Repositories;
 using Umbraco.Core.Persistence.UnitOfWork;
@@ -9,6 +11,7 @@ using Umbraco.Tests.TestHelpers;
 
 namespace Umbraco.Tests.Persistence.Repositories
 {
+    [DatabaseTestBehavior(DatabaseBehavior.NewDbFileAndSchemaPerTest)]
     [TestFixture]
     public class DictionaryRepositoryTest : BaseDatabaseFactoryTest
     {
@@ -20,16 +23,22 @@ namespace Umbraco.Tests.Persistence.Repositories
             CreateTestData();
         }
 
+        private DictionaryRepository CreateRepository(IDatabaseUnitOfWork unitOfWork, out LanguageRepository languageRepository)
+        {
+            languageRepository = new LanguageRepository(unitOfWork, NullCacheProvider.Current);
+            var dictionaryRepository = new DictionaryRepository(unitOfWork, NullCacheProvider.Current, languageRepository);
+            return dictionaryRepository;
+        }
+
         [Test]
-        public void Can_Instantiate_Repository()
+        public void Can_Instantiate_Repository_From_Resolver()
         {
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
 
             // Act
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            var repository = RepositoryResolver.Current.ResolveByType<IDictionaryRepository>(unitOfWork);
 
             // Assert
             Assert.That(repository, Is.Not.Null);
@@ -41,19 +50,21 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
+                // Act
+                var dictionaryItem = repository.Get(1);
 
-            // Act
-            var dictionaryItem = repository.Get(1);
-
-            // Assert
-            Assert.That(dictionaryItem, Is.Not.Null);
-            Assert.That(dictionaryItem.ItemKey, Is.EqualTo("Read More"));
-            Assert.That(dictionaryItem.Translations.Any(), Is.True);
-            Assert.That(dictionaryItem.Translations.Any(x => x == null), Is.False);
-            Assert.That(dictionaryItem.Translations.First().Value, Is.EqualTo("Read More"));
-            Assert.That(dictionaryItem.Translations.Last().Value, Is.EqualTo("Læs mere"));
+                // Assert
+                Assert.That(dictionaryItem, Is.Not.Null);
+                Assert.That(dictionaryItem.ItemKey, Is.EqualTo("Read More"));
+                Assert.That(dictionaryItem.Translations.Any(), Is.True);
+                Assert.That(dictionaryItem.Translations.Any(x => x == null), Is.False);
+                Assert.That(dictionaryItem.Translations.First().Value, Is.EqualTo("Read More"));
+                Assert.That(dictionaryItem.Translations.Last().Value, Is.EqualTo("Læs mere"));
+            }
+            
         }
 
         [Test]
@@ -62,18 +73,20 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            // Act
-            var dictionaryItem = repository.Get(1);
-            var dictionaryItems = repository.GetAll();
+                // Act
+                var dictionaryItem = repository.Get(1);
+                var dictionaryItems = repository.GetAll();
 
-            // Assert
-            Assert.That(dictionaryItems, Is.Not.Null);
-            Assert.That(dictionaryItems.Any(), Is.True);
-            Assert.That(dictionaryItems.Any(x => x == null), Is.False);
-            Assert.That(dictionaryItems.Count(), Is.EqualTo(2));
+                // Assert
+                Assert.That(dictionaryItems, Is.Not.Null);
+                Assert.That(dictionaryItems.Any(), Is.True);
+                Assert.That(dictionaryItems.Any(x => x == null), Is.False);
+                Assert.That(dictionaryItems.Count(), Is.EqualTo(2));
+            }
         }
 
         [Test]
@@ -82,17 +95,19 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            // Act
-            var dictionaryItems = repository.GetAll(1, 2);
+                // Act
+                var dictionaryItems = repository.GetAll(1, 2);
 
-            // Assert
-            Assert.That(dictionaryItems, Is.Not.Null);
-            Assert.That(dictionaryItems.Any(), Is.True);
-            Assert.That(dictionaryItems.Any(x => x == null), Is.False);
-            Assert.That(dictionaryItems.Count(), Is.EqualTo(2));
+                // Assert
+                Assert.That(dictionaryItems, Is.Not.Null);
+                Assert.That(dictionaryItems.Any(), Is.True);
+                Assert.That(dictionaryItems.Any(x => x == null), Is.False);
+                Assert.That(dictionaryItems.Count(), Is.EqualTo(2));
+            }
         }
 
         [Test]
@@ -101,17 +116,19 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            // Act
-            var query = Query<IDictionaryItem>.Builder.Where(x => x.ItemKey == "Article");
-            var result = repository.GetByQuery(query);
+                // Act
+                var query = Query<IDictionaryItem>.Builder.Where(x => x.ItemKey == "Article");
+                var result = repository.GetByQuery(query);
 
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.That(result.Any(), Is.True);
-            Assert.That(result.FirstOrDefault().ItemKey, Is.EqualTo("Article"));
+                // Assert
+                Assert.That(result, Is.Not.Null);
+                Assert.That(result.Any(), Is.True);
+                Assert.That(result.FirstOrDefault().ItemKey, Is.EqualTo("Article"));
+            }
         }
 
         [Test]
@@ -120,15 +137,17 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            // Act
-            var query = Query<IDictionaryItem>.Builder.Where(x => x.ItemKey.StartsWith("Read"));
-            var result = repository.Count(query);
+                // Act
+                var query = Query<IDictionaryItem>.Builder.Where(x => x.ItemKey.StartsWith("Read"));
+                var result = repository.Count(query);
 
-            // Assert
-            Assert.That(result, Is.EqualTo(1));
+                // Assert
+                Assert.That(result, Is.EqualTo(1));
+            }
         }
 
         [Test]
@@ -137,32 +156,61 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            var language = languageRepository.Get(1);
+                var language = languageRepository.Get(1);
 
-            var read = new DictionaryItem("Read");
-            var translations = new List<IDictionaryTranslation>
-                                   {
-                                       new DictionaryTranslation(language, "Read")
-                                   };
-            read.Translations = translations;
+                var read = new DictionaryItem("Read");
+                var translations = new List<IDictionaryTranslation>
+                    {
+                        new DictionaryTranslation(language, "Read")
+                    };
+                read.Translations = translations;
 
-            // Act
-            repository.AddOrUpdate(read);
-            unitOfWork.Commit();
+                // Act
+                repository.AddOrUpdate(read);
+                unitOfWork.Commit();
 
-            var exists = repository.Exists(read.Id);
+                var exists = repository.Exists(read.Id);
 
-            // Assert
-            Assert.That(read.HasIdentity, Is.True);
-            Assert.That(exists, Is.True);
+                // Assert
+                Assert.That(read.HasIdentity, Is.True);
+                Assert.That(exists, Is.True);
+            }
         }
 
-        [Ignore]
         [Test]
         public void Can_Perform_Update_On_DictionaryRepository()
+        {
+            // Arrange
+            var provider = new PetaPocoUnitOfWorkProvider();
+            var unitOfWork = provider.GetUnitOfWork();
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
+
+                // Act
+                var item = repository.Get(1);
+                var translations = item.Translations.ToList();
+                translations[0].Value = "Read even more";
+                item.Translations = translations;
+
+                repository.AddOrUpdate(item);
+                unitOfWork.Commit();
+
+                var dictionaryItem = repository.Get(1);
+
+                // Assert
+                Assert.That(dictionaryItem, Is.Not.Null);
+                Assert.That(dictionaryItem.Translations.Count(), Is.EqualTo(2));
+                Assert.That(dictionaryItem.Translations.FirstOrDefault().Value, Is.EqualTo("Read even more"));
+            }
+        }
+
+        [Test]
+        public void Can_Perform_Update_WithNewTranslation_On_DictionaryRepository()
         {
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
@@ -170,10 +218,13 @@ namespace Umbraco.Tests.Persistence.Repositories
             var languageRepository = new LanguageRepository(unitOfWork);
             var repository = new DictionaryRepository(unitOfWork, languageRepository);
 
+            var languageNo = new Language("nb-NO") { CultureName = "nb-NO" };
+            ServiceContext.LocalizationService.Save(languageNo);
+
             // Act
             var item = repository.Get(1);
             var translations = item.Translations.ToList();
-            translations[0].Value = "Read even more";
+            translations.Add(new DictionaryTranslation(languageNo, "Les mer"));
             item.Translations = translations;
 
             repository.AddOrUpdate(item);
@@ -183,8 +234,8 @@ namespace Umbraco.Tests.Persistence.Repositories
 
             // Assert
             Assert.That(dictionaryItem, Is.Not.Null);
-            Assert.That(dictionaryItem.Translations.Count(), Is.EqualTo(2));
-            Assert.That(dictionaryItem.Translations.FirstOrDefault().Value, Is.EqualTo("Read even more"));
+            Assert.That(dictionaryItem.Translations.Count(), Is.EqualTo(3));
+            Assert.That(dictionaryItem.Translations.Single(t => t.Language.IsoCode == "nb-NO").Value, Is.EqualTo("Les mer"));
         }
 
         [Test]
@@ -193,18 +244,20 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            // Act
-            var item = repository.Get(1);
-            repository.Delete(item);
-            unitOfWork.Commit();
+                // Act
+                var item = repository.Get(1);
+                repository.Delete(item);
+                unitOfWork.Commit();
 
-            var exists = repository.Exists(1);
+                var exists = repository.Exists(1);
 
-            // Assert
-            Assert.That(exists, Is.False);
+                // Assert
+                Assert.That(exists, Is.False);
+            }
         }
 
         [Test]
@@ -213,14 +266,16 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            var languageRepository = new LanguageRepository(unitOfWork);
-            var repository = new DictionaryRepository(unitOfWork, languageRepository);
+            LanguageRepository languageRepository;
+            using (var repository = CreateRepository(unitOfWork, out languageRepository))
+            {
 
-            // Act
-            var exists = repository.Exists(1);
+                // Act
+                var exists = repository.Exists(1);
 
-            // Assert
-            Assert.That(exists, Is.True);
+                // Assert
+                Assert.That(exists, Is.True);
+            }
         }
 
         [TearDown]

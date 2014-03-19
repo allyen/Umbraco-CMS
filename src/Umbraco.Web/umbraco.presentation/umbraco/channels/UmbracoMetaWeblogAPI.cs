@@ -6,6 +6,7 @@ using System.Web;
 using CookComputing.Blogger;
 using CookComputing.MetaWeblog;
 using CookComputing.XmlRpc;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using umbraco.BusinessLogic;
 using umbraco.cms.businesslogic;
@@ -14,12 +15,13 @@ using umbraco.cms.businesslogic.media;
 using umbraco.cms.businesslogic.property;
 using umbraco.cms.businesslogic.propertytype;
 using umbraco.cms.businesslogic.web;
+using Umbraco.Core.Security;
 using umbraco.presentation.channels.businesslogic;
 using Post = CookComputing.MetaWeblog.Post;
 
 using System.Collections.Generic;
 using System.Web.Security;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using Umbraco.Core;
 
 namespace umbraco.presentation.channels
@@ -45,7 +47,7 @@ namespace umbraco.presentation.channels
                 Description = "Where applicable, this specifies whether the blog "
                               + "should be republished after the post has been deleted.")] bool publish)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 Channel userChannel = new Channel(username);
                 new Document(int.Parse(postid))
@@ -62,7 +64,7 @@ namespace umbraco.presentation.channels
             Post post,
             bool publish)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 Channel userChannel = new Channel(username);
                 Document doc = new Document(Convert.ToInt32(postid));
@@ -74,7 +76,8 @@ namespace umbraco.presentation.channels
                 if (userChannel.FieldExcerptAlias != null && userChannel.FieldExcerptAlias != "")
                     doc.getProperty(userChannel.FieldExcerptAlias).Value = removeLeftUrl(post.mt_excerpt);
 
-                if (UmbracoSettings.TidyEditorContent)
+                
+                if (UmbracoConfig.For.UmbracoSettings().Content.TidyEditorContent)
                     doc.getProperty(userChannel.FieldDescriptionAlias).Value = library.Tidy(removeLeftUrl(post.description), false);
                 else
                     doc.getProperty(userChannel.FieldDescriptionAlias).Value = removeLeftUrl(post.description);
@@ -140,7 +143,7 @@ namespace umbraco.presentation.channels
             string username,
             string password)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 Channel userChannel = new Channel(username);
                 if (userChannel.FieldCategoriesAlias != null && userChannel.FieldCategoriesAlias != "")
@@ -218,7 +221,7 @@ namespace umbraco.presentation.channels
             string username,
             string password)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 Channel userChannel = new Channel(username);
                 Document d = new Document(int.Parse(postid));
@@ -258,7 +261,7 @@ namespace umbraco.presentation.channels
             string password,
             int numberOfPosts)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 ArrayList blogPosts = new ArrayList();
                 ArrayList blogPostsObjects = new ArrayList();
@@ -369,7 +372,7 @@ namespace umbraco.presentation.channels
             Post post,
             bool publish)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 Channel userChannel = new Channel(username);
                 User u = new User(username);
@@ -385,7 +388,7 @@ namespace umbraco.presentation.channels
 
 
                 // Description
-                if (UmbracoSettings.TidyEditorContent)
+                if (UmbracoConfig.For.UmbracoSettings().Content.TidyEditorContent)
                     doc.getProperty(userChannel.FieldDescriptionAlias).Value = library.Tidy(removeLeftUrl(post.description), false);
                 else
                     doc.getProperty(userChannel.FieldDescriptionAlias).Value = removeLeftUrl(post.description);
@@ -427,7 +430,7 @@ namespace umbraco.presentation.channels
             string password,
             FileData file)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 User u = new User(username);
                 Channel userChannel = new Channel(username);
@@ -512,9 +515,11 @@ namespace umbraco.presentation.channels
             return new UrlData();
         }
 
-        private static bool validateUser(string username, string password)
+        private static bool ValidateUser(string username, string password)
         {
-            return Membership.Providers[UmbracoSettings.DefaultBackofficeProvider].ValidateUser(username, password);
+            var provider = MembershipProviderExtensions.GetUsersMembershipProvider();
+
+            return provider.ValidateUser(username, password);
         }
 
         [XmlRpcMethod("blogger.getUsersBlogs",
@@ -525,7 +530,7 @@ namespace umbraco.presentation.channels
             string username,
             string password)
         {
-            if (validateUser(username, password))
+            if (ValidateUser(username, password))
             {
                 BlogInfo[] blogs = new BlogInfo[1];
                 User u = new User(username);

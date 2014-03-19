@@ -7,14 +7,6 @@ using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 namespace Umbraco.Core.Persistence.SqlSyntax
 {
     /// <summary>
-    /// Static class that provides simple access to the MySql SqlSyntax Provider
-    /// </summary>
-    internal static class MySqlSyntax
-    {
-        public static ISqlSyntaxProvider Provider { get { return new MySqlSyntaxProvider(); } }
-    }
-
-    /// <summary>
     /// Represents an SqlSyntaxProvider for MySql
     /// </summary>
     [SqlSyntaxProviderAttribute("MySql.Data.MySqlClient")]
@@ -33,7 +25,7 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             TimeColumnDefinition = "time";
             DecimalColumnDefinition = "decimal(38,6)";
             GuidColumnDefinition = "char(36)";
-            
+
             InitColumnTypeMap();
 
             DefaultValueFormat = "DEFAULT '{0}'";
@@ -44,11 +36,13 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             List<string> list;
             try
             {
+                //needs to be open to read the schema name
                 db.OpenSharedConnection();
+
                 var items =
                     db.Fetch<dynamic>(
                         "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = @TableSchema",
-                        new {TableSchema = db.Connection.Database});
+                        new { TableSchema = db.Connection.Database });
                 list = items.Select(x => x.TABLE_NAME).Cast<string>().ToList();
             }
             finally
@@ -63,11 +57,13 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             List<ColumnInfo> list;
             try
             {
+                //needs to be open to read the schema name
                 db.OpenSharedConnection();
+
                 var items =
                     db.Fetch<dynamic>(
                         "SELECT TABLE_NAME, COLUMN_NAME, ORDINAL_POSITION, COLUMN_DEFAULT, IS_NULLABLE, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @TableSchema",
-                        new {TableSchema = db.Connection.Database});
+                        new { TableSchema = db.Connection.Database });
                 list =
                     items.Select(
                         item =>
@@ -86,11 +82,14 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             List<Tuple<string, string>> list;
             try
             {
+                //needs to be open to read the schema name
+                db.OpenSharedConnection();
+
                 //Does not include indexes and constraints are named differently
                 var items =
                     db.Fetch<dynamic>(
                         "SELECT TABLE_NAME, CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = @TableSchema",
-                        new {TableSchema = db.Connection.Database});
+                        new { TableSchema = db.Connection.Database });
                 list = items.Select(item => new Tuple<string, string>(item.TABLE_NAME, item.CONSTRAINT_NAME)).ToList();
             }
             finally
@@ -105,15 +104,47 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             List<Tuple<string, string, string>> list;
             try
             {
+                //needs to be open to read the schema name
+                db.OpenSharedConnection();
+
                 //Does not include indexes and constraints are named differently
                 var items =
                     db.Fetch<dynamic>(
                         "SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = @TableSchema",
-                        new {TableSchema = db.Connection.Database});
+                        new { TableSchema = db.Connection.Database });
                 list =
                     items.Select(
                         item =>
                         new Tuple<string, string, string>(item.TABLE_NAME, item.COLUMN_NAME, item.CONSTRAINT_NAME))
+                         .ToList();
+            }
+            finally
+            {
+                db.CloseSharedConnection();
+            }
+            return list;
+        }
+
+        public override IEnumerable<Tuple<string, string, string, bool>> GetDefinedIndexes(Database db)
+        {
+            List<Tuple<string, string, string, bool>> list;
+            try
+            {
+                //needs to be open to read the schema name
+                db.OpenSharedConnection();
+
+                var indexes =
+                db.Fetch<dynamic>(@"SELECT DISTINCT
+    TABLE_NAME, INDEX_NAME, COLUMN_NAME, CASE NON_UNIQUE WHEN 1 THEN 0 ELSE 1 END AS `UNIQUE`
+FROM INFORMATION_SCHEMA.STATISTICS
+WHERE TABLE_SCHEMA = @TableSchema
+AND INDEX_NAME <> COLUMN_NAME AND INDEX_NAME <> 'PRIMARY'
+ORDER BY TABLE_NAME, INDEX_NAME",
+                    new { TableSchema = db.Connection.Database });
+                list =
+                    indexes.Select(
+                        item =>
+                        new Tuple<string, string, string, bool>(item.TABLE_NAME, item.INDEX_NAME, item.COLUMN_NAME, item.UNIQUE == 1))
                          .ToList();
             }
             finally
@@ -128,12 +159,14 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             long result;
             try
             {
+                //needs to be open to read the schema name
                 db.OpenSharedConnection();
+
                 result =
                     db.ExecuteScalar<long>("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES " +
                                            "WHERE TABLE_NAME = @TableName AND " +
                                            "TABLE_SCHEMA = @TableSchema",
-                                           new {TableName = tableName, TableSchema = db.Connection.Database});
+                                           new { TableName = tableName, TableSchema = db.Connection.Database });
 
             }
             finally
@@ -185,7 +218,7 @@ namespace Umbraco.Core.Persistence.SqlSyntax
         {
             string primaryKey = string.Empty;
             var columnDefinition = table.Columns.FirstOrDefault(x => x.IsPrimaryKey);
-            if (columnDefinition != null && columnDefinition.PrimaryKeyColumns.Contains(",") == false)
+            if (columnDefinition != null)
             {
                 string columns = string.IsNullOrEmpty(columnDefinition.PrimaryKeyColumns)
                                  ? GetQuotedColumnName(columnDefinition.Name)
@@ -213,7 +246,7 @@ namespace Umbraco.Core.Persistence.SqlSyntax
 
             return string.Format(CreateIndex,
                                  GetQuotedName(name),
-                                 GetQuotedTableName(index.TableName), 
+                                 GetQuotedTableName(index.TableName),
                                  columns);
         }
 
@@ -290,7 +323,7 @@ namespace Umbraco.Core.Persistence.SqlSyntax
         {
             get
             {
-                throw new NotSupportedException("Default constraints are not supported in MySql");
+                return "ALTER TABLE {0} ALTER COLUMN {1} DROP DEFAULT";
             }
         }
 
@@ -303,7 +336,7 @@ namespace Umbraco.Core.Persistence.SqlSyntax
 
         public override string CreateForeignKeyConstraint { get { return "ALTER TABLE {0} ADD FOREIGN KEY ({1}) REFERENCES {2} ({3}){4}{5}"; } }
 
-        public override string DeleteConstraint { get { return "ALTER TABLE {0} DROP {1}{2}"; } }
+        public override string DeleteConstraint { get { return "ALTER TABLE {0} DROP {1} {2}"; } }
 
         public override string DropIndex { get { return "DROP INDEX {0} ON {1}"; } }
 
@@ -318,11 +351,11 @@ namespace Umbraco.Core.Persistence.SqlSyntax
                 db.OpenSharedConnection();
                 // Need 4 @ signs as it is regarded as a parameter, @@ escapes it once, @@@@ escapes it twice
                 var lowerCaseTableNames = db.Fetch<int>("SELECT @@@@Global.lower_case_table_names");
-                
-                if(lowerCaseTableNames.Any())
+
+                if (lowerCaseTableNames.Any())
                     supportsCaseInsensitiveQueries = lowerCaseTableNames.First() == 1;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Logging.LogHelper.Error<MySqlSyntaxProvider>("Error querying for lower_case support", ex);
             }
@@ -334,6 +367,11 @@ namespace Umbraco.Core.Persistence.SqlSyntax
             // Could return null, which means testing failed, 
             // add message to check with their hosting provider
             return supportsCaseInsensitiveQueries;
+        }
+
+        public override string EscapeString(string val)
+        {
+            return PetaPocoExtensions.EscapeAtSymbols(MySql.Data.MySqlClient.MySqlHelper.EscapeString(val));
         }
     }
 }

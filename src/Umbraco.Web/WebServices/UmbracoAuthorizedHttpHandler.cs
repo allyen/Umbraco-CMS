@@ -32,7 +32,7 @@ namespace Umbraco.Web.WebServices
         /// <returns></returns>
         protected bool ValidateUserContextId(string currentUmbracoUserContextId)
         {
-            return UmbracoContext.Security.ValidateUserContextId(currentUmbracoUserContextId);
+            return UmbracoContext.Security.ValidateCurrentUser();
         }
 
         /// <summary>
@@ -97,23 +97,24 @@ namespace Umbraco.Web.WebServices
         /// <returns></returns>
         protected bool AuthorizeRequest(bool throwExceptions = false)
         {
-            var result = Security.AuthorizeRequest(new HttpContextWrapper(HttpContext.Current), throwExceptions);
+            var result = Security.AuthorizeRequest(throwExceptions);
             return result == ValidateRequestAttempt.Success;
         }
 
         /// <summary>
         /// Returns the current user
         /// </summary>
+        [Obsolete("This should no longer be used since it returns the legacy user object, use The Security.CurrentUser instead to return the proper user object")]
         protected User UmbracoUser
         {
             get
             {
                 if (!_hasValidated)
                 {
-                    Security.ValidateCurrentUser(new HttpContextWrapper(HttpContext.Current));
+                    Security.ValidateCurrentUser();
                     _hasValidated = true;
                 }
-                return Security.CurrentUser;
+                return new User(Security.CurrentUser);
             }
         }
 

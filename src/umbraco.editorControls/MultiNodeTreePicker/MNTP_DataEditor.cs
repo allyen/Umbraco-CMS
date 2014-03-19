@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using ClientDependency.Core;
 using Umbraco.Core;
 using Umbraco.Core.IO;
+using umbraco.BusinessLogic;
 using umbraco.cms.presentation.Trees;
 using umbraco.controls.Images;
 using umbraco.controls.Tree;
@@ -26,6 +27,7 @@ namespace umbraco.editorControls.MultiNodeTreePicker
 	[ClientDependency(ClientDependencyType.Javascript, "ui/jquery.tooltip.min.js", "UmbracoClient")]
 	[ClientDependency(ClientDependencyType.Javascript, "controls/Images/ImageViewer.js", "UmbracoRoot")]
     [ValidationProperty("Value")]
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
 	public class MNTP_DataEditor : Control, INamingContainer
 	{
 		#region Static Constructor
@@ -45,7 +47,15 @@ namespace umbraco.editorControls.MultiNodeTreePicker
 			//need to add our tree definitions to the collection.
 
 			//find the content tree to duplicate
-			var contentTree = TreeDefinitionCollection.Instance.Single(x => string.Equals(x.Tree.Alias, Umbraco.Core.Constants.Applications.Content, StringComparison.OrdinalIgnoreCase));
+			var contentTree = TreeDefinitionCollection.Instance.SingleOrDefault(x => string.Equals(x.Tree.Alias, Umbraco.Core.Constants.Applications.Content, StringComparison.OrdinalIgnoreCase));
+            //have put this here because the legacy content tree no longer exists as a tree def
+            if (contentTree == null)
+            {
+                contentTree = new TreeDefinition(
+                    typeof (loadContent),
+                    new ApplicationTree(false, true, 0, "content", "content", "Content", ".sprTreeFolder", ".sprTreeFolder_o", "", typeof (loadContent).GetFullNameWithAssembly(), ""),
+                    new Application("Content", "content", "content"));
+            }
 			var filteredContentTree = new TreeDefinition(typeof(FilteredContentTree),
 			                                             new umbraco.BusinessLogic.ApplicationTree(true, false, 0,
 			                                                                                       contentTree.Tree.ApplicationAlias,
@@ -59,7 +69,15 @@ namespace umbraco.editorControls.MultiNodeTreePicker
                                                                                                    contentTree.App);
 
 			//find the media tree to duplicate
-			var mediaTree = TreeDefinitionCollection.Instance.Single(x => string.Equals(x.Tree.Alias, Umbraco.Core.Constants.Applications.Media, StringComparison.OrdinalIgnoreCase));
+			var mediaTree = TreeDefinitionCollection.Instance.SingleOrDefault(x => string.Equals(x.Tree.Alias, Umbraco.Core.Constants.Applications.Media, StringComparison.OrdinalIgnoreCase));
+            //have put this here because the legacy content tree no longer exists as a tree def
+            if (mediaTree == null)
+            {
+                mediaTree = new TreeDefinition(
+                    typeof(loadMedia),
+                    new ApplicationTree(false, true, 0, "media", "media", "Media", ".sprTreeFolder", ".sprTreeFolder_o", "", typeof(loadMedia).GetFullNameWithAssembly(), ""),
+                    new Application("Media", "media", "media"));
+            }
 			var filteredMediaTree = new TreeDefinition(typeof(FilteredMediaTree),
 			                                           new umbraco.BusinessLogic.ApplicationTree(true, false, 0,
 			                                                                                     mediaTree.Tree.ApplicationAlias,
@@ -296,8 +314,8 @@ namespace umbraco.editorControls.MultiNodeTreePicker
 			base.OnLoad(e);
 
 			//add the js/css required
-			this.RegisterEmbeddedClientResource("umbraco.editorControls.MultiNodeTreePicker.MultiNodePickerStyles.css", umbraco.cms.businesslogic.datatype.ClientDependencyType.Css);
-			this.RegisterEmbeddedClientResource("umbraco.editorControls.MultiNodeTreePicker.MultiNodePickerScripts.js", umbraco.cms.businesslogic.datatype.ClientDependencyType.Javascript);
+			this.RegisterEmbeddedClientResource("umbraco.editorControls.MultiNodeTreePicker.MultiNodePickerStyles.css", ClientDependencyType.Css);
+			this.RegisterEmbeddedClientResource("umbraco.editorControls.MultiNodeTreePicker.MultiNodePickerScripts.js", ClientDependencyType.Javascript);
 
 			//update the tree type (we need to do this each time because i don't think view state works with these controls)
 			switch (TreeToRender)

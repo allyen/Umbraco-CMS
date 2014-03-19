@@ -6,16 +6,13 @@ using System.Threading;
 using System.Web;
 using System.Web.Caching;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
 using global::umbraco.BusinessLogic;
 
 namespace Umbraco.Web
 {
-	// note: has to be public to be detected by the resolver
-	//   if it's made internal, which would make more sense, then it's not detected
-	//   and it needs to be manually registered - which we want to avoid, in order
-	//   to be as unobtrusive as possible
-
+	
 	internal sealed class LegacyScheduledTasks : ApplicationEventHandler
 	{
 		Timer _pingTimer;
@@ -54,8 +51,8 @@ namespace Umbraco.Web
 			int interval = 24 * 60 * 60; //24 hours
 			try
 			{
-				if (global::umbraco.UmbracoSettings.CleaningMiliseconds > -1)
-					interval = global::umbraco.UmbracoSettings.CleaningMiliseconds;
+				if (UmbracoConfig.For.UmbracoSettings().Logging.CleaningMiliseconds > -1)
+					interval = UmbracoConfig.For.UmbracoSettings().Logging.CleaningMiliseconds;
 			}
 			catch (Exception e)
 			{
@@ -69,8 +66,8 @@ namespace Umbraco.Web
 			int maximumAge = 24 * 60 * 60;
 			try
 			{
-				if (global::umbraco.UmbracoSettings.MaxLogAge > -1)
-					maximumAge = global::umbraco.UmbracoSettings.MaxLogAge;
+				if (UmbracoConfig.For.UmbracoSettings().Logging.MaxLogAge > -1)
+					maximumAge = UmbracoConfig.For.UmbracoSettings().Logging.MaxLogAge;
 			}
 			catch (Exception e)
 			{

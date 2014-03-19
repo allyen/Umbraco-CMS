@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.Serialization;
+using Umbraco.Core.Logging;
 using Umbraco.Core.Models.EntityBase;
-using Umbraco.Core.Persistence.Mappers;
+using Umbraco.Core.Persistence;
+using Umbraco.Core.PropertyEditors;
+using Umbraco.Core.Services;
 
 namespace Umbraco.Core.Models
 {
@@ -24,13 +29,30 @@ namespace Umbraco.Core.Models
         private string _path;
         private int _creatorId;
         private bool _trashed;
-        private Guid _controlId;
+        private string _propertyEditorAlias;
         private DataTypeDatabaseType _databaseType;
 
+        [Obsolete("Property editor's are defined by a string alias from version 7 onwards, use the alternative contructor that specifies an alias")]
         public DataTypeDefinition(int parentId, Guid controlId)
         {
             _parentId = parentId;
-            _controlId = controlId;
+
+            _propertyEditorAlias = LegacyPropertyEditorIdToAliasConverter.GetAliasFromLegacyId(controlId, false);
+            if (_propertyEditorAlias == null)
+            {
+                //convert to Label!
+                LogHelper.Warn<DataTypeDefinition>("Could not find a GUID -> Alias mapping for the legacy property editor with id " + controlId + ". The DataType has been converted to a Label.");
+                _propertyEditorAlias = Constants.PropertyEditors.NoEditAlias;
+            }
+
+            _additionalData = new Dictionary<string, object>();
+        }
+        public DataTypeDefinition(int parentId, string propertyEditorAlias)
+        {
+            _parentId = parentId;
+            _propertyEditorAlias = propertyEditorAlias;
+
+            _additionalData = new Dictionary<string, object>();
         }
 
         private static readonly PropertyInfo NameSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, string>(x => x.Name);
@@ -40,7 +62,7 @@ namespace Umbraco.Core.Models
         private static readonly PropertyInfo PathSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, string>(x => x.Path);
         private static readonly PropertyInfo UserIdSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, int>(x => x.CreatorId);
         private static readonly PropertyInfo TrashedSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, bool>(x => x.Trashed);
-        private static readonly PropertyInfo ControlIdSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, Guid>(x => x.ControlId);
+        private static readonly PropertyInfo PropertyEditorAliasSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, string>(x => x.PropertyEditorAlias);
         private static readonly PropertyInfo DatabaseTypeSelector = ExpressionHelper.GetPropertyInfo<DataTypeDefinition, DataTypeDatabaseType>(x => x.DatabaseType);
 
         /// <summary>
@@ -146,6 +168,8 @@ namespace Umbraco.Core.Models
             }
         }
 
+        //NOTE: SD: Why do we have this ??
+
         /// <summary>
         /// Boolean indicating whether this entity is Trashed or not.
         /// </summary>
@@ -160,6 +184,24 @@ namespace Umbraco.Core.Models
                     _trashed = value;
                     return _trashed;
                 }, _trashed, TrashedSelector);
+                //This is a custom property that is not exposed in IUmbracoEntity so add it to the additional data
+                _additionalData["Trashed"] = value;
+            }
+        }
+               
+        [DataMember]
+        public string PropertyEditorAlias
+        {
+            get { return _propertyEditorAlias; }
+            set
+            {
+                SetPropertyValueAndDetectChanges(o =>
+                {
+                    _propertyEditorAlias = value;
+                    return _propertyEditorAlias;
+                }, _propertyEditorAlias, PropertyEditorAliasSelector);
+                //This is a custom property that is not exposed in IUmbracoEntity so add it to the additional data
+                _additionalData["DatabaseType"] = value;
             }
         }
 
@@ -167,16 +209,20 @@ namespace Umbraco.Core.Models
         /// Id of the DataType control
         /// </summary>
         [DataMember]
+        [Obsolete("Property editor's are defined by a string alias from version 7 onwards, use the PropertyEditorAlias property instead. This method will return a generated GUID for any property editor alias not explicitly mapped to a legacy ID")]
         public Guid ControlId
         {
-            get { return _controlId; }
-            private set 
+            get
             {
-                SetPropertyValueAndDetectChanges(o =>
-                {
-                    _controlId = value;
-                    return _controlId;
-                }, _controlId, ControlIdSelector);
+                return LegacyPropertyEditorIdToAliasConverter.GetLegacyIdFromAlias(
+                    _propertyEditorAlias, LegacyPropertyEditorIdToAliasConverter.NotFoundLegacyIdResponseBehavior.GenerateId).Value;
+            }
+            set
+            {
+                var alias = LegacyPropertyEditorIdToAliasConverter.GetAliasFromLegacyId(value, true);
+                PropertyEditorAlias = alias;
+                //This is a custom property that is not exposed in IUmbracoEntity so add it to the additional data
+                _additionalData["ControlId"] = value;
             }
         }
 
@@ -194,8 +240,26 @@ namespace Umbraco.Core.Models
                     _databaseType = value;
                     return _databaseType;
                 }, _databaseType, DatabaseTypeSelector);
+
+                //This is a custom property that is not exposed in IUmbracoEntity so add it to the additional data
+                _additionalData["DatabaseType"] = value;
             }
         }
+
+         private readonly IDictionary<string, object> _additionalData;
+        /// <summary>
+        /// Some entities may expose additional data that other's might not, this custom data will be available in this collection
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        IDictionary<string, object> IUmbracoEntity.AdditionalData
+        {
+            get { return _additionalData; }
+        }
+
+        /// <summary>
+        /// Some entities may expose additional data that other's might not, this custom data will be available in this collection
+        /// </summary>
+        public IDictionary<string, object> AdditionalData { get; private set; }
 
         internal override void AddingEntity()
         {

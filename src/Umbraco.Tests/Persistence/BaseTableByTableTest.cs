@@ -1,6 +1,7 @@
 ﻿using System;
 using NUnit.Framework;
 using Umbraco.Core;
+using Umbraco.Core.Cache;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Models.Rdbms;
 using Umbraco.Core.ObjectResolution;
@@ -25,16 +26,17 @@ namespace Umbraco.Tests.Persistence
             string path = TestHelper.CurrentAssemblyDirectory;
             AppDomain.CurrentDomain.SetData("DataDirectory", path);
 
-            RepositoryResolver.Current = new RepositoryResolver(
-                new RepositoryFactory());
-            
+            RepositoryResolver.Current = new RepositoryResolver(new RepositoryFactory(true));
+
+            //disable cache
+            var cacheHelper = CacheHelper.CreateDisabledCacheHelper();
+
             ApplicationContext.Current = new ApplicationContext(
                 //assign the db context
                 new DatabaseContext(new DefaultDatabaseFactory()),
                 //assign the service context
-                new ServiceContext(new PetaPocoUnitOfWorkProvider(), new FileUnitOfWorkProvider(), new PublishingStrategy()),
-                //disable cache
-                false)
+                new ServiceContext(new PetaPocoUnitOfWorkProvider(), new FileUnitOfWorkProvider(), new PublishingStrategy(), cacheHelper),                
+                cacheHelper)
                 {
                     IsReady = true
                 };
@@ -301,33 +303,7 @@ namespace Umbraco.Tests.Persistence
                 //transaction.Complete();
             }
         }
-
-        [Test]
-        public void Can_Create_cmsMacroPropertyType_Table()
-        {
-            
-            using (Transaction transaction = Database.GetTransaction())
-            {
-                Database.CreateTable<MacroPropertyTypeDto>();
-
-                //transaction.Complete();
-            }
-        }
-
-        [Test]
-        public void Can_Create_cmsMacroProperty_Table()
-        {
-            
-            using (Transaction transaction = Database.GetTransaction())
-            {
-                Database.CreateTable<MacroDto>();
-                Database.CreateTable<MacroPropertyTypeDto>();
-                Database.CreateTable<MacroPropertyDto>();
-
-                //transaction.Complete();
-            }
-        }
-
+        
         [Test]
         public void Can_Create_cmsMember_Table()
         {
@@ -504,6 +480,11 @@ namespace Umbraco.Tests.Persistence
             using (Transaction transaction = Database.GetTransaction())
             {
                 Database.CreateTable<NodeDto>();
+                Database.CreateTable<ContentDto>();
+                Database.CreateTable<ContentTypeDto>();
+                Database.CreateTable<DataTypeDto>();
+                Database.CreateTable<PropertyTypeGroupDto>();
+                Database.CreateTable<PropertyTypeDto>();
                 Database.CreateTable<TagDto>();
                 Database.CreateTable<TagRelationshipDto>();
 

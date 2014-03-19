@@ -22,7 +22,6 @@ namespace Umbraco.Web.Standalone
 
         public StandaloneHttpContext()
         {
-            //create a custom response with a custom writer.
             _response = new HttpResponseWrapper(new HttpResponse(_writer));
         }
 
@@ -35,7 +34,7 @@ namespace Umbraco.Web.Standalone
         }
 
 
-        // fixme - what shall we implement here?
+        // what else should we implement here?
         
         public override IDictionary Items
         {
@@ -66,6 +65,9 @@ namespace Umbraco.Web.Standalone
 
     internal class StandaloneHttpRequest : HttpRequestBase
     {
-
+        public override Uri Url
+        {
+            get { return new Uri("http://localhost"); }
+        }
     }
 }

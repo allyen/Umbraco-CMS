@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
@@ -39,13 +40,18 @@ namespace umbraco.cms.businesslogic
         private bool _versionDateInitialized;
         private string _contentTypeIcon;
         private ContentType _contentType;
-        private Properties m_LoadedProperties = null;
+        private Properties _loadedProperties = null;
         protected internal IContentBase ContentBase;
 
         #endregion
 
         #region Constructors
-      
+
+        protected internal Content(int id, Guid version)
+            : base(id, new object[] { version })
+        {
+        }
+
         public Content(int id) : base(id) { }
 
         protected Content(int id, bool noSetup) : base(id, noSetup) { }
@@ -223,7 +229,7 @@ namespace umbraco.cms.businesslogic
             get
             {
                 EnsureProperties();
-                return m_LoadedProperties;
+                return _loadedProperties;
             }
         }
 
@@ -236,7 +242,7 @@ namespace umbraco.cms.businesslogic
             get
             {
                 EnsureProperties();
-                return m_LoadedProperties.ToArray();
+                return _loadedProperties.ToArray();
             }
         }
 
@@ -288,7 +294,7 @@ namespace umbraco.cms.businesslogic
         {
             EnsureProperties();
 
-            return m_LoadedProperties.SingleOrDefault(x => x.PropertyType.Alias == alias);
+            return _loadedProperties.SingleOrDefault(x => x.PropertyType.Alias == alias);
         }
 
         /// <summary>
@@ -300,7 +306,7 @@ namespace umbraco.cms.businesslogic
         {
             EnsureProperties();
 
-            return m_LoadedProperties.SingleOrDefault(x => x.PropertyType.Id == pt.Id);
+            return _loadedProperties.SingleOrDefault(x => x.PropertyType.Id == pt.Id);
         }
 
         /// <summary>
@@ -402,7 +408,7 @@ namespace umbraco.cms.businesslogic
         {
             var props = this.GenericProperties;
             foreach (property.Property p in props)
-                if (p != null)
+                if (p != null && p.Value != null && string.IsNullOrEmpty(p.Value.ToString()) == false)
                     x.AppendChild(p.ToXml(xd));
 
             // attributes
@@ -466,6 +472,21 @@ namespace umbraco.cms.businesslogic
         #endregion
 
         #region Protected Methods
+
+        /// <summary>
+        /// This is purely for a hackity hack hack hack in order to make the new Document(id, version) constructor work because
+        /// the Version property needs to be set on the object before setupNode is called, otherwise it never works!
+        /// </summary>
+        /// <param name="ctorArgs"></param>
+        internal override void PreSetupNode(params object[] ctorArgs)
+        {
+            //we know that there is one ctor arg and it is a GUID since we are only calling the base
+            // ctor with this overload for one purpose.
+            var version = (Guid) ctorArgs[0];
+            _version = version;
+
+            base.PreSetupNode(ctorArgs);
+        }
 
         /// <summary>
         /// Sets up the ContentType property for this content item and sets the addition content properties manually.
@@ -538,7 +559,7 @@ namespace umbraco.cms.businesslogic
 
         protected virtual XmlNode generateXmlWithoutSaving(XmlDocument xd)
         {
-            string nodeName = UmbracoSettings.UseLegacyXmlSchema ? "node" : Casing.SafeAliasWithForcingCheck(ContentType.Alias);
+            string nodeName = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "node" : Casing.SafeAliasWithForcingCheck(ContentType.Alias);
             XmlNode x = xd.CreateNode(XmlNodeType.Element, nodeName, "");
             XmlPopulate(xd, ref x, false);
             return x;
@@ -573,7 +594,7 @@ namespace umbraco.cms.businesslogic
             // Remove all files
 
             var fs = FileSystemProviderManager.Current.GetFileSystemProvider<MediaFileSystem>();
-            var uploadField = new Factory().GetNewObject(new Guid(Constants.PropertyEditors.UploadField));
+            var uploadField = DataTypesResolver.Current.GetById(new Guid(Constants.PropertyEditors.UploadField));
              
             foreach (Property p in GenericProperties)
             {               
@@ -599,7 +620,7 @@ namespace umbraco.cms.businesslogic
                     var parentDirectory = System.IO.Path.GetDirectoryName(relativeFilePath);
 
                     // don't want to delete the media folder if not using directories.
-                    if (UmbracoSettings.UploadAllowDirectories && parentDirectory != fs.GetRelativePath("/"))
+                    if (UmbracoConfig.For.UmbracoSettings().Content.UploadAllowDirectories && parentDirectory != fs.GetRelativePath("/"))
                     {
                         //issue U4-771: if there is a parent directory the recursive parameter should be true
                         fs.DeleteDirectory(parentDirectory, String.IsNullOrEmpty(parentDirectory) == false);
@@ -621,7 +642,7 @@ namespace umbraco.cms.businesslogic
         /// </summary>
         private void ClearLoadedProperties()
         {
-            m_LoadedProperties = null;
+            _loadedProperties = null;
         }
 
         /// <summary>
@@ -629,7 +650,7 @@ namespace umbraco.cms.businesslogic
         /// </summary>
         private void EnsureProperties()
         {
-            if (m_LoadedProperties == null)
+            if (_loadedProperties == null)
             {
                 InitializeProperties();
             }
@@ -648,11 +669,13 @@ namespace umbraco.cms.businesslogic
         /// </remarks>
         private void InitializeProperties()
         {
-            m_LoadedProperties = new Properties();
+            _loadedProperties = new Properties();
 
             if (ContentBase != null)
             {
-                m_LoadedProperties.AddRange(ContentBase.Properties.Select(x => new Property(x)));
+                //NOTE: we will not load any properties where HasIdentity = false - this is because if properties are 
+                // added to the property collection that aren't persisted we'll get ysods
+                _loadedProperties.AddRange(ContentBase.Properties.Where(x => x.HasIdentity).Select(x => new Property(x)));
                 return;
             }
 
@@ -661,7 +684,7 @@ namespace umbraco.cms.businesslogic
 
             //Create anonymous typed list with 2 props, Id and PropertyTypeId of type Int.
             //This will still be an empty list since the props list is empty.
-            var propData = m_LoadedProperties.Select(x => new { Id = 0, PropertyTypeId = 0 }).ToList();
+            var propData = _loadedProperties.Select(x => new { Id = 0, PropertyTypeId = 0 }).ToList();
 
             string sql = @"select id, propertyTypeId from cmsPropertyData where versionId=@versionId";
 
@@ -700,7 +723,7 @@ namespace umbraco.cms.businesslogic
                     continue; //this remains from old code... not sure why we would do this?
                 }
 
-                m_LoadedProperties.Add(p);
+                _loadedProperties.Add(p);
             }
         }
 

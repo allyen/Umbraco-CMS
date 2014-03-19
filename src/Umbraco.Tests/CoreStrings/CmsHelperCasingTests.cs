@@ -1,23 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using Umbraco.Core;
 using Umbraco.Core.Strings;
-using Umbraco.Core.ObjectResolution;
+using Umbraco.Tests.TestHelpers;
 
 namespace Umbraco.Tests.CoreStrings
 {
     [TestFixture]
     public class CmsHelperCasingTests
     {
+        [SetUp]
+        public void Setup()
+        {
+            //set default config
+            var config = SettingsForTests.GetDefault();
+            SettingsForTests.ConfigureSettings(config);
+
+        }
+
         [TestCase("thisIsTheEnd", "This Is The End")]
         [TestCase("th", "Th")]
         [TestCase("t", "t")]
         [TestCase("thisis", "Thisis")]
         [TestCase("ThisIsTheEnd", "This Is The End")]
-        [TestCase("WhoIsNumber6InTheVillage", "Who Is Number6In The Village")] // note the issue with Number6In
+        //[TestCase("WhoIsNumber6InTheVillage", "Who Is Number6In The Village")] // note the issue with Number6In
+        [TestCase("WhoIsNumber6InTheVillage", "Who Is Number6 In The Village")] // now fixed since DefaultShortStringHelper is the default
         public void SpaceCamelCasing(string input, string expected)
         {
             var output = umbraco.cms.helpers.Casing.SpaceCamelCasing(input);

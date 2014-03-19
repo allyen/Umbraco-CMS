@@ -1,153 +1,113 @@
-﻿using System.Web.Security;
+﻿using System.Collections.Specialized;
+using System.ComponentModel.DataAnnotations;
+using System.Configuration.Provider;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Web.Hosting;
+using System.Web.Security;
 using Umbraco.Core;
+using Umbraco.Core.Models;
+using Umbraco.Core.Models.EntityBase;
+using Umbraco.Core.Security;
 using Umbraco.Core.Services;
+using Umbraco.Core.Models.Membership;
 
 namespace Umbraco.Web.Security.Providers
 {
     /// <summary>
-    /// Custom Membership Provider for Umbraco Members (User authentication for Umbraco based Websites)  
+    /// Custom Membership Provider for Umbraco Members (User authentication for Frontend applications NOT umbraco CMS)  
     /// </summary>
-    internal class MembersMembershipProvider : MembershipProvider
+    public class MembersMembershipProvider : UmbracoMembershipProvider<IMembershipMemberService, IMember>, IUmbracoMemberTypeMembershipProvider
     {
-        private IMembershipMemberService _memberService;
-
-        protected IMembershipMemberService MemberService
+        public MembersMembershipProvider()
+            : this(ApplicationContext.Current.Services.MemberService)
         {
-            get { return _memberService ?? (_memberService = ApplicationContext.Current.Services.MemberService); }
         }
 
-        public override MembershipUser CreateUser(string username, string password, string email, string passwordQuestion, string passwordAnswer,
-                                                  bool isApproved, object providerUserKey, out MembershipCreateStatus status)
+        public MembersMembershipProvider(IMembershipMemberService<IMember> memberService)
+            : base(memberService)
         {
-            throw new System.NotImplementedException();
+            LockPropertyTypeAlias = Constants.Conventions.Member.IsLockedOut;
+            LastLockedOutPropertyTypeAlias = Constants.Conventions.Member.LastLockoutDate;
+            FailedPasswordAttemptsPropertyTypeAlias = Constants.Conventions.Member.FailedPasswordAttempts;
+            ApprovedPropertyTypeAlias = Constants.Conventions.Member.IsApproved;
+            CommentPropertyTypeAlias = Constants.Conventions.Member.Comments;
+            LastLoginPropertyTypeAlias = Constants.Conventions.Member.LastLoginDate;
+            LastPasswordChangedPropertyTypeAlias = Constants.Conventions.Member.LastPasswordChangeDate;
+            PasswordRetrievalQuestionPropertyTypeAlias = Constants.Conventions.Member.PasswordQuestion;
+            PasswordRetrievalAnswerPropertyTypeAlias = Constants.Conventions.Member.PasswordAnswer;
         }
 
-        public override bool ChangePasswordQuestionAndAnswer(string username, string password, string newPasswordQuestion,
-                                                             string newPasswordAnswer)
+        private string _defaultMemberTypeAlias = "Member";
+        private volatile bool _hasDefaultMember = false;
+        private static readonly object Locker = new object();
+
+        public override string ProviderName
         {
-            throw new System.NotImplementedException();
+            get { return "MembersMembershipProvider"; }
         }
 
-        public override string GetPassword(string username, string answer)
+        /// <summary>
+        /// For backwards compatibility, this provider supports this option
+        /// </summary>
+        public override bool AllowManuallyChangingPassword
         {
-            throw new System.NotImplementedException();
+            get { return true; }
         }
 
-        public override bool ChangePassword(string username, string oldPassword, string newPassword)
+        protected override MembershipUser ConvertToMembershipUser(IMember entity)
         {
-            throw new System.NotImplementedException();
+            return entity.AsConcreteMembershipUser(Name);
         }
 
-        public override string ResetPassword(string username, string answer)
+        public string LockPropertyTypeAlias { get; private set; }
+        public string LastLockedOutPropertyTypeAlias { get; private set; }
+        public string FailedPasswordAttemptsPropertyTypeAlias { get; private set; }
+        public string ApprovedPropertyTypeAlias { get; private set; }
+        public string CommentPropertyTypeAlias { get; private set; }
+        public string LastLoginPropertyTypeAlias { get; private set; }
+        public string LastPasswordChangedPropertyTypeAlias { get; private set; }
+        public string PasswordRetrievalQuestionPropertyTypeAlias { get; private set; }
+        public string PasswordRetrievalAnswerPropertyTypeAlias { get; private set; }
+
+        public override void Initialize(string name, NameValueCollection config)
         {
-            throw new System.NotImplementedException();
+            base.Initialize(name, config);
+
+            // test for membertype (if not specified, choose the first member type available)
+            if (config["defaultMemberTypeAlias"] != null)
+            {
+                _defaultMemberTypeAlias = config["defaultMemberTypeAlias"];
+                if (_defaultMemberTypeAlias.IsNullOrWhiteSpace())
+                {
+                    throw new ProviderException("No default user type alias is specified in the web.config string. Please add a 'defaultUserTypeAlias' to the add element in the provider declaration in web.config");
+                }
+                _hasDefaultMember = true;
+            }
         }
 
-        public override void UpdateUser(MembershipUser user)
+        public override string DefaultMemberTypeAlias
         {
-            throw new System.NotImplementedException();
-        }
-
-        public override bool ValidateUser(string username, string password)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override bool UnlockUser(string userName)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override MembershipUser GetUser(object providerUserKey, bool userIsOnline)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override MembershipUser GetUser(string username, bool userIsOnline)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override string GetUserNameByEmail(string email)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override bool DeleteUser(string username, bool deleteAllRelatedData)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override MembershipUserCollection GetAllUsers(int pageIndex, int pageSize, out int totalRecords)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override int GetNumberOfUsersOnline()
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override MembershipUserCollection FindUsersByName(string usernameToMatch, int pageIndex, int pageSize, out int totalRecords)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override MembershipUserCollection FindUsersByEmail(string emailToMatch, int pageIndex, int pageSize, out int totalRecords)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override bool EnablePasswordRetrieval
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override bool EnablePasswordReset
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override bool RequiresQuestionAndAnswer
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override string ApplicationName { get; set; }
-
-        public override int MaxInvalidPasswordAttempts
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override int PasswordAttemptWindow
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override bool RequiresUniqueEmail
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override MembershipPasswordFormat PasswordFormat
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override int MinRequiredPasswordLength
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override int MinRequiredNonAlphanumericCharacters
-        {
-            get { throw new System.NotImplementedException(); }
-        }
-
-        public override string PasswordStrengthRegularExpression
-        {
-            get { throw new System.NotImplementedException(); }
+            get
+            {
+                if (_hasDefaultMember == false)
+                {
+                    lock (Locker)
+                    {
+                        if (_hasDefaultMember == false)
+                        {
+                            _defaultMemberTypeAlias = MemberService.GetDefaultMemberType();
+                            if (_defaultMemberTypeAlias.IsNullOrWhiteSpace())
+                            {
+                                throw new ProviderException("No default user type alias is specified in the web.config string. Please add a 'defaultUserTypeAlias' to the add element in the provider declaration in web.config");
+                            }
+                            _hasDefaultMember = true;
+                        }
+                    }
+                }
+                return _defaultMemberTypeAlias;
+            }
         }
     }
 }

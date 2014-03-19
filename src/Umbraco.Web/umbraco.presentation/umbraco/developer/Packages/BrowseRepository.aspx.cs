@@ -11,7 +11,7 @@ using System.Web.UI.HtmlControls;
 using System.Xml;
 using System.Xml.XPath;
 using Umbraco.Core.Configuration;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.presentation.developer.packages {
     public partial class BrowseRepository : BasePages.UmbracoEnsuredPage {
@@ -34,7 +34,12 @@ namespace umbraco.presentation.developer.packages {
             string category = Request.QueryString["category"];
             string repoGuid = Request.QueryString["repoGuid"];
 
-            cms.businesslogic.packager.repositories.Repository repo = cms.businesslogic.packager.repositories.Repository.getByGuid(repoGuid);
+            var repo = cms.businesslogic.packager.repositories.Repository.getByGuid(repoGuid);
+            if (repo == null)
+            {
+                throw new InvalidOperationException("Could not find repository with id " + repoGuid);
+            }
+
             string url = repo.RepositoryUrl;
 
             Panel1.Text = "Browse repository: " + repo.Name;
@@ -51,28 +56,10 @@ namespace umbraco.presentation.developer.packages {
                     UmbracoVersion.Current.Major,
                     UmbracoVersion.Current.Minor,
                     UmbracoVersion.Current.Build,
-                    UmbracoSettings.UseLegacyXmlSchema.ToString(), Environment.Version,
+                    UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema.ToString(), Environment.Version,
                     Umbraco.Core.SystemUtilities.GetCurrentTrustLevel());
         }
 
-        #region Web Form Designer generated code
-        override protected void OnInit(EventArgs e) {
-            //
-            // CODEGEN: This call is required by the ASP.NET Web Form Designer.
-            //
-            InitializeComponent();
-           
-            base.OnInit(e);
-        }
-
-        /// <summary>
-        /// Required method for Designer support - do not modify
-        /// the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent() {
-
-        }
-        #endregion
 
     }
 }

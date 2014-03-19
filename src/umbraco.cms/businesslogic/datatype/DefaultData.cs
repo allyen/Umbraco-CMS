@@ -14,6 +14,7 @@ namespace umbraco.cms.businesslogic.datatype
     /// <summary>
     /// Default implementation of the <c>IData</c> interface that stores data inside the Umbraco database.
     /// </summary>
+    [Obsolete("This class is no longer used and will be removed from the codebase in the future.")]
     public class DefaultData : IData, IDataWithPreview, IDataValueSetter
 	{
 		private int _propertyId;
@@ -32,7 +33,7 @@ namespace umbraco.cms.businesslogic.datatype
 
         //TODO Refactor this class to use the Database object instead of the SqlHelper
         //NOTE DatabaseContext.Current.Database should eventually be replaced with that from the Repository-Resolver refactor branch. 
-        internal static Database Database
+        internal static UmbracoDatabase Database
         {
             get { return ApplicationContext.Current.DatabaseContext.Database; }
         }
@@ -81,7 +82,10 @@ namespace umbraco.cms.businesslogic.datatype
             //instead of making it query for itself. This is a peformance optimization enhancement.
             var dbType = BaseDataType.GetDBType(strDbType);
             var fieldName = BaseDataType.GetDataFieldName(dbType);
-            _dataType.SetDataTypeProperties(fieldName, dbType);
+
+            //if misconfigured (datatype created in the tree, but save button never clicked), the datatype will be null
+            if(_dataType != null)
+                _dataType.SetDataTypeProperties(fieldName, dbType);
 
             //ensures that it doesn't go back to the db
             _valueLoaded = true;
@@ -102,7 +106,7 @@ namespace umbraco.cms.businesslogic.datatype
                .Where<PropertyDataDto>(x => x.Id == _propertyId);
             var dto = Database.Fetch<PropertyDataDto, PropertyTypeDto, DataTypeDto>(sql).FirstOrDefault();
 
-            if (dto != null)
+            if (dto != null && _dataType != null)
             {
                 //the type stored in the cmsDataType table
                 var strDbType = dto.PropertyTypeDto.DataTypeDto.DbType;

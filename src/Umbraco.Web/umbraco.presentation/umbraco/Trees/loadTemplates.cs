@@ -8,6 +8,8 @@ using System.Web;
 using System.Xml;
 using System.Configuration;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
+using Umbraco.Core.IO;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
 using umbraco.businesslogic;
@@ -26,7 +28,7 @@ using umbraco.cms.businesslogic.template;
 using umbraco.BusinessLogic.Utils;
 using umbraco.cms.presentation.Trees;
 using umbraco.BusinessLogic.Actions;
-using umbraco.cms.businesslogic.skinning;
+
 
 namespace umbraco
 {
@@ -71,7 +73,7 @@ namespace umbraco
                 RenderTemplateFolderItems(folder, folderPath, ref tree);
             else
             {
-                if(UmbracoSettings.EnableTemplateFolders)
+                if (UmbracoConfig.For.UmbracoSettings().Templates.EnableTemplateFolders)
                     RenderTemplateFolders(ref tree);
                 
                 RenderTemplates(ref tree);
@@ -80,11 +82,11 @@ namespace umbraco
 
         private void RenderTemplateFolderItems(string folder, string folderPath, ref XmlTree tree)
         {
-            string relPath = IO.SystemDirectories.Masterpages + "/" + folder;
+            string relPath = SystemDirectories.Masterpages + "/" + folder;
             if (!string.IsNullOrEmpty(folderPath))
                 relPath += folderPath;
 
-            string fullPath = IO.IOHelper.MapPath(relPath);
+            string fullPath = IOHelper.MapPath(relPath);
 
             foreach (string dir in System.IO.Directory.GetDirectories(fullPath))
             {
@@ -95,8 +97,8 @@ namespace umbraco
                 xNode.NodeID = "-1";
                 xNode.Text = directoryInfo.Name;
                 xNode.HasChildren = true;
-                xNode.Icon = "folder.gif";
-                xNode.OpenIcon = "folder_o.gif";
+                xNode.Icon = "icon-folder";
+                xNode.OpenIcon = "icon-folder";
                 xNode.Source = GetTreeServiceUrl(directoryInfo.Name) + "&folder=" + folder + "&folderPath=" + folderPath + "/" + directoryInfo.Name;
                 tree.Add(xNode);
             }
@@ -120,21 +122,21 @@ namespace umbraco
                 switch (ext)
                 {
                     case "master":
-                         xNode.Icon = "settingTemplate.gif";
-                         xNode.OpenIcon = "settingTemplate.gif";
+                         xNode.Icon = "icon-newspaper-alt";
+                         xNode.OpenIcon = "icon-newspaper-alt";
                          tree.Add(xNode);
                         break;
                     case "css":
                     case "js":
-                        xNode.Icon = "settingsScript.gif";
-                        xNode.OpenIcon = "settingsScript.gif";
+                        xNode.Icon = "icon-brackets";
+                        xNode.OpenIcon = "icon-brackets";
                         tree.Add(xNode);
                         break;
                     case "xml":
                         if (xNode.Text == "skin.xml")
                         {
-                            xNode.Icon = "settingXml.gif";
-                            xNode.OpenIcon = "settingXml.gif";
+                            xNode.Icon = "icon-code";
+                            xNode.OpenIcon = "icon-code";
                             tree.Add(xNode);
                         }
                         break;
@@ -154,15 +156,15 @@ namespace umbraco
         {
             if (base.m_id == -1)
             {
-                foreach (string s in Directory.GetDirectories(IO.IOHelper.MapPath(IO.SystemDirectories.Masterpages)))
+                foreach (string s in Directory.GetDirectories(IOHelper.MapPath(SystemDirectories.Masterpages)))
                 {
                     var _s = Path.GetFileNameWithoutExtension(s);
 
                     XmlTreeNode xNode = XmlTreeNode.Create(this);
                     xNode.NodeID = _s;
                     xNode.Text = _s;
-                    xNode.Icon = "folder.gif";
-                    xNode.OpenIcon = "folder_o.gif";
+                    xNode.Icon = "icon-folder";
+                    xNode.OpenIcon = "icon-folder";
                     xNode.Source = GetTreeServiceUrl(_s) + "&folder=" + _s;
                     xNode.HasChildren = true;
                     xNode.Menu.Clear();
@@ -193,24 +195,26 @@ namespace umbraco
                 xNode.Text = t.Text;
                 xNode.Source = GetTreeServiceUrl(t.Id);
                 xNode.HasChildren = t.HasChildren;
-                
-                if (Umbraco.Core.Configuration.UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc && ViewHelper.ViewExists(t))
+
+                if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc && ViewHelper.ViewExists(t))
                 {
                     xNode.Action = "javascript:openView(" + t.Id + ");";
-                    xNode.Icon = "settingView.gif";
-                    xNode.OpenIcon = "settingView.gif";
+                    xNode.Icon = "icon-newspaper-alt";
+                    xNode.OpenIcon = "icon-newspaper-alt";
                 }
 				else
 				{
                     xNode.Action = "javascript:openTemplate(" + t.Id + ");";
-                    xNode.Icon = "settingTemplate.gif";
-                    xNode.OpenIcon = "settingTemplate.gif";
+                    xNode.Icon = "icon-newspaper-alt";
+                    xNode.OpenIcon = "icon-newspaper-alt";
                 }
                 
                 if (t.HasChildren)
                 {
-                    xNode.Icon = "settingMasterTemplate.gif";
-                    xNode.OpenIcon = "settingMasterTemplate.gif";
+                    xNode.Icon = "icon-newspaper";
+                    xNode.OpenIcon = "icon-newspaper";
+                    //do not show the delete option if it has children
+                    xNode.Menu.Remove(ActionDelete.Instance);
                 }
 
                 OnBeforeNodeRender(ref tree, ref xNode, EventArgs.Empty);

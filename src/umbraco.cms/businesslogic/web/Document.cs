@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Xml;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Models;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models.EntityBase;
@@ -55,9 +56,8 @@ namespace umbraco.cms.businesslogic.web
         /// <param name="id">The id of the document</param>
         /// <param name="Version">The version of the document</param>
         public Document(int id, Guid Version)
-            : base(id)
+            : base(id, Version)
         {
-            this.Version = Version;
         }
 
         /// <summary>
@@ -132,7 +132,8 @@ namespace umbraco.cms.businesslogic.web
         #region Constants and Static members
         
         private const string SqlOptimizedForPreview = @"
-                select umbracoNode.id, umbracoNode.parentId, umbracoNode.level, umbracoNode.sortOrder, cmsDocument.versionId, cmsPreviewXml.xml from cmsDocument
+                select umbracoNode.id, umbracoNode.parentId, umbracoNode.level, umbracoNode.sortOrder, cmsDocument.versionId, cmsPreviewXml.xml, cmsDocument.published
+                from cmsDocument
                 inner join umbracoNode on umbracoNode.id = cmsDocument.nodeId
                 inner join cmsPreviewXml on cmsPreviewXml.nodeId = cmsDocument.nodeId and cmsPreviewXml.versionId = cmsDocument.versionId
                 where newest = 1 and trashed = 0 and path like '{0}'
@@ -154,7 +155,7 @@ namespace umbraco.cms.businesslogic.web
         private User _creator;
         private User _writer;
         private int? _writerId;
-        private bool _optimizedMode;
+        private readonly bool _optimizedMode;
         protected internal IContent Content;
 
         /// <summary>
@@ -320,9 +321,6 @@ namespace umbraco.cms.businesslogic.web
 
             // Log
             LogHelper.Info<Document>(string.Format("New document {0}", d.Id));
-
-            // Run Handler				
-            BusinessLogic.Actions.Action.RunActionHandlers(d, ActionNew.Instance);
 
             // Save doc
             d.Save();
@@ -755,16 +753,16 @@ namespace umbraco.cms.businesslogic.web
         /// <param name="u">The User</param>
         public bool SendToPublication(User u)
         {
-            SendToPublishEventArgs e = new SendToPublishEventArgs();
+            var e = new SendToPublishEventArgs();
             FireBeforeSendToPublish(e);
-            if (!e.Cancel)
+            if (e.Cancel == false)
             {
-                BusinessLogic.Log.Add(BusinessLogic.LogTypes.SendToPublish, u, this.Id, "");
-
-                BusinessLogic.Actions.Action.RunActionHandlers(this, ActionToPublish.Instance);
-
-                FireAfterSendToPublish(e);
-                return true;
+                var sent = ApplicationContext.Current.Services.ContentService.SendToPublication(Content, u.Id);
+                if (sent)
+                {
+                    FireAfterSendToPublish(e);
+                    return true;    
+                }
             }
 
             return false;
@@ -814,7 +812,7 @@ namespace umbraco.cms.businesslogic.web
 
             if (!e.Cancel)
             {
-                var result = ((ContentService)ApplicationContext.Current.Services.ContentService).PublishInternal(Content, u.Id);
+                var result = ApplicationContext.Current.Services.ContentService.PublishWithStatus(Content, u.Id);
                 _published = result.Success;
                 
                 FireAfterPublish(e);
@@ -830,8 +828,7 @@ namespace umbraco.cms.businesslogic.web
         [Obsolete("Obsolete, Use Umbraco.Core.Services.ContentService.PublishWithChildren()", false)]
         public bool PublishWithChildrenWithResult(User u)
         {
-            var result = ((ContentService)ApplicationContext.Current.Services.ContentService)
-                .PublishWithChildrenInternal(Content, u.Id, true);
+            var result = ApplicationContext.Current.Services.ContentService.PublishWithChildrenWithStatus(Content, u.Id, true);
             //This used to just return false only when the parent content failed, otherwise would always return true so we'll
             // do the same thing for the moment
             return result.Single(x => x.Result.ContentItem.Id == Id).Success;
@@ -871,8 +868,8 @@ namespace umbraco.cms.businesslogic.web
 
             if (!e.Cancel)
             {
-                IEnumerable<Attempt<PublishStatus>> publishedResults = ((ContentService)ApplicationContext.Current.Services.ContentService)
-                    .PublishWithChildrenInternal(Content, u.Id);
+                IEnumerable<Attempt<PublishStatus>> publishedResults = ApplicationContext.Current.Services.ContentService
+                    .PublishWithChildrenWithStatus(Content, u.Id);
 
                 FireAfterPublish(e);
             }
@@ -888,8 +885,8 @@ namespace umbraco.cms.businesslogic.web
 
             if (!e.Cancel)
             {
-                publishedResults = ((ContentService) ApplicationContext.Current.Services.ContentService)
-                    .PublishWithChildrenInternal(Content, userId, includeUnpublished);
+                publishedResults = ApplicationContext.Current.Services.ContentService
+                    .PublishWithChildrenWithStatus(Content, userId, includeUnpublished);
 
                 FireAfterPublish(e);
             }
@@ -900,10 +897,7 @@ namespace umbraco.cms.businesslogic.web
         [Obsolete("Don't use! Only used internally to support the legacy events", false)]
         internal Attempt<PublishStatus> SaveAndPublish(int userId)
         {
-            var result = new Attempt<PublishStatus>(false,
-                                                    new PublishStatus(Content,
-                                                                      PublishStatusType
-                                                                          .FailedCancelledByEvent));
+            var result = Attempt.Fail(new PublishStatus(Content, PublishStatusType.FailedCancelledByEvent));
             foreach (var property in GenericProperties)
             {
                 Content.SetValue(property.PropertyType.Alias, property.Value);
@@ -920,8 +914,8 @@ namespace umbraco.cms.businesslogic.web
                 if (!publishArgs.Cancel)
                 {
                     //NOTE: The 'false' parameter will cause the PublishingStrategy events to fire which will ensure that the cache is refreshed.
-                    result = ((ContentService)ApplicationContext.Current.Services.ContentService)
-                        .SaveAndPublishInternal(Content, userId);
+                    result = ApplicationContext.Current.Services.ContentService
+                        .SaveAndPublishWithStatus(Content, userId);
                     base.VersionDate = Content.UpdateDate;
                     this.UpdateDate = Content.UpdateDate;
 
@@ -1009,8 +1003,8 @@ namespace umbraco.cms.businesslogic.web
                 if (!publishArgs.Cancel)
                 {
                     //NOTE: The 'false' parameter will cause the PublishingStrategy events to fire which will ensure that the cache is refreshed.
-                    var result = ((ContentService)ApplicationContext.Current.Services.ContentService)
-                        .SaveAndPublishInternal(Content, u.Id);
+                    var result = ApplicationContext.Current.Services.ContentService
+                        .SaveAndPublishWithStatus(Content, u.Id);
                     base.VersionDate = Content.UpdateDate;
                     this.UpdateDate = Content.UpdateDate;
 
@@ -1028,10 +1022,10 @@ namespace umbraco.cms.businesslogic.web
                     return result;
                 }
 
-                return Attempt<PublishStatus>.False;
+                return Attempt<PublishStatus>.Fail();
             }
 
-            return Attempt<PublishStatus>.False;
+            return Attempt<PublishStatus>.Fail();
         }
 
         /// <summary>
@@ -1163,8 +1157,6 @@ namespace umbraco.cms.businesslogic.web
                 var content = ApplicationContext.Current.Services.ContentService.Copy(Content, CopyTo, RelateToOrignal, u.Id);
                 newDoc = new Document(content);
                 
-                // Have to run the ActionNew handler to do umbEnsureUniqueName (for example)
-                BusinessLogic.Actions.Action.RunActionHandlers(newDoc, ActionNew.Instance);
                 // Then save to preserve any changes made by action handlers
                 newDoc.Save();
 
@@ -1293,7 +1285,7 @@ namespace umbraco.cms.businesslogic.web
         public override void XmlPopulate(XmlDocument xd, ref XmlNode x, bool Deep)
         {
             string urlName = this.Content.GetUrlSegment().ToLower();
-            foreach (Property p in GenericProperties.Where(p => p != null))
+            foreach (Property p in GenericProperties.Where(p => p != null && p.Value != null && string.IsNullOrEmpty(p.Value.ToString()) == false))
                 x.AppendChild(p.ToXml(xd));
 
             // attributes
@@ -1316,11 +1308,11 @@ namespace umbraco.cms.businesslogic.web
             x.Attributes.Append(addAttribute(xd, "urlName", urlName));
             x.Attributes.Append(addAttribute(xd, "writerName", Writer.Name));
             x.Attributes.Append(addAttribute(xd, "creatorName", Creator.Name.ToString()));
-            if (ContentType != null && UmbracoSettings.UseLegacyXmlSchema)
+            if (ContentType != null && UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema)
                 x.Attributes.Append(addAttribute(xd, "nodeTypeAlias", ContentType.Alias));
             x.Attributes.Append(addAttribute(xd, "path", Path));
 
-            if (!UmbracoSettings.UseLegacyXmlSchema)
+            if (!UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema)
             {
                 x.Attributes.Append(addAttribute(xd, "isDoc", ""));
             }
@@ -1382,7 +1374,7 @@ namespace umbraco.cms.businesslogic.web
 
             IRecordsReader dr = SqlHelper.ExecuteReader(String.Format(SqlOptimizedForPreview, pathExp));
             while (dr.Read())
-                nodes.Add(new CMSPreviewNode(dr.GetInt("id"), dr.GetGuid("versionId"), dr.GetInt("parentId"), dr.GetShort("level"), dr.GetInt("sortOrder"), dr.GetString("xml")));
+                nodes.Add(new CMSPreviewNode(dr.GetInt("id"), dr.GetGuid("versionId"), dr.GetInt("parentId"), dr.GetShort("level"), dr.GetInt("sortOrder"), dr.GetString("xml"), !dr.GetBoolean("published")));
             dr.Close();
 
             return nodes;
@@ -1430,6 +1422,9 @@ namespace umbraco.cms.businesslogic.web
         private void SetupNode(IContent content)
         {
             Content = content;
+            //Also need to set the ContentBase item to this one so all the propery values load from it
+            ContentBase = Content;
+
             //Setting private properties from IContentBase replacing CMSNode.setupNode() / CMSNode.PopulateCMSNodeFromReader()
             base.PopulateCMSNodeFromUmbracoEntity(Content, _objectType);
 
@@ -1580,7 +1575,6 @@ namespace umbraco.cms.businesslogic.web
 
             if (!e.Cancel)
             {
-                umbraco.BusinessLogic.Actions.Action.RunActionHandlers(this, ActionDelete.Instance);
                 if (Content != null)
                 {
                     ApplicationContext.Current.Services.ContentService.Delete(Content);
@@ -1611,7 +1605,6 @@ namespace umbraco.cms.businesslogic.web
 
             if (!e.Cancel)
             {
-                umbraco.BusinessLogic.Actions.Action.RunActionHandlers(this, ActionDelete.Instance);
                 UnPublish();
                 if (Content != null)
                 {

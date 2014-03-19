@@ -24,7 +24,7 @@ using umbraco.DataLayer;
 using umbraco.cms.presentation.Trees;
 using umbraco.BusinessLogic.Utils;
 using umbraco.BusinessLogic.Actions;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using Umbraco.Core;
 
 namespace umbraco
@@ -71,8 +71,8 @@ function openXslt(id) {
         protected override void OnRenderFileNode(ref XmlTreeNode xNode)
         {
             xNode.Action = xNode.Action.Replace("openFile", "openXslt");
-            xNode.Icon = "developerXslt.gif";
-            xNode.OpenIcon = "developerXslt.gif";
+            xNode.Icon = "icon-code";
+            xNode.OpenIcon = "icon-code";
         }
 
         protected override void OnRenderFolderNode(ref XmlTreeNode xNode)

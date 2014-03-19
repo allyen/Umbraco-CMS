@@ -7,7 +7,9 @@ using System.Globalization;
 using System.Linq;
 using System.Web.UI.WebControls;
 using ClientDependency.Core;
+using umbraco.cms.businesslogic;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
@@ -25,61 +27,49 @@ namespace umbraco.controls.GenericProperties
     public partial class GenericProperty : System.Web.UI.UserControl
 	{
 
-		private cms.businesslogic.propertytype.PropertyType _pt;
-		private cms.businesslogic.web.DocumentType.TabI[] _tabs;
-		private cms.businesslogic.datatype.DataTypeDefinition[] _dataTypeDefinitions;
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public GenericProperty()
+        {
+            FullId = "";
+            AllowPropertyEdit = true;
+        }
+
+	    private cms.businesslogic.datatype.DataTypeDefinition[] _dataTypeDefinitions;
 		private int _tabId = 0;
 
-		public event System.EventHandler Delete;
-		
-		private string _fullId = "";
+		public event EventHandler Delete;
 
-		public cms.businesslogic.datatype.DataTypeDefinition[] DataTypeDefinitions 
-		{
-			set 
-			{
-				_dataTypeDefinitions = value;
-			}
-		}
+        /// <summary>
+        /// Defines whether the property can be edited in the UI
+        /// </summary>
+        public bool AllowPropertyEdit { get; set; }
 
-		public int TabId 
-		{
-			 set {
-				 _tabId = value;
-			 }
-		}
+	    public cms.businesslogic.datatype.DataTypeDefinition[] DataTypeDefinitions
+	    {
+	        set { _dataTypeDefinitions = value; }
+	    }
 
-		public cms.businesslogic.propertytype.PropertyType PropertyType 
-		{
-			set 
-			{
-               	_pt = value;
-			}
-			get 
-			{
-				return _pt;
-			}
-		}
+	    public int TabId
+	    {
+	        set { _tabId = value; }
+	    }
 
-		public cms.businesslogic.web.DocumentType.TabI[] Tabs 
-		{
-            get { return _tabs; }
-			set 
-			{
-				_tabs = value;
-			}
-		}
+	    public PropertyType PropertyType { get; set; }
 
-		public string Name 
-		{
-			get {
-				return tbName.Text;
-			}
-		}
-		public string Alias 
+	    public ContentType.TabI[] Tabs { get; set; }
+
+	    public string Name
+	    {
+	        get { return tbName.Text; }
+	    }
+
+	    public string Alias 
 		{
             get {return tbAlias.Text;} // FIXME so we blindly trust the UI for safe aliases?!
 		}
+
 		public string Description 
 		{
 			get {return tbDescription.Text;}
@@ -96,29 +86,12 @@ namespace umbraco.controls.GenericProperties
 		{
 			get {return int.Parse(ddlTab.SelectedValue);}
 		}
-		public string FullId
-		{
-			set 
-			{
-				_fullId = value;
-			}
-			get 
-			{
-				return _fullId;
-			}
-		}
 
-        private int _id;
+	    public string FullId { get; set; }
 
-	    public int Id {
-            set {
-                _id = value;
-            }get{
-                return _id;
-            }
-        }
+	    public int Id { get; set; }
 
-		public int Type
+	    public int Type
 		{
 			get {return int.Parse(ddlTypes.SelectedValue);}
 		}
@@ -127,6 +100,7 @@ namespace umbraco.controls.GenericProperties
 		{
 			tbName.Text = "";
 			tbAlias.Text = "";
+	        lblAlias.Text = "";
 			tbValidation.Text = "";
 			tbDescription.Text = "";
 			ddlTab.SelectedIndex = 0;
@@ -141,8 +115,8 @@ namespace umbraco.controls.GenericProperties
 				UpdateInterface();
 			}
 		}
-
-        //SD: this is temporary in v4, in v6 we have a proper user control hierarchy
+        
+	    //SD: this is temporary in v4, in v6 we have a proper user control hierarchy
         //containing this property.
         //this is required due to this issue: http://issues.umbraco.org/issue/u4-493
         //because we need to execute some code in async but due to the localization 
@@ -161,22 +135,29 @@ namespace umbraco.controls.GenericProperties
 		public void UpdateInterface() 
 		{
 			// Name and alias
-			if (_pt != null) 
+			if (PropertyType != null) 
 			{
-                _id = _pt.Id;
+                Id = PropertyType.Id;
 				//form.Attributes.Add("style", "display: none;");
-				tbName.Text = _pt.GetRawName();
-				tbAlias.Text = _pt.Alias;
-				FullHeader.Text = _pt.GetRawName() + " (" + _pt.Alias + "), Type: " + _pt.DataTypeDefinition.Text;;
-				Header.Text = _pt.GetRawName();
-				DeleteButton.Visible = true;
-				DeleteButton.ImageUrl = SystemDirectories.Umbraco + "/images/delete_button.png";
-				DeleteButton.Attributes.Add("style", "float: right; cursor: hand;");
+				tbName.Text = PropertyType.GetRawName();
+				tbAlias.Text = PropertyType.Alias;
+                lblAlias.Text = PropertyType.Alias;
+				FullHeader.Text = PropertyType.GetRawName() + " (" + PropertyType.Alias + "), Type: " + PropertyType.DataTypeDefinition.Text;;
+				Header.Text = PropertyType.GetRawName();
+				
+                DeleteButton.CssClass = "delete-button";
                 DeleteButton.Attributes.Add("onclick", "return confirm('" + ui.Text("areyousure", CurrentUser) + "');");
-				DeleteButton2.Visible = true;
-                DeleteButton2.ImageUrl = SystemDirectories.Umbraco + "/images/delete_button.png";
-				DeleteButton2.Attributes.Add("style", "float: right; cursor: hand;");
+				
+                DeleteButton2.CssClass = "delete-button";
                 DeleteButton2.Attributes.Add("onclick", "return confirm('" + ui.Text("areyousure", CurrentUser) + "');");
+
+                DeleteButton.Visible = AllowPropertyEdit;
+                DeleteButton2.Visible = AllowPropertyEdit;
+                tbAlias.Visible = AllowPropertyEdit;
+                lblAlias.Visible = AllowPropertyEdit == false;
+                PropertyPanel5.Visible = AllowPropertyEdit;
+                PropertyPanel6.Visible = AllowPropertyEdit;
+                PropertyPanel3.Visible = AllowPropertyEdit;
 			} 
 			else 
 			{
@@ -199,7 +180,7 @@ namespace umbraco.controls.GenericProperties
 				foreach(cms.businesslogic.datatype.DataTypeDefinition dt in _dataTypeDefinitions) 
 				{
 					var li = new ListItem(dt.Text, dt.Id.ToString());
-                    if ((_pt != null && _pt.DataTypeDefinition.Id == dt.Id))
+                    if ((PropertyType != null && PropertyType.DataTypeDefinition.Id == dt.Id))
                     {
                         li.Selected = true;
                         itemSelected = true;
@@ -216,13 +197,13 @@ namespace umbraco.controls.GenericProperties
 			}
 
 			// tabs
-            if (_tabs != null) 
+            if (Tabs != null) 
 			{
 				ddlTab.Items.Clear();
-				for (int i=0;i<_tabs.Length;i++) 
+				for (int i=0;i<Tabs.Length;i++) 
 				{
-					ListItem li = new ListItem(_tabs[i].Caption, _tabs[i].Id.ToString());
-					if (_tabs[i].Id == _tabId)
+					ListItem li = new ListItem(Tabs[i].Caption, Tabs[i].Id.ToString());
+					if (Tabs[i].Id == _tabId)
 						li.Selected = true;
 					ddlTab.Items.Add(li);
 				}
@@ -233,21 +214,22 @@ namespace umbraco.controls.GenericProperties
 			ddlTab.Items.Add(liGeneral);
 
 			// mandatory
-			if (_pt != null && _pt.Mandatory)
+			if (PropertyType != null && PropertyType.Mandatory)
 				checkMandatory.Checked = true;
 
 			// validation
-			if (_pt != null && string.IsNullOrEmpty(_pt.ValidationRegExp) == false)
-				tbValidation.Text = _pt.ValidationRegExp;
+			if (PropertyType != null && string.IsNullOrEmpty(PropertyType.ValidationRegExp) == false)
+				tbValidation.Text = PropertyType.ValidationRegExp;
 
 			// description
-			if (_pt != null && _pt.Description != "")
-				tbDescription.Text = _pt.GetRawDescription();
+			if (PropertyType != null && PropertyType.Description != "")
+				tbDescription.Text = PropertyType.GetRawDescription();
 		}
 
         private void SetDefaultDocumentTypeProperty()
         {
-            var itemToSelect = ddlTypes.Items.Cast<ListItem>().FirstOrDefault(item => item.Text.ToLowerInvariant() == UmbracoSettings.DefaultDocumentTypeProperty.ToLowerInvariant());
+            var itemToSelect = ddlTypes.Items.Cast<ListItem>()
+                .FirstOrDefault(item => item.Text.ToLowerInvariant() == UmbracoConfig.For.UmbracoSettings().Content.DefaultDocumentTypeProperty.ToLowerInvariant());
             
             if (itemToSelect != null)
             {
@@ -259,21 +241,18 @@ namespace umbraco.controls.GenericProperties
             }
         }
 
-		protected void defaultDeleteHandler(object sender, System.EventArgs e) 
+		protected void defaultDeleteHandler(object sender, EventArgs e) 
 		{
 		
 		}
-
-		#region Web Form Designer generated code
+		
 		override protected void OnInit(EventArgs e)
 		{
-			//
-			// CODEGEN: This call is required by the ASP.NET Web Form Designer.
-			//
-			InitializeComponent();
-			base.OnInit(e);
+            base.OnInit(e);
 
-			this.Delete += new System.EventHandler(defaultDeleteHandler);
+            DeleteButton.Click += DeleteButton_Click;
+            DeleteButton2.Click += DeleteButton2_Click;
+			Delete += defaultDeleteHandler;
 
             // [ClientDependency(ClientDependencyType.Javascript, "js/UmbracoCasingRules.aspx", "UmbracoRoot")]
 		    var loader = ClientDependency.Core.Controls.ClientDependencyLoader.GetInstance(new HttpContextWrapper(Context));
@@ -281,26 +260,15 @@ namespace umbraco.controls.GenericProperties
             loader.RegisterDependency(helper.GetCoreStringsControllerPath() + "ServicesJavaScript", ClientDependencyType.Javascript);
 		}
 		
-		/// <summary>
-		///		Required method for Designer support - do not modify
-		///		the contents of this method with the code editor.
-		/// </summary>
-		private void InitializeComponent()
-		{
-			this.DeleteButton.Click += new System.Web.UI.ImageClickEventHandler(this.DeleteButton_Click);
-			this.DeleteButton2.Click += new System.Web.UI.ImageClickEventHandler(this.DeleteButton2_Click);
+        void DeleteButton2_Click(object sender, EventArgs e)
+        {
+			Delete(this,new EventArgs());
+        }
 
-		}
-		#endregion
+        void DeleteButton_Click(object sender, EventArgs e)
+        {
+			Delete(this,new EventArgs());
+        }
 
-		private void DeleteButton_Click(object sender, System.Web.UI.ImageClickEventArgs e)
-		{
-			Delete(this,new System.EventArgs());
-		}
-
-		private void DeleteButton2_Click(object sender, System.Web.UI.ImageClickEventArgs e)
-		{
-			Delete(this,new System.EventArgs());
-		}
 	}
 }

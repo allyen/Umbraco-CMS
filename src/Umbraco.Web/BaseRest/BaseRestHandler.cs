@@ -2,6 +2,8 @@
 using System.Web;
 using System.Web.SessionState;
 using System.Linq;
+using Umbraco.Core.Configuration;
+using Umbraco.Core.Configuration.BaseRest;
 
 namespace Umbraco.Web.BaseRest
 {
@@ -28,7 +30,7 @@ namespace Umbraco.Web.BaseRest
 		/// <returns>A value indicating whether the specified Uri should be routed to the BaseRestHandler.</returns>
 		public static bool IsBaseRestRequest(Uri uri)
 		{
-            return Core.Configuration.UmbracoSettings.For<Configuration.BaseRestSection>().Enabled
+            return UmbracoConfig.For.BaseRestExtensions().Enabled
 				&& uri.AbsolutePath.ToLowerInvariant().StartsWith(BaseUrl);
 		}
 

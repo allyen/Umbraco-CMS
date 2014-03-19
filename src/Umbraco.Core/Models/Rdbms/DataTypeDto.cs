@@ -10,7 +10,7 @@ namespace Umbraco.Core.Models.Rdbms
     internal class DataTypeDto
     {
         [Column("pk")]
-        [PrimaryKeyColumn(IdentitySeed = 25)]
+        [PrimaryKeyColumn(IdentitySeed = 30)]
         public int PrimaryKey { get; set; }
 
         [Column("nodeId")]
@@ -18,8 +18,8 @@ namespace Umbraco.Core.Models.Rdbms
         [Index(IndexTypes.UniqueNonClustered)]
         public int DataTypeId { get; set; }
 
-        [Column("controlId")]
-        public Guid ControlId { get; set; }
+        [Column("propertyEditorAlias")]
+        public string PropertyEditorAlias { get; set; }
 
         [Column("dbType")]
         [Length(50)]

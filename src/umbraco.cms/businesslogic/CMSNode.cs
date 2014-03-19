@@ -6,6 +6,7 @@ using System.Xml;
 using Umbraco.Core;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
+using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.Caching;
 using umbraco.cms.businesslogic.web;
 using umbraco.DataLayer;
@@ -13,13 +14,15 @@ using umbraco.BusinessLogic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.ComponentModel;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using System.Collections;
 using umbraco.cms.businesslogic.task;
 using umbraco.cms.businesslogic.workflow;
 using umbraco.cms.businesslogic.Tags;
 using File = System.IO.File;
 using Media = umbraco.cms.businesslogic.media.Media;
+using Tag = umbraco.cms.businesslogic.Tags.Tag;
+using Notification = umbraco.cms.businesslogic.workflow.Notification;
 using Task = umbraco.cms.businesslogic.task.Task;
 
 namespace umbraco.cms.businesslogic
@@ -57,7 +60,7 @@ namespace umbraco.cms.businesslogic
 
         #region Private static
 
-        private static readonly string DefaultIconCssFile = IOHelper.MapPath(SystemDirectories.Umbraco_client + "/Tree/treeIcons.css");
+        private static readonly string DefaultIconCssFile = IOHelper.MapPath(SystemDirectories.UmbracoClient + "/Tree/treeIcons.css");
         private static readonly List<string> InternalDefaultIconClasses = new List<string>();
         private static readonly ReaderWriterLockSlim Locker = new ReaderWriterLockSlim();
 
@@ -342,9 +345,15 @@ namespace umbraco.cms.businesslogic
         /// Gets the SQL helper.
         /// </summary>
         /// <value>The SQL helper.</value>
+        [Obsolete("Obsolete, For querying the database use the new UmbracoDatabase object ApplicationContext.Current.DatabaseContext.Database", false)]
         protected static ISqlHelper SqlHelper
         {
             get { return Application.SqlHelper; }
+        }
+
+        internal static UmbracoDatabase Database
+        {
+            get { return ApplicationContext.Current.DatabaseContext.Database; }
         }
         #endregion
 
@@ -367,6 +376,19 @@ namespace umbraco.cms.businesslogic
         {
             _id = Id;
             setupNode();
+        }
+
+        /// <summary>
+        /// This is purely for a hackity hack hack hack in order to make the new Document(id, version) constructor work because
+        /// the Version property needs to be set on the object before setupNode is called, otherwise it never works! this allows
+        /// inheritors to set default data before setupNode() is called.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="ctorArgs"></param>
+        internal CMSNode(int id, object[] ctorArgs)
+        {
+            _id = id;
+            PreSetupNode(ctorArgs);
         }
 
         /// <summary>
@@ -410,6 +432,11 @@ namespace umbraco.cms.businesslogic
         {
             _id = entity.Id;
             _entity = entity;
+        }
+
+        protected internal CMSNode(IEntity entity)
+        {
+            _id = entity.Id;
         }
 
         #endregion
@@ -467,7 +494,8 @@ namespace umbraco.cms.businesslogic
         {
             List<CMSPreviewNode> nodes = new List<CMSPreviewNode>();
             string sql = @"
-select umbracoNode.id, umbracoNode.parentId, umbracoNode.level, umbracoNode.sortOrder, cmsPreviewXml.xml from umbracoNode 
+select umbracoNode.id, umbracoNode.parentId, umbracoNode.level, umbracoNode.sortOrder, cmsPreviewXml.xml
+from umbracoNode 
 inner join cmsPreviewXml on cmsPreviewXml.nodeId = umbracoNode.id 
 where trashed = 0 and path like '{0}' 
 order by level,sortOrder";
@@ -476,7 +504,7 @@ order by level,sortOrder";
 
             IRecordsReader dr = SqlHelper.ExecuteReader(String.Format(sql, pathExp));
             while (dr.Read())
-                nodes.Add(new CMSPreviewNode(dr.GetInt("id"), dr.GetGuid("uniqueID"), dr.GetInt("parentId"), dr.GetShort("level"), dr.GetInt("sortOrder"), dr.GetString("xml")));
+                nodes.Add(new CMSPreviewNode(dr.GetInt("id"), dr.GetGuid("uniqueID"), dr.GetInt("parentId"), dr.GetShort("level"), dr.GetInt("sortOrder"), dr.GetString("xml"), false));
             dr.Close();
 
             return nodes;
@@ -1003,6 +1031,18 @@ order by level,sortOrder";
         }
 
         /// <summary>
+        /// This is purely for a hackity hack hack hack in order to make the new Document(id, version) constructor work because
+        /// the Version property needs to be set on the object before setupNode is called, otherwise it never works!
+        /// </summary>
+        /// <param name="ctorArgs"></param>
+        internal virtual void PreSetupNode(params object[] ctorArgs)
+        {
+            //if people want to override then awesome but then we call setupNode so they need to ensure
+            // to call base.PreSetupNode
+            setupNode();
+        }
+
+        /// <summary>
         /// Sets up the internal data of the CMSNode, used by the various constructors
         /// </summary>
         protected virtual void setupNode()
@@ -1127,6 +1167,13 @@ order by level,sortOrder";
             _createDate = content.CreateDate;
             _isTrashed = content.Trashed;
             _entity = content;
+        }
+
+        internal protected void PopulateCMSNodeFromUmbracoEntity(IAggregateRoot content, Guid objectType)
+        {
+            _uniqueID = content.Key;
+            _nodeObjectType = objectType;            
+            _createDate = content.CreateDate;
         }
 
         #endregion

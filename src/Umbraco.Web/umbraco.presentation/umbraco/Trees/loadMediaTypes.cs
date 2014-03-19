@@ -8,6 +8,7 @@ using umbraco.businesslogic;
 using umbraco.cms.presentation.Trees;
 using umbraco.interfaces;
 using Umbraco.Core;
+using Umbraco.Web.umbraco.presentation.umbraco.Trees;
 
 namespace umbraco
 {
@@ -50,12 +51,13 @@ function openMediaType(id) {
 
                 XmlTreeNode xNode = XmlTreeNode.Create(this);
                 xNode.NodeID = mediaType.Id.ToString(CultureInfo.InvariantCulture);
-                xNode.Text = mediaType.Name;
+                xNode.Text = TranslateTreeNames.GetTranslatedName(mediaType.Name);
                 xNode.Action = string.Format("javascript:openMediaType({0});", mediaType.Id);
-                xNode.Icon = "settingDataType.gif";
-                xNode.OpenIcon = "settingDataType.gif";
+                xNode.Icon = "icon-item-arrangement";
+                xNode.OpenIcon = "icon-item-arrangement";
                 xNode.Source = GetTreeServiceUrl(mediaType.Id);
                 xNode.HasChildren = hasChildren;
+                
                 if (hasChildren)
                 {
                     xNode.Icon = "settingMasterDataType.gif";

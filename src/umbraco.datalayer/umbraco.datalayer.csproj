@@ -23,7 +23,7 @@
     <OldToolsVersion>3.5</OldToolsVersion>
     <UpgradeBackupLocation>
     </UpgradeBackupLocation>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -54,6 +54,7 @@
     <DocumentationFile>
     </DocumentationFile>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -64,6 +65,7 @@
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\umbraco.DataLayer.xml</DocumentationFile>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="log4net, Version=1.2.11.0, Culture=neutral, processorArchitecture=MSIL">
@@ -74,7 +76,7 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\Microsoft.ApplicationBlocks.Data.1.0.1559.20655\lib\Microsoft.ApplicationBlocks.Data.dll</HintPath>
     </Reference>
-    <Reference Include="MySql.Data, Version=6.6.5.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+    <Reference Include="MySql.Data">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\MySql.Data.6.6.5\lib\net40\MySql.Data.dll</HintPath>
     </Reference>
@@ -104,19 +106,9 @@
     <Compile Include="SqlHelperException.cs" />
     <Compile Include="SqlHelpers\MySql\MySqlInstaller.cs" />
     <Compile Include="SqlHelpers\MySql\MySqlParser.cs" />
-    <Compile Include="SqlHelpers\MySql\SqlResources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SqlResources.resx</DependentUpon>
-    </Compile>
     <Compile Include="SqlHelpers\MySql\MySqlUtility.cs" />
     <Compile Include="SqlHelpers\SqlServer\SqlServerTableUtility.cs" />
     <Compile Include="SqlParser.cs" />
-    <Compile Include="SqlHelpers\SqlServer\SqlResources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SqlResources.resx</DependentUpon>
-    </Compile>
     <Compile Include="SqlHelpers\SqlServer\SqlServerInstaller.cs" />
     <Compile Include="SqlHelpers\SqlServer\SqlServerUtility.cs" />
     <Compile Include="StringExtensions.cs" />
@@ -151,27 +143,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="SqlHelpers\SqlServer\Sql\Total.sql" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="SqlHelpers\MySql\SqlResources.resx">
-      <SubType>Designer</SubType>
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>SqlResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SqlHelpers\SqlServer\SqlResources.resx">
-      <SubType>Designer</SubType>
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>SqlResources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="SqlHelpers\MySql\Sql\KeysIndexesAndConstraints.sql" />
-    <None Include="SqlHelpers\MySql\Sql\Total.sql" />
-    <None Include="SqlHelpers\MySql\Sql\Version4_Upgrade.sql" />
-    <None Include="SqlHelpers\SqlServer\Sql\KeysIndexesAndConstraints.sql" />
-    <None Include="SqlHelpers\SqlServer\Sql\Version3_Upgrade.sql" />
-    <None Include="SqlHelpers\SqlServer\Sql\Version4_1_Upgrade.sql" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -189,15 +160,6 @@
       <ProductName>Windows Installer 3.1</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="SqlHelpers\SqlServer\Sql\Version4_Upgrade.sql" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="SqlHelpers\MySql\Sql\Version4_1_Upgrade.sql" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="SqlHelpers\SqlAzure\Sql\InstallSqlAzure.sql" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Umbraco.Core\Umbraco.Core.csproj">

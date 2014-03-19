@@ -4,8 +4,11 @@ using System.Web;
 using System.Xml;
 using StackExchange.Profiling;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Models;
+using Umbraco.Web;
 using Umbraco.Core.Profiling;
+using Umbraco.Core.Strings;
 
 namespace umbraco
 {
@@ -68,23 +71,48 @@ namespace umbraco
                     }
                     else
                     {
-                        var recursiveVal = publishedContent.GetRecursiveValue(_fieldName);
-                        _fieldContent = recursiveVal.IsNullOrWhiteSpace() ? _fieldContent : recursiveVal;
+					    var pval = publishedContent.GetPropertyValue(_fieldName, true);
+					    var rval = pval == null ? string.Empty : pval.ToString();
+					    _fieldContent = rval.IsNullOrWhiteSpace() ? _fieldContent : rval;
                     }
                 }
                 else
                 {
-                    if (elements[_fieldName] != null && !string.IsNullOrEmpty(elements[_fieldName].ToString()))
+                    //check for published content and get its value using that
+                    if (publishedContent != null && publishedContent.HasProperty(_fieldName))
                     {
-                        _fieldContent = elements[_fieldName].ToString().Trim();
+                        var pval = publishedContent.GetPropertyValue(_fieldName);
+                        var rval = pval == null ? string.Empty : pval.ToString();
+                        _fieldContent = rval.IsNullOrWhiteSpace() ? _fieldContent : rval;
                     }
-                    else if (!string.IsNullOrEmpty(helper.FindAttribute(attributes, "useIfEmpty")))
+                    else if (elements[_fieldName] != null && string.IsNullOrEmpty(elements[_fieldName].ToString()) == false)
+                    {                        
+                        //get the vaue the legacy way (this will not parse locallinks, etc... since that is handled with ipublishedcontent)
+                        _fieldContent = elements[_fieldName].ToString().Trim();                           
+                    }
+
+                    //now we check if the value is still empty and if so we'll check useIfEmpty
+                    if (string.IsNullOrEmpty(_fieldContent))
                     {
-                        if (elements[helper.FindAttribute(attributes, "useIfEmpty")] != null && !string.IsNullOrEmpty(elements[helper.FindAttribute(attributes, "useIfEmpty")].ToString()))
+                        //if useIfEmpty is true
+                        if (string.IsNullOrEmpty(helper.FindAttribute(attributes, "useIfEmpty")) == false)
                         {
-                            _fieldContent = elements[helper.FindAttribute(attributes, "useIfEmpty")].ToString().Trim();
+                            var altFieldName = helper.FindAttribute(attributes, "useIfEmpty");
+
+                            //check for published content and get its value using that
+                            if (publishedContent != null && publishedContent.HasProperty(altFieldName))
+                            {
+                                var pval = publishedContent.GetPropertyValue(altFieldName);
+                                var rval = pval == null ? string.Empty : pval.ToString();
+                                _fieldContent = rval.IsNullOrWhiteSpace() ? _fieldContent : rval;
+                            }
+                            else if (elements[altFieldName] != null && string.IsNullOrEmpty(elements[altFieldName].ToString()) == false)
+                            {
+                                //get the vaue the legacy way (this will not parse locallinks, etc... since that is handled with ipublishedcontent)
+                                _fieldContent = elements[altFieldName].ToString().Trim();
+                            }
                         }
-                    }
+                    }                    
 
                 }
             }
@@ -113,7 +141,7 @@ namespace umbraco
                     if (element == null)
                         continue;
 
-                    var xpath = UmbracoSettings.UseLegacyXmlSchema ? "./data [@alias = '{0}']" : "./{0}";
+                    var xpath = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "./data [@alias = '{0}']" : "./{0}";
                     var currentNode = element.SelectSingleNode(string.Format(xpath, _fieldName));
 
                     //continue if all is null
@@ -179,11 +207,11 @@ namespace umbraco
                 else if (helper.FindAttribute(attributes, "case") == "upper")
                     _fieldContent = _fieldContent.ToUpper();
                 else if (helper.FindAttribute(attributes, "case") == "title")
-                    _fieldContent = _fieldContent.ConvertCase(StringAliasCaseType.PascalCase);
+                    _fieldContent = _fieldContent.ToCleanString(CleanStringType.Ascii | CleanStringType.Alias | CleanStringType.PascalCase);
 
                 // OTHER FORMATTING FUNCTIONS
                 // If we use masterpages, this is moved to the ItemRenderer to add support for before/after in inline XSLT
-                if (!UmbracoSettings.UseAspNetMasterPages)
+                if (!UmbracoConfig.For.UmbracoSettings().Templates.UseAspNetMasterPages)
                 {
                     if (_fieldContent != "" && helper.FindAttribute(attributes, "insertTextBefore") != "")
                         _fieldContent = HttpContext.Current.Server.HtmlDecode(helper.FindAttribute(attributes, "insertTextBefore")) +

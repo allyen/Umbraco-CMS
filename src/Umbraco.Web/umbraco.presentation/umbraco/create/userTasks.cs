@@ -1,54 +1,67 @@
 using System;
 using System.Data;
 using System.Web.Security;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
+using Umbraco.Web.UI;
 using umbraco.BusinessLogic;
+using Umbraco.Core.Security;
 using umbraco.DataLayer;
 using umbraco.BasePages;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using umbraco.cms.businesslogic.member;
 
 namespace umbraco
 {
-    public class userTasks : interfaces.ITaskReturnUrl
+    public class userTasks : LegacyDialogTask
     {
         private string _returnUrl = "";
 
-        public int UserId
-        {
-            set { }
-        }
-
-        public int TypeID { get; set; }
-
-
-        public string Alias { get; set; }
-
-        public int ParentID { get; set; }
-
-        public string ReturnUrl
+        public override string ReturnUrl
         {
             get { return _returnUrl; }
         }
 
-        public bool Save()
+        public override string AssignedApp
+        {
+            get { return DefaultApps.users.ToString(); }
+        }
+
+        public override bool PerformSave()
         {
             // Hot damn HACK > user is allways UserType with id  = 1  = administrator ???
             // temp password deleted by NH
             //BusinessLogic.User.MakeNew(Alias, Alias, "", BusinessLogic.UserType.GetUserType(1));
             //return true;
 
+            var provider = MembershipProviderExtensions.GetUsersMembershipProvider();
+
             var status = MembershipCreateStatus.ProviderError;
             try
             {
                 // Password is auto-generated. They are they required to change the password by editing the user information.
-                var u = Membership.Providers[UmbracoSettings.DefaultBackofficeProvider].CreateUser(Alias,
-                    Membership.GeneratePassword(
-                    Membership.Providers[UmbracoSettings.DefaultBackofficeProvider].MinRequiredPasswordLength,
-                    Membership.Providers[UmbracoSettings.DefaultBackofficeProvider].MinRequiredNonAlphanumericCharacters),
-                    "", "", "", true, null, out status);
 
-                _returnUrl = string.Format("users/EditUser.aspx?id={0}", u.ProviderUserKey.ToString());
+                var password = Membership.GeneratePassword(
+                    provider.MinRequiredPasswordLength,
+                    provider.MinRequiredNonAlphanumericCharacters);
+
+                var parts = Alias.Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length != 2)
+                {
+                    return false;
+                }
+                var login = parts[0];
+                var email = parts[1];
+
+                var u = provider.CreateUser(
+                    login, password, email.Trim().ToLower(), "", "", true, null, out status);
+
+                if (u == null)
+                {
+                    return false;
+                }
+
+                _returnUrl = string.Format("users/EditUser.aspx?id={0}", u.ProviderUserKey);
 
                 return status == MembershipCreateStatus.Success;
             }
@@ -59,7 +72,7 @@ namespace umbraco
             }
         }
 
-        public bool Delete()
+        public override bool PerformDelete()
         {
             var u = User.GetUser(ParentID);
             u.disable();

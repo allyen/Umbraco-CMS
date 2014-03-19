@@ -43,7 +43,7 @@ namespace Umbraco.Core.IO
         //Replaces tildes with the root dir
         public static string ResolveUrl(string virtualPath)
         {
-            if (virtualPath.StartsWith("~"))
+             if (virtualPath.StartsWith("~"))
                 return virtualPath.Replace("~", SystemDirectories.Root).Replace("//", "/");
             else if (Uri.IsWellFormedUriString(virtualPath, UriKind.Absolute))
                 return virtualPath;
@@ -54,7 +54,7 @@ namespace Umbraco.Core.IO
 		[Obsolete("Use Umbraco.Web.Templates.TemplateUtilities.ResolveUrlsFromTextString instead, this method on this class will be removed in future versions")]
         internal static string ResolveUrlsFromTextString(string text)
         {
-            if (UmbracoSettings.ResolveUrlsFromTextString)
+            if (UmbracoConfig.For.UmbracoSettings().Content.ResolveUrlsFromTextString)
             {				
 				using (var timer = DisposableTimer.DebugDuration(typeof(IOHelper), "ResolveUrlsFromTextString starting", "ResolveUrlsFromTextString complete"))
 				{

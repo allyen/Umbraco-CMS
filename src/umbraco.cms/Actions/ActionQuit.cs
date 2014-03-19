@@ -7,6 +7,7 @@ namespace umbraco.BusinessLogic.Actions
 	/// <summary>
 	/// This action is invoked when a user logs out
 	/// </summary>
+	[Obsolete("This should not be used and will be removed from the codebase in future versions")]
 	public class ActionQuit : IAction
 	{
 		//create singleton
@@ -65,7 +66,7 @@ namespace umbraco.BusinessLogic.Actions
 		{
 			get
 			{
-				return ".sprLogout";
+                return "signout";
 			}
 		}
 

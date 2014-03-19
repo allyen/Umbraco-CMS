@@ -11,7 +11,7 @@ using umbraco.BusinessLogic.Utils;
 using umbraco.businesslogic;
 using umbraco.cms.businesslogic.cache;
 using System.Web.Caching;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using umbraco.interfaces;
 
 
@@ -157,7 +157,7 @@ namespace umbraco.presentation
 					}
 
 					// show splash?
-					else if (UmbracoSettings.EnableSplashWhileLoading && content.Instance.isInitializing)
+                    else if (UmbracoConfig.For.UmbracoSettings().Content.EnableSplashWhileLoading && content.Instance.isInitializing)
 						context.RewritePath(string.Format("{0}/splashes/booting.aspx", SystemDirectories.Config));
 					// rewrite page path
 					else
@@ -361,7 +361,7 @@ namespace umbraco.presentation
 				{
                     LogHelper.Info<requestModule>(string.Format("Application started at {0}", DateTime.Now));
 
-					if (UmbracoSettings.AutoCleanLogs)
+                    if (UmbracoConfig.For.UmbracoSettings().Logging.AutoCleanLogs)
 					{
 						AddTask(LOG_SCRUBBER_TASK_NAME, GetLogScrubbingInterval());
 					}
@@ -421,8 +421,8 @@ namespace umbraco.presentation
 			int interval = 24 * 60 * 60; //24 hours
 			try
 			{
-				if (UmbracoSettings.CleaningMiliseconds > -1)
-					interval = UmbracoSettings.CleaningMiliseconds;
+                if (UmbracoConfig.For.UmbracoSettings().Logging.CleaningMiliseconds > -1)
+					interval = UmbracoConfig.For.UmbracoSettings().Logging.CleaningMiliseconds;
 			}
 			catch (Exception)
 			{
@@ -436,8 +436,8 @@ namespace umbraco.presentation
 			int maximumAge = 24 * 60 * 60;
 			try
 			{
-				if (UmbracoSettings.MaxLogAge > -1)
-					maximumAge = UmbracoSettings.MaxLogAge;
+				if (UmbracoConfig.For.UmbracoSettings().Logging.MaxLogAge > -1)
+                    maximumAge = UmbracoConfig.For.UmbracoSettings().Logging.MaxLogAge;
 			}
 			catch (Exception)
 			{

@@ -3,14 +3,15 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.ComponentModel;
 using System.Collections;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.editorControls.simpleEditor
 {
 	/// <summary>
 	/// Summary description for simpleEditor.
 	/// </summary>
-	public class SimpleEditor : System.Web.UI.WebControls.TextBox, interfaces.IDataEditor
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
+    public class SimpleEditor : System.Web.UI.WebControls.TextBox, interfaces.IDataEditor
 	{
 		private interfaces.IData _data;
 		
@@ -88,13 +89,13 @@ namespace umbraco.editorControls.simpleEditor
 			output.WriteLine("<table border=\"0\" cellspacing=\"0\" cellpadding=\"0\"><tr><td>");
 		
 			output.WriteLine(	"<p align=\"right\" style=\"margin: 0px; padding:0px\"><a href=\"javascript:insertLink(document.getElementById('" + this.ClientID + "'))\">" +
-				"<img src=\"" + IOHelper.ResolveUrl(SystemDirectories.Umbraco_client) + "/simpleEditor/images/link.gif\" border=\"0\" align=\"right\" />" +
+				"<img src=\"" + IOHelper.ResolveUrl(SystemDirectories.UmbracoClient) + "/simpleEditor/images/link.gif\" border=\"0\" align=\"right\" />" +
 				"</a>" +
                 "<a href=\"javascript:insertTag(document.getElementById('" + this.ClientID + "'), 'em', '')\">" +
-                "<img src=\"" + IOHelper.ResolveUrl(SystemDirectories.Umbraco_client) + "/simpleEditor/images/italic.gif\" border=\"0\" style=\"margin-left: 3px; margin-right: 3px;\" align=\"right\" />" +
+                "<img src=\"" + IOHelper.ResolveUrl(SystemDirectories.UmbracoClient) + "/simpleEditor/images/italic.gif\" border=\"0\" style=\"margin-left: 3px; margin-right: 3px;\" align=\"right\" />" +
 				"</a>" +
 				" <a href=\"javascript:insertTag(document.getElementById('" + this.ClientID + "'), 'strong', '')\">" +
-                "<img src=\"" + IOHelper.ResolveUrl(SystemDirectories.Umbraco_client) + "/simpleEditor/images/bold.gif\" border=\"0\" align=\"right\" />" +
+                "<img src=\"" + IOHelper.ResolveUrl(SystemDirectories.UmbracoClient) + "/simpleEditor/images/bold.gif\" border=\"0\" align=\"right\" />" +
 				"</a>" +
 				"<br/></p>");
 			base.Render(output);

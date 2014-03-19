@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -9,8 +10,10 @@ using NUnit.Framework;
 using SqlCE4Umbraco;
 using Umbraco.Core;
 using Umbraco.Core.IO;
+using Umbraco.Core.PropertyEditors;
 using Umbraco.Tests.TestHelpers;
 using Umbraco.Web;
+using Umbraco.Web.PropertyEditors;
 using umbraco;
 using umbraco.DataLayer;
 using umbraco.MacroEngines;
@@ -242,16 +245,16 @@ namespace Umbraco.Tests
             var list3 = new[] { f1, f3, f5, f7 };
 
             //Act
-            var hash1 = PluginManager.GetAssembliesHash(list1);
-            var hash2 = PluginManager.GetAssembliesHash(list2);
-            var hash3 = PluginManager.GetAssembliesHash(list3);
+            var hash1 = PluginManager.GetFileHash(list1);
+            var hash2 = PluginManager.GetFileHash(list2);
+            var hash3 = PluginManager.GetFileHash(list3);
 
             //Assert
             Assert.AreNotEqual(hash1, hash2);
             Assert.AreNotEqual(hash1, hash3);
             Assert.AreNotEqual(hash2, hash3);
 
-            Assert.AreEqual(hash1, PluginManager.GetAssembliesHash(list1));
+            Assert.AreEqual(hash1, PluginManager.GetFileHash(list1));
         }
 
         [Test]
@@ -268,7 +271,7 @@ namespace Umbraco.Tests
         public void Resolves_Assigned_Mappers()
         {
             var foundTypes1 = PluginManager.Current.ResolveAssignedMapperTypes();
-            Assert.AreEqual(17, foundTypes1.Count());
+            Assert.AreEqual(21, foundTypes1.Count());
         }
 
         [Test]
@@ -282,21 +285,21 @@ namespace Umbraco.Tests
         public void Resolves_Attributed_Trees()
         {
             var trees = PluginManager.Current.ResolveAttributedTrees();
-            Assert.AreEqual(27, trees.Count());
+            Assert.AreEqual(19, trees.Count());
         }
 
         [Test]
         public void Resolves_Actions()
         {
             var actions = PluginManager.Current.ResolveActions();
-            Assert.AreEqual(37, actions.Count());
+            Assert.AreEqual(36, actions.Count());
         }
 
         [Test]
         public void Resolves_Trees()
         {
             var trees = PluginManager.Current.ResolveTrees();
-            Assert.AreEqual(40, trees.Count());
+            Assert.AreEqual(39, trees.Count());
         }
 
         [Test]
@@ -307,17 +310,10 @@ namespace Umbraco.Tests
         }
 
         [Test]
-        public void Resolves_Action_Handlers()
-        {
-            var types = PluginManager.Current.ResolveActionHandlers();
-            Assert.AreEqual(1, types.Count());
-        }
-
-        [Test]
         public void Resolves_DataTypes()
         {
             var types = PluginManager.Current.ResolveDataTypes();
-            Assert.AreEqual(38, types.Count());
+            Assert.AreEqual(35, types.Count());
         }
 
         [Test]
@@ -335,30 +331,41 @@ namespace Umbraco.Tests
         }
 
         [Test]
-        public void Resolves_LegacyRestExtensions()
-        {
-            var types = PluginManager.Current.ResolveLegacyRestExtensions();
-            Assert.AreEqual(1, types.Count());
-        }
-
-        [Test]
         public void Resolves_XsltExtensions()
         {
             var types = PluginManager.Current.ResolveXsltExtensions();
-            Assert.AreEqual(1, types.Count());
+            Assert.AreEqual(3, types.Count());
         }
 
+        /// <summary>
+        /// This demonstrates this issue: http://issues.umbraco.org/issue/U4-3505 - the TypeList was returning a list of assignable types
+        /// not explicit types which is sort of ideal but is confusing so we'll do it the less confusing way.
+        /// </summary>
+        [Test]
+        public void TypeList_Resolves_Explicit_Types()
+        {
+            var types = new HashSet<PluginManager.TypeList>();
+
+            var propEditors = new PluginManager.TypeList<PropertyEditor>(PluginManager.TypeResolutionKind.FindAllTypes);
+            propEditors.AddType(typeof(LabelPropertyEditor));
+            types.Add(propEditors);
+
+            var found = types.SingleOrDefault(x => x.IsTypeList<PropertyEditor>(PluginManager.TypeResolutionKind.FindAllTypes));
+
+            Assert.IsNotNull(found);
+
+            //This should not find a type list of this type
+            var shouldNotFind = types.SingleOrDefault(x => x.IsTypeList<IParameterEditor>(PluginManager.TypeResolutionKind.FindAllTypes));
+
+            Assert.IsNull(shouldNotFind);
+        }
+     
         [XsltExtension("Blah.Blah")]
         public class MyXsltExtension
         {
 
         }
 
-        [umbraco.presentation.umbracobase.RestExtension("Blah")]
-        public class MyLegacyRestExtension
-        {
-
-        }
 
         [Umbraco.Web.BaseRest.RestExtension("Blah")]
         public class MyRestExtesion

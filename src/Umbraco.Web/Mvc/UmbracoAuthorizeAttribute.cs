@@ -50,12 +50,15 @@ namespace Umbraco.Web.Mvc
 		    if (httpContext == null) throw new ArgumentNullException("httpContext");
             
 		    try
-			{						
+			{
+                var appContext = GetApplicationContext();
+                var umbContext = GetUmbracoContext();
+
 				//we need to that the app is configured and that a user is logged in
-                if (!GetApplicationContext().IsConfigured)
+                if (!appContext.IsConfigured)
 					return false;
-			    var umbCtx = GetUmbracoContext();
-                var isLoggedIn = umbCtx.Security.ValidateUserContextId(umbCtx.Security.UmbracoUserContextId);
+
+                var isLoggedIn = umbContext.Security.ValidateCurrentUser();
 				return isLoggedIn;
 			}
 			catch (Exception)
@@ -65,12 +68,15 @@ namespace Umbraco.Web.Mvc
 		}
 
         /// <summary>
-        /// Override to throw exception instead of returning a 401 result
+        /// Override to to ensure no redirect occurs
         /// </summary>
         /// <param name="filterContext"></param>
         protected override void HandleUnauthorizedRequest(AuthorizationContext filterContext)
         {
-            throw new HttpException((int)global::System.Net.HttpStatusCode.Unauthorized, "You must login to view this resource.");
+            filterContext.Result = (ActionResult)new HttpUnauthorizedResult("You must login to view this resource.");
+            
+            //DON'T do a FormsAuth redirect... argh!! thankfully we're running .Net 4.5 :)
+            filterContext.RequestContext.HttpContext.Response.SuppressFormsAuthenticationRedirect = true;
         }
 
 	}

@@ -2,10 +2,12 @@
 using System.Web.Script.Serialization;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
+using Umbraco.Core.Models;
 using umbraco;
-using umbraco.cms.businesslogic.macro;
+using Umbraco.Core.Persistence.Caching;
 using umbraco.interfaces;
 using System.Linq;
+using Macro = umbraco.cms.businesslogic.macro.Macro;
 
 namespace Umbraco.Web.Cache
 {
@@ -67,12 +69,40 @@ namespace Umbraco.Web.Cache
         /// </summary>
         /// <param name="macros"></param>
         /// <returns></returns>
+        internal static string SerializeToJsonPayload(params IMacro[] macros)
+        {
+            var serializer = new JavaScriptSerializer();
+            var items = macros.Select(FromMacro).ToArray();
+            var json = serializer.Serialize(items);
+            return json;
+        }
+
+        /// <summary>
+        /// Creates the custom Json payload used to refresh cache amongst the servers
+        /// </summary>
+        /// <param name="macros"></param>
+        /// <returns></returns>
         internal static string SerializeToJsonPayload(params macro[] macros)
         {
             var serializer = new JavaScriptSerializer();
             var items = macros.Select(FromMacro).ToArray();
             var json = serializer.Serialize(items);
             return json;
+        }
+
+        /// <summary>
+        /// Converts a macro to a jsonPayload object
+        /// </summary>
+        /// <param name="macro"></param>
+        /// <returns></returns>
+        private static JsonPayload FromMacro(IMacro macro)
+        {
+            var payload = new JsonPayload
+            {
+                Alias = macro.Alias,
+                Id = macro.Id
+            };
+            return payload;
         }
 
         /// <summary>
@@ -145,6 +175,8 @@ namespace Umbraco.Web.Cache
                     prefix =>
                     ApplicationContext.Current.ApplicationCache.ClearCacheByKeySearch(prefix));
 
+            RuntimeCacheProvider.Current.Clear(typeof (IMacro));
+
             base.RefreshAll();
         }
 
@@ -157,6 +189,8 @@ namespace Umbraco.Web.Cache
                 GetCacheKeysForAlias(payload.Alias).ForEach(
                     alias =>
                     ApplicationContext.Current.ApplicationCache.ClearCacheByKeySearch(alias));
+
+                RuntimeCacheProvider.Current.Delete(typeof(IMacro), payload.Id);
             });
 
             base.Refresh(jsonPayload);

@@ -66,7 +66,7 @@ namespace Umbraco.Core.Services
         /// <remarks>Deleting a <see cref="IContentType"/> will delete all the <see cref="IContent"/> objects based on this <see cref="IContentType"/></remarks>
         /// <param name="userId">Optional Id of the User deleting the ContentTypes</param>
         void Delete(IEnumerable<IContentType> contentTypes, int userId = 0);
-
+        
         /// <summary>
         /// Gets an <see cref="IMediaType"/> object by its Id
         /// </summary>

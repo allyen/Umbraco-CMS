@@ -9,13 +9,14 @@ using System;
 using System.Web;
 using System.Text.RegularExpressions;
 using System.IO;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.editorControls.tinyMCE3.webcontrol.plugin
 {
     /// <summary>
     /// Description of HttpHandler.
     /// </summary>
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
     public class GzipModule : IModule
     {
         /// <summary></summary>

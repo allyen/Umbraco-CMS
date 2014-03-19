@@ -4,6 +4,7 @@ using System.Web.Mvc;
 using System.Web.Routing;
 using Umbraco.Core.Models;
 using Umbraco.Core;
+using Umbraco.Web.Security;
 
 namespace Umbraco.Web.Mvc
 {
@@ -12,6 +13,7 @@ namespace Umbraco.Web.Mvc
     /// The base controller that all Presentation Add-in controllers should inherit from
     /// </summary>
     [MergeModelStateToChildAction]
+    [MergeParentContextViewData]
     public abstract class SurfaceController : PluginController
     {
 
@@ -22,6 +24,7 @@ namespace Umbraco.Web.Mvc
         protected SurfaceController(UmbracoContext umbracoContext)
             : base(umbracoContext)
         {
+            _membershipHelper = new MembershipHelper(umbracoContext);
         }
 
         /// <summary>
@@ -30,6 +33,17 @@ namespace Umbraco.Web.Mvc
         protected SurfaceController()
             : base(UmbracoContext.Current)
         {
+            _membershipHelper = new MembershipHelper(UmbracoContext.Current);
+        }
+
+        private readonly MembershipHelper _membershipHelper;
+
+        /// <summary>
+        /// Returns the MemberHelper instance
+        /// </summary>
+        public MembershipHelper Members
+        {
+            get { return _membershipHelper; }
         }
 
         /// <summary>
@@ -62,6 +76,20 @@ namespace Umbraco.Web.Mvc
         }
 
         /// <summary>
+        /// Redirects to the currently rendered Umbraco URL
+        /// </summary>
+        /// <returns></returns>
+        /// <remarks>
+        /// this is useful if you need to redirect 
+        /// to the current page but the current page is actually a rewritten URL normally done with something like 
+        /// Server.Transfer.
+        /// </remarks>
+        protected RedirectToUmbracoUrlResult RedirectToCurrentUmbracoUrl()
+        {
+            return new RedirectToUmbracoUrlResult(UmbracoContext);
+        }
+
+        /// <summary>
         /// Returns the currently rendered Umbraco page
         /// </summary>
         /// <returns></returns>
@@ -80,7 +108,7 @@ namespace Umbraco.Web.Mvc
 			    var routeDefAttempt = TryGetRouteDefinitionFromAncestorViewContexts();
                 if (!routeDefAttempt.Success)
                 {
-                    throw routeDefAttempt.Error;
+                    throw routeDefAttempt.Exception;
                 }
 
 			    var routeDef = routeDefAttempt.Result;
@@ -104,7 +132,7 @@ namespace Umbraco.Web.Mvc
                 var currentRouteData = currentContext.RouteData;
                 if (currentRouteData.DataTokens.ContainsKey("umbraco-route-def"))
                 {
-                    return new Attempt<RouteDefinition>(true, (RouteDefinition) currentRouteData.DataTokens["umbraco-route-def"]);
+                    return Attempt.Succeed((RouteDefinition) currentRouteData.DataTokens["umbraco-route-def"]);
                 }
                 if (currentContext.IsChildAction)
                 {
@@ -117,7 +145,7 @@ namespace Umbraco.Web.Mvc
                     currentContext = null;
                 }
             }
-            return new Attempt<RouteDefinition>(
+            return Attempt<RouteDefinition>.Fail(
                 new InvalidOperationException("Cannot find the Umbraco route definition in the route values, the request must be made in the context of an Umbraco request"));
         } 
         

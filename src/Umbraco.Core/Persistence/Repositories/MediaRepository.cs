@@ -20,19 +20,26 @@ namespace Umbraco.Core.Persistence.Repositories
     internal class MediaRepository : VersionableRepositoryBase<int, IMedia>, IMediaRepository
     {
         private readonly IMediaTypeRepository _mediaTypeRepository;
+        private readonly ITagsRepository _tagRepository;
 
-		public MediaRepository(IDatabaseUnitOfWork work, IMediaTypeRepository mediaTypeRepository)
+        public MediaRepository(IDatabaseUnitOfWork work, IMediaTypeRepository mediaTypeRepository, ITagsRepository tagRepository)
             : base(work)
         {
+            if (mediaTypeRepository == null) throw new ArgumentNullException("mediaTypeRepository");
+            if (tagRepository == null) throw new ArgumentNullException("tagRepository");
             _mediaTypeRepository = mediaTypeRepository;
+            _tagRepository = tagRepository;
 
             EnsureUniqueNaming = true;
         }
 
-		public MediaRepository(IDatabaseUnitOfWork work, IRepositoryCacheProvider cache, IMediaTypeRepository mediaTypeRepository)
+        public MediaRepository(IDatabaseUnitOfWork work, IRepositoryCacheProvider cache, IMediaTypeRepository mediaTypeRepository, ITagsRepository tagRepository)
             : base(work, cache)
         {
+            if (mediaTypeRepository == null) throw new ArgumentNullException("mediaTypeRepository");
+            if (tagRepository == null) throw new ArgumentNullException("tagRepository");
             _mediaTypeRepository = mediaTypeRepository;
+            _tagRepository = tagRepository;
 
             EnsureUniqueNaming = true;
         }
@@ -124,6 +131,7 @@ namespace Umbraco.Core.Persistence.Repositories
         {
             var list = new List<string>
                            {
+                               "DELETE FROM cmsTask WHERE nodeId = @Id",
                                "DELETE FROM umbracoUser2NodeNotify WHERE nodeId = @Id",
                                "DELETE FROM umbracoUser2NodePermission WHERE nodeId = @Id",
                                "DELETE FROM umbracoRelation WHERE parentId = @Id",
@@ -247,6 +255,8 @@ namespace Umbraco.Core.Persistence.Repositories
                 property.Id = keyDictionary[property.PropertyTypeId];
             }
 
+            UpdatePropertyTags(entity, _tagRepository);
+
             ((ICanBeDirty)entity).ResetDirtyProperties();
         }
 
@@ -289,6 +299,9 @@ namespace Umbraco.Core.Persistence.Repositories
                 Database.Update(newContentDto);
             }
 
+            //In order to update the ContentVersion we need to retreive its primary key id
+            var contentVerDto = Database.SingleOrDefault<ContentVersionDto>("WHERE VersionId = @Version", new { Version = entity.Version });
+            dto.Id = contentVerDto.Id;
             //Updates the current version - cmsContentVersion
             //Assumes a Version guid exists and Version date (modified date) has been set/updated
             Database.Update(dto);
@@ -321,17 +334,19 @@ namespace Umbraco.Core.Persistence.Repositories
                 }
             }
 
+            UpdatePropertyTags(entity, _tagRepository);
+
             ((ICanBeDirty)entity).ResetDirtyProperties();
         }
 
         protected override void PersistDeletedItem(IMedia entity)
         {
             var fs = FileSystemProviderManager.Current.GetFileSystemProvider<MediaFileSystem>();
-            var uploadFieldId = new Guid(Constants.PropertyEditors.UploadField);
+            
             //Loop through properties to check if the media item contains images/file that should be deleted
             foreach (var property in entity.Properties)
             {
-                if (property.PropertyType.DataTypeId == uploadFieldId &&
+                if (property.PropertyType.PropertyEditorAlias == Constants.PropertyEditors.UploadFieldAlias &&
                     string.IsNullOrEmpty(property.Value.ToString()) == false
                     && fs.FileExists(IOHelper.MapPath(property.Value.ToString())))
                 {
@@ -339,7 +354,7 @@ namespace Umbraco.Core.Persistence.Repositories
                     var parentDirectory = System.IO.Path.GetDirectoryName(relativeFilePath);
 
                     // don't want to delete the media folder if not using directories.
-                    if (UmbracoSettings.UploadAllowDirectories && parentDirectory != fs.GetRelativePath("/"))
+                    if (UmbracoConfig.For.UmbracoSettings().Content.UploadAllowDirectories && parentDirectory != fs.GetRelativePath("/"))
                     {
                         //issue U4-771: if there is a parent directory the recursive parameter should be true
                         fs.DeleteDirectory(parentDirectory, String.IsNullOrEmpty(parentDirectory) == false);
@@ -355,34 +370,7 @@ namespace Umbraco.Core.Persistence.Repositories
         }
 
         #endregion
-
-        private PropertyCollection GetPropertyCollection(int id, Guid versionId, IMediaType contentType, DateTime createDate, DateTime updateDate)
-        {
-            var sql = new Sql();
-            sql.Select("*")
-                .From<PropertyDataDto>()
-                .InnerJoin<PropertyTypeDto>()
-                .On<PropertyDataDto, PropertyTypeDto>(left => left.PropertyTypeId, right => right.Id)
-                .Where<PropertyDataDto>(x => x.NodeId == id)
-                .Where<PropertyDataDto>(x => x.VersionId == versionId);
-
-            var propertyDataDtos = Database.Fetch<PropertyDataDto, PropertyTypeDto>(sql);
-            var propertyFactory = new PropertyFactory(contentType, versionId, id, createDate, updateDate);
-            var properties = propertyFactory.BuildEntity(propertyDataDtos);
-
-            var newProperties = properties.Where(x => x.HasIdentity == false);
-            foreach (var property in newProperties)
-            {
-                var propertyDataDto = new PropertyDataDto { NodeId = id, PropertyTypeId = property.PropertyTypeId, VersionId = versionId };
-                int primaryKey = Convert.ToInt32(Database.Insert(propertyDataDto));
-
-                property.Version = versionId;
-                property.Id = primaryKey;
-            }
-
-            return new PropertyCollection(properties);
-        }
-
+        
         private string EnsureUniqueNodeName(int parentId, string nodeName, int id = 0)
         {
             if (EnsureUniqueNaming == false)

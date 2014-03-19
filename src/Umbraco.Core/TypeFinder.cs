@@ -279,8 +279,8 @@ namespace Umbraco.Core
                     "SqlCE4Umbraco,",
                     "umbraco.datalayer,",
                     "umbraco.interfaces,",										
-					"umbraco.providers,",
-					"Umbraco.Web.UI,",
+					//"umbraco.providers,",
+					//"Umbraco.Web.UI,",
                     "umbraco.webservices",
                     "Lucene.",
                     "Examine,",
@@ -290,7 +290,18 @@ namespace Umbraco.Core
                     "HtmlAgilityPack.",
                     "TidyNet.",
                     "ICSharpCode.",
-                    "CookComputing."
+                    "CookComputing.",
+                    "AutoMapper,",
+                    "AutoMapper.",
+                    "AzureDirectory,",
+                    "itextsharp,",            
+                    "UrlRewritingNet.",
+                    "HtmlAgilityPack,",                 
+                    "MiniProfiler,",
+                    "Moq,",
+                    "nunit.framework,",
+                    "TidyNet,",
+                    "WebDriver,"
                 };
 
         /// <summary>
@@ -519,8 +530,12 @@ namespace Umbraco.Core
 
                 //now filter the types based on the onlyConcreteClasses flag, not interfaces, not static classes
                 var filteredTypes = allSubTypes
-                    .Where(t => (TypeHelper.IsNonStaticClass(t)
+                    .Where(t => (TypeHelper.IsNonStaticClass(t)                                 
+                                //Do not include nested private classes - since we are in full trust now this will find those too!
+                                 && t.IsNestedPrivate == false   
                                  && (onlyConcreteClasses == false || t.IsAbstract == false)
+                                 //Do not include classes that are flagged to hide from the type finder
+                                 && t.GetCustomAttribute<HideFromTypeFinderAttribute>() == null
                                  && additionalFilter(t)))
                     .ToArray();
 
@@ -585,7 +600,16 @@ namespace Umbraco.Core
 
             try
             {
-                return a.GetExportedTypes();
+                //we need to detect if an assembly is partially trusted, if so we cannot go interrogating all of it's types
+                //only its exported types, otherwise we'll get exceptions.
+                if (a.GetCustomAttribute<AllowPartiallyTrustedCallersAttribute>() == null)
+                {
+                    return a.GetTypes();
+                }
+                else
+                {
+                    return a.GetExportedTypes();
+                }
             }
             catch (ReflectionTypeLoadException ex)
             {

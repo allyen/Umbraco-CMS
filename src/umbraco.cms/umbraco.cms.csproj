@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -36,7 +36,7 @@
     <SccProvider>
     </SccProvider>
     <OldToolsVersion>3.5</OldToolsVersion>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -79,6 +79,7 @@
     <DebugType>full</DebugType>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -102,11 +103,12 @@
     <DebugType>none</DebugType>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ClientDependency.Core, Version=1.7.0.4, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="ClientDependency.Core">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\ClientDependency.1.7.0.4\lib\ClientDependency.Core.dll</HintPath>
+      <HintPath>..\packages\ClientDependency.1.7.1.2\lib\ClientDependency.Core.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack, Version=1.4.6.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -175,13 +177,13 @@
     <Compile Include="Actions\ActionAssignDomain.cs" />
     <Compile Include="Actions\ActionAudit.cs" />
     <Compile Include="Actions\ActionBrowse.cs" />
+    <Compile Include="Actions\ActionChangeDocType.cs" />
     <Compile Include="Actions\ActionCopy.cs" />
     <Compile Include="Actions\ActionDelete.cs" />
     <Compile Include="Actions\ActionDisable.cs" />
     <Compile Include="Actions\ActionEmptyTranscan.cs" />
     <Compile Include="Actions\ActionExport.cs" />
     <Compile Include="Actions\ActionImport.cs" />
-    <Compile Include="Actions\ActionLiveEdit.cs" />
     <Compile Include="Actions\ActionMove.cs" />
     <Compile Include="Actions\ActionNew.cs" />
     <Compile Include="Actions\ActionNewFolder.cs" />
@@ -196,21 +198,18 @@
     <Compile Include="Actions\ActionRePublish.cs" />
     <Compile Include="Actions\ActionRights.cs" />
     <Compile Include="Actions\ActionRollback.cs" />
-    <Compile Include="Actions\ActionSave.cs" />
     <Compile Include="Actions\ActionSendToTranslate.cs" />
     <Compile Include="Actions\ActionSort.cs" />
     <Compile Include="Actions\ActionToPublish.cs" />
     <Compile Include="Actions\ActionTranslate.cs" />
-    <Compile Include="Actions\ActionTreeEditMode.cs" />
     <Compile Include="Actions\ActionUpdate.cs" />
     <Compile Include="Actions\ContextMenuSeperator.cs" />
     <Compile Include="Actions\ActionUnPublish.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Actions\IActionHandler.cs" />
+    <Compile Include="Actions\LegacyActionMenuItemAttribute.cs" />
     <Compile Include="businesslogic\CMSPreviewNode.cs" />
     <Compile Include="businesslogic\datatype\AbstractDataEditorControl.cs" />
-    <Compile Include="businesslogic\datatype\ClientDependencyAttribute.cs" />
     <Compile Include="businesslogic\datatype\DataEditorSetting.cs" />
     <Compile Include="businesslogic\datatype\DataEditorSettingsStorage.cs" />
     <Compile Include="businesslogic\datatype\DataEditorSettingType.cs" />
@@ -247,9 +246,7 @@
     <Compile Include="businesslogic\Packager\PackageActions\addApplication.cs" />
     <Compile Include="businesslogic\Packager\PackageActions\addDashboardSection.cs" />
     <Compile Include="businesslogic\Packager\PackageActions\addProxyFeedHost.cs" />
-    <Compile Include="businesslogic\Packager\PackageActions\addRestExtension.cs" />
     <Compile Include="businesslogic\Packager\PackageActions\addStringToHtmlElement.cs" />
-    <Compile Include="businesslogic\Packager\PackageActions\addXsltExtension.cs" />
     <Compile Include="businesslogic\Packager\PackageActions\allowDoctype.cs" />
     <Compile Include="businesslogic\Packager\PackageActions\helper.cs" />
     <Compile Include="businesslogic\Packager\PackageActions\moveRootDocument.cs" />
@@ -257,34 +254,13 @@
     <Compile Include="businesslogic\Packager\PackageActions\removeStringFromTemplate.cs" />
     <Compile Include="businesslogic\propertytype\PropertyTypeGroup.cs" />
     <Compile Include="businesslogic\Property\Properties.cs" />
-    <Compile Include="businesslogic\skinning\controls\ColorPicker.cs" />
-    <Compile Include="businesslogic\skinning\controls\ImageUploader.cs" />
-    <Compile Include="businesslogic\skinning\controls\SliderControl.cs" />
-    <Compile Include="businesslogic\skinning\CssVariable.cs" />
-    <Compile Include="businesslogic\skinning\CssVariableProperty.cs" />
-    <Compile Include="businesslogic\skinning\dependencies\Color.cs" />
-    <Compile Include="businesslogic\skinning\dependencies\Image.cs" />
-    <Compile Include="businesslogic\skinning\dependencies\Option.cs" />
-    <Compile Include="businesslogic\skinning\dependencies\Slider.cs" />
-    <Compile Include="businesslogic\skinning\dependencies\Text.cs" />
-    <Compile Include="businesslogic\skinning\Dependency.cs" />
-    <Compile Include="businesslogic\skinning\DependencyType.cs" />
-    <Compile Include="businesslogic\skinning\EmbeddedCss.cs" />
     <Compile Include="businesslogic\ProviderBase.cs" />
-    <Compile Include="businesslogic\skinning\Skin.cs" />
-    <Compile Include="businesslogic\skinning\Task.cs" />
-    <Compile Include="businesslogic\skinning\tasks\AddStyleSheetToTemplate.cs" />
-    <Compile Include="businesslogic\skinning\tasks\ModifyCss.cs" />
-    <Compile Include="businesslogic\skinning\tasks\ModifyPageProperty.cs" />
-    <Compile Include="businesslogic\skinning\tasks\ModifyTemplate.cs" />
-    <Compile Include="businesslogic\skinning\TaskType.cs" />
     <Compile Include="businesslogic\Tags\Tag.cs" />
     <Compile Include="businesslogic\task\Tasks.cs" />
     <Compile Include="businesslogic\template\MasterpageHelper.cs" />
     <Compile Include="businesslogic\template\ViewHelper.cs" />
     <Compile Include="businesslogic\Tuple.cs" />
     <Compile Include="businesslogic\web\DocumentVersionList.cs" />
-    <Compile Include="businesslogic\skinning\Skinning.cs" />
     <Compile Include="helpers\Casing.cs" />
     <Compile Include="helpers\DeepLink.cs" />
     <Compile Include="helpers\DeepLinkType.cs" />
@@ -335,9 +311,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="businesslogic\macro\Macro.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="businesslogic\macro\MacroComment.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="businesslogic\macro\MacroProperty.cs">
@@ -431,7 +404,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="businesslogic\Packager\FileResources\Packages.config" />
-    <None Include="ClassDiagram1.cd" />
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

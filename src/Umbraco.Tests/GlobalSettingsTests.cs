@@ -8,13 +8,9 @@ using System.Web.Mvc;
 
 namespace Umbraco.Tests
 {
-	[TestFixture]
+    [TestFixture]
 	public class GlobalSettingsTests : BaseWebTest
 	{
-        protected override DatabaseBehavior DatabaseTestBehavior
-        {
-            get { return DatabaseBehavior.NoDatabasePerFixture; }
-        }
 
 		public override void Initialize()
 		{            
@@ -31,6 +27,12 @@ namespace Umbraco.Tests
 			base.TearDown();
 			
 		}
+
+        [Test]
+        public void Is_Debug_Mode()
+        {
+            Assert.That(Umbraco.Core.Configuration.GlobalSettings.DebugMode, Is.EqualTo(true));
+        }
 
         [Ignore]
         [Test]

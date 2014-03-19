@@ -9,15 +9,18 @@ using System.Web.Security;
 using System.Web.UI;
 using System.Xml;
 using System.Xml.Serialization;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
 using umbraco.businesslogic.Exceptions;
 using umbraco.cms.businesslogic.media;
 using Umbraco.Core;
+using Umbraco.Core.Security;
 
 namespace umbraco.presentation.umbraco.webservices
 {
+    [Obsolete("This should no longer be used, use the WebApi methods to upload media")]
     public class MediaUploader : IHttpHandler
     {
         protected User AuthenticatedUser { get; set; }
@@ -153,32 +156,35 @@ namespace umbraco.presentation.umbraco.webservices
                         // get the current file
                         var uploadFile = context.Request.Files[j];
 
-                        // if there was a file uploded
-                        if (uploadFile.ContentLength > 0)
+                        using (var inputStream = uploadFile.InputStream)
                         {
-                            // Ensure we get the filename without the path in IE in intranet mode 
-                            // http://stackoverflow.com/questions/382464/httppostedfile-filename-different-from-ie
-                            var fileName = uploadFile.FileName;
-                            if(fileName.LastIndexOf(@"\") > 0) 
-                                fileName = fileName.Substring(fileName.LastIndexOf(@"\") + 1);
-
-                            fileName = Umbraco.Core.IO.IOHelper.SafeFileName(fileName);
-
-                            var postedMediaFile = new PostedMediaFile
+                            // if there was a file uploded
+                            if (uploadFile.ContentLength > 0)
                             {
-                                FileName = fileName,
-                                DisplayName = context.Request["name"],
-                                ContentType = uploadFile.ContentType,
-                                ContentLength = uploadFile.ContentLength,
-                                InputStream = uploadFile.InputStream,
-                                ReplaceExisting = replaceExisting
-                            };
+                                // Ensure we get the filename without the path in IE in intranet mode 
+                                // http://stackoverflow.com/questions/382464/httppostedfile-filename-different-from-ie
+                                var fileName = uploadFile.FileName;
+                                if (fileName.LastIndexOf(@"\") > 0)
+                                    fileName = fileName.Substring(fileName.LastIndexOf(@"\") + 1);
 
-                            // Get concrete MediaFactory
-                            var factory = MediaFactory.GetMediaFactory(parentNodeId, postedMediaFile, AuthenticatedUser);
+                                fileName = Umbraco.Core.IO.IOHelper.SafeFileName(fileName);
 
-                            // Handle media Item
-                            var media = factory.HandleMedia(parentNodeId, postedMediaFile, AuthenticatedUser);
+                                var postedMediaFile = new PostedMediaFile
+                                {
+                                    FileName = fileName,
+                                    DisplayName = context.Request["name"],
+                                    ContentType = uploadFile.ContentType,
+                                    ContentLength = uploadFile.ContentLength,
+                                    InputStream = inputStream,
+                                    ReplaceExisting = replaceExisting
+                                };
+
+                                // Get concrete MediaFactory
+                                var factory = MediaFactory.GetMediaFactory(parentNodeId, postedMediaFile, AuthenticatedUser);
+
+                                // Handle media Item
+                                var media = factory.HandleMedia(parentNodeId, postedMediaFile, AuthenticatedUser);
+                            }
                         }
                     }
 
@@ -219,7 +225,7 @@ namespace umbraco.presentation.umbraco.webservices
 
             if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
             {
-                var mp = Membership.Providers[UmbracoSettings.DefaultBackofficeProvider];
+                var mp = MembershipProviderExtensions.GetUsersMembershipProvider();
                 if (mp != null && mp.ValidateUser(username, password))
                 {
                     var user = new User(username);

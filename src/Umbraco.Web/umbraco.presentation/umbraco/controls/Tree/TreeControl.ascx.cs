@@ -5,6 +5,9 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Web.Script.Serialization;
 using Umbraco.Core.Logging;
+using Umbraco.Core.Models;
+using Umbraco.Web.Trees;
+using Umbraco.Web.UI.Controls;
 using umbraco.interfaces;
 using System.Text.RegularExpressions;
 using umbraco.BusinessLogic.Actions;
@@ -14,7 +17,6 @@ using umbraco.cms.presentation.Trees;
 using umbraco.BasePages;
 using System.Web.Services;
 using System.Drawing;
-using umbraco.BusinessLogic;
 using System.Linq;
 using Umbraco.Core;
 
@@ -25,7 +27,7 @@ namespace umbraco.controls.Tree
     /// The Umbraco tree control.
     /// <remarks>If this control doesn't exist on an UmbracoEnsuredPage it will not work.</remarks>
     /// </summary>
-    public partial class TreeControl : System.Web.UI.UserControl, ITreeService
+    public partial class TreeControl : UmbracoUserControl, ITreeService
     {
 
         /// <summary>
@@ -58,10 +60,11 @@ namespace umbraco.controls.Tree
 
         private List<BaseTree> m_ActiveTrees = new List<BaseTree>();
         private List<BaseTree> m_AllAppTrees = new List<BaseTree>();
-        private List<TreeDefinition> m_ActiveTreeDefs = null;
+        private List<ApplicationTree> m_ActiveTreeDefs = null;
         private TreeMode m_TreeType = TreeMode.Standard;
         private bool m_IsInit = false;
         private TreeService m_TreeService = new TreeService();
+        private string m_SelectedNodePath;
 
         #region Public Properties
 
@@ -97,6 +100,15 @@ namespace umbraco.controls.Tree
             set
             {
                 m_TreeService.StartNodeID = value;
+            }
+        }
+
+        public string SelectedNodePath
+        {
+            get { return m_SelectedNodePath; }
+            set
+            {
+                m_SelectedNodePath = value;
             }
         }
 
@@ -222,27 +234,31 @@ namespace umbraco.controls.Tree
 
             //find all tree definitions that have the current application alias that are ACTIVE.
             //if an explicit tree has been requested, then only load that tree in.
-            m_ActiveTreeDefs = TreeDefinitionCollection.Instance.FindActiveTrees(GetCurrentApp());
+            //m_ActiveTreeDefs = TreeDefinitionCollection.Instance.FindActiveTrees(GetCurrentApp());
+
+            m_ActiveTreeDefs = Services.ApplicationTreeService.GetApplicationTrees(GetCurrentApp(), true).ToList();
+            
             if (!string.IsNullOrEmpty(this.TreeType))
             {
                 m_ActiveTreeDefs = m_ActiveTreeDefs
-                    .Where(x => x.Tree.Alias == this.TreeType)
+                    .Where(x => x.Alias == this.TreeType)
                     .ToList(); //this will only return 1
             }
 
             //find all tree defs that exists for the current application regardless of if they are active
-            List<TreeDefinition> appTreeDefs = TreeDefinitionCollection.Instance.FindTrees(GetCurrentApp());
+            var appTreeDefs = Services.ApplicationTreeService.GetApplicationTrees(GetCurrentApp()).ToList();
 
             //Create the BaseTree's based on the tree definitions found
-            foreach (TreeDefinition treeDef in appTreeDefs)
+            foreach (var treeDef in appTreeDefs)
             {
                 //create the tree and initialize it
-                BaseTree bTree = treeDef.CreateInstance();
+                var bTree = LegacyTreeDataConverter.GetLegacyTreeForLegacyServices(treeDef);
+                //BaseTree bTree = treeDef.CreateInstance();
                 bTree.SetTreeParameters(m_TreeService);
 
                 //store the created tree
                 m_AllAppTrees.Add(bTree);
-                if (treeDef.Tree.Initialize)
+                if (treeDef.Initialize)
                     m_ActiveTrees.Add(bTree);
             }
 
@@ -314,35 +330,7 @@ namespace umbraco.controls.Tree
         /// <returns></returns>
         public string GetLegacyIActionJavascript()
         {
-            StringBuilder js = new StringBuilder();
-			foreach (IAction a in global::umbraco.BusinessLogic.Actions.Action.GetAll())
-			{
-				// NH: Added a try/catch block to this as an error in a 3rd party action can crash the whole menu initialization
-				try
-				{
-					if (!string.IsNullOrEmpty(a.Alias) && (!string.IsNullOrEmpty(a.JsFunctionName) || !string.IsNullOrEmpty(a.JsSource)))
-					{
-						// if the action is using invalid javascript we need to do something about this
-						if (!umbraco.BusinessLogic.Actions.Action.ValidateActionJs(a))
-						{
-							js.AppendLine("function IActionProxy_" + umbraco.cms.helpers.Casing.SafeAlias(a.Alias) + "() {");
-							js.AppendLine(umbraco.BusinessLogic.Actions.Action.ConvertLegacyJs(a.JsFunctionName)); // .Replace("openModal", "UmbClientMgr.openModalWindow"));
-							js.AppendLine("}");
-						}
-					}
-				}
-				catch (Exception ee)
-				{
-					LogHelper.Error<TreeControl>("Error initializing tree action", ee);
-				}
-			}
-
-	        if (js.Length != 0)
-            {
-                js.Insert(0, "// This javascript is autogenerated by Umbraco to ensure legacy compatiblity with old context menu items\n\n");
-            }
-
-            return js.ToString();
+            return LegacyTreeJavascript.GetLegacyIActionJavascript();
         }
 
         /// <summary>
@@ -386,7 +374,7 @@ namespace umbraco.controls.Tree
             //stand alone tree, so we'll just add a TreeType to the TreeService and ensure that the right method gets loaded in tree.aspx
             if (m_ActiveTrees.Count == 1)
             {
-                m_TreeService.TreeType = m_ActiveTreeDefs[0].Tree.Alias;
+                m_TreeService.TreeType = m_ActiveTreeDefs[0].Alias;
 
                 //convert the menu to a string
                 //string initActions = (TreeSvc.ShowContextMenu ? Action.ToString(m_ActiveTrees[0].RootNodeActions) : "");
@@ -440,5 +428,149 @@ namespace umbraco.controls.Tree
             //if everything is null then return the default app
             return DEFAULT_APP;
         }
+
+        /// <summary>
+        /// CssInclude2 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.CssInclude CssInclude2;
+
+        /// <summary>
+        /// CssInclude3 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.CssInclude CssInclude3;
+
+        /// <summary>
+        /// CssInclude1 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.CssInclude CssInclude1;
+
+        /// <summary>
+        /// JsInclude1 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude1;
+
+        /// <summary>
+        /// JsInclude2 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude2;
+
+        /// <summary>
+        /// JsInclude3 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude3;
+
+        /// <summary>
+        /// JsInclude4 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude4;
+
+        /// <summary>
+        /// JsInclude5 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude5;
+
+        /// <summary>
+        /// JsInclude6 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude6;
+
+        /// <summary>
+        /// JsInclude8 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude8;
+
+        /// <summary>
+        /// JsInclude11 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude11;
+
+        /// <summary>
+        /// JsInclude7 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude7;
+
+        /// <summary>
+        /// JsInclude12 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude12;
+
+        /// <summary>
+        /// JsInclude9 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude9;
+
+        /// <summary>
+        /// JsInclude10 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::ClientDependency.Core.Controls.JsInclude JsInclude10;
+
+        /// <summary>
+        /// TreeContainer control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl TreeContainer;
     }
 }

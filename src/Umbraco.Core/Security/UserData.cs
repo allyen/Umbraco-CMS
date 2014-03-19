@@ -7,6 +7,7 @@ namespace Umbraco.Core.Security
     /// Data structure used to store information in the authentication cookie
     /// </summary>
     [DataContract(Name = "userData", Namespace = "")]
+    [Serializable]
     internal class UserData
     {
         public UserData()
@@ -15,20 +16,33 @@ namespace Umbraco.Core.Security
             Roles = new string[] {};
         }
 
-        ///// <summary>
-        ///// When their session is going to expire (in ticks)
-        ///// </summary>
-        //[DataMember(Name = "timeout")]
-        //public long Timeout { get; set; }
+        /// <summary>
+        /// Use this constructor to create/assign new UserData to the ticket
+        /// </summary>
+        /// <param name="sessionId">
+        /// A unique id that is assigned to this ticket
+        /// </param>
+        public UserData(string sessionId)
+        {
+            SessionId = sessionId;
+            AllowedApplications = new string[] { };
+            Roles = new string[] { };
+        }
 
-        [DataMember(Name = "userContextId")]
-        public string UserContextId { get; set; }
+        /// <summary>
+        /// This is used to Id the current ticket which we can then use to mitigate csrf attacks
+        /// and other things that require request validation.
+        /// </summary>        
+        [DataMember(Name = "sessionId")]
+        public string SessionId { get; set; } 
 
         [DataMember(Name = "id")]
         public object Id { get; set; }
         
         [DataMember(Name = "roles")]
         public string[] Roles { get; set; }
+
+        //public int SessionTimeout { get; set; }
 
         [DataMember(Name = "username")]
         public string Username { get; set; }

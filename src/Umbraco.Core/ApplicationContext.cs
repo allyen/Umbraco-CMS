@@ -5,6 +5,7 @@ using System.Web;
 using System.Web.Caching;
 using Umbraco.Core.Cache;
 using Umbraco.Core.Configuration;
+using Umbraco.Core.Configuration.UmbracoSettings;
 using Umbraco.Core.Logging;
 using Umbraco.Core.ObjectResolution;
 using Umbraco.Core.Services;
@@ -20,52 +21,81 @@ namespace Umbraco.Core
     /// </remarks>
     public class ApplicationContext : IDisposable
     {
-    	/// <summary>
-        /// Constructor
-        /// </summary>        
-        internal ApplicationContext(DatabaseContext dbContext, ServiceContext serviceContext)
-            : this(dbContext, serviceContext, true)
-    	{
-    			
-    	}
-
+        
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="dbContext"></param>
         /// <param name="serviceContext"></param>
-        /// <param name="enableCache"></param>
-        internal ApplicationContext(DatabaseContext dbContext, ServiceContext serviceContext, bool enableCache)
-            : this(enableCache)
+        /// <param name="cache"></param>
+        public ApplicationContext(DatabaseContext dbContext, ServiceContext serviceContext, CacheHelper cache)
         {
             if (dbContext == null) throw new ArgumentNullException("dbContext");
             if (serviceContext == null) throw new ArgumentNullException("serviceContext");
-
+            if (cache == null) throw new ArgumentNullException("cache");
             _databaseContext = dbContext;
-            _services = serviceContext;		
+            _services = serviceContext;
+            ApplicationCache = cache;
         }
-
-		/// <summary>
-		/// Empty constructor normally reserved for unit tests when a DatabaseContext or a ServiceContext is not
-		/// necessarily required or needs to be set after construction.
-		/// </summary>
-		internal ApplicationContext() : this(true)
-		{			
-		}
 
         /// <summary>
-        /// Constructor used to specify if we will enable application cache or not
+        /// Creates a basic app context
         /// </summary>
-        /// <param name="enableCache"></param>
-        internal ApplicationContext(bool enableCache)
+        /// <param name="cache"></param>
+        public ApplicationContext(CacheHelper cache)
         {
-            //create a new application cache from the HttpRuntime.Cache
-            ApplicationCache = HttpRuntime.Cache == null
-                ? new CacheHelper(new System.Web.Caching.Cache(), enableCache)
-                : new CacheHelper(HttpRuntime.Cache, enableCache);
+            ApplicationCache = cache;
         }
 
-		/// <summary>
+	    /// <summary>
+	    /// A method used to set and/or ensure that a global ApplicationContext singleton is created.
+	    /// </summary>
+	    /// <param name="appContext">
+	    /// The instance to set on the global application singleton
+	    /// </param>
+	    /// <param name="replaceContext">If set to true and the singleton is already set, it will be replaced</param>
+	    /// <returns></returns>
+	    /// <remarks>
+	    /// This is NOT thread safe 
+	    /// </remarks>
+	    public static ApplicationContext EnsureContext(ApplicationContext appContext, bool replaceContext)
+	    {
+            if (ApplicationContext.Current != null)
+            {
+                if (!replaceContext)
+                    return ApplicationContext.Current;
+            }
+            ApplicationContext.Current = appContext;
+            return ApplicationContext.Current;
+	    }
+
+	    /// <summary>
+	    /// A method used to create and ensure that a global ApplicationContext singleton is created.
+	    /// </summary>
+	    /// <param name="cache"></param>
+	    /// <param name="replaceContext">
+	    /// If set to true will replace the current singleton instance - This should only be used for unit tests or on app 
+	    /// startup if for some reason the boot manager is not the umbraco boot manager.
+	    /// </param>
+	    /// <param name="dbContext"></param>
+	    /// <param name="serviceContext"></param>
+	    /// <returns></returns>
+	    /// <remarks>
+	    /// This is NOT thread safe 
+	    /// </remarks>
+	    public static ApplicationContext EnsureContext(DatabaseContext dbContext, ServiceContext serviceContext, CacheHelper cache, bool replaceContext)
+        {
+            if (ApplicationContext.Current != null)
+            {
+                if (!replaceContext)
+                    return ApplicationContext.Current;
+            }
+            var ctx = new ApplicationContext(dbContext, serviceContext, cache);
+            ApplicationContext.Current = ctx;
+            return ApplicationContext.Current;
+        }
+
+	    /// <summary>
     	/// Singleton accessor
     	/// </summary>
     	public static ApplicationContext Current { get; internal set; }
@@ -82,7 +112,7 @@ namespace Umbraco.Core
         // note - the original umbraco module checks on content.Instance in umbraco.dll
         //   now, the boot task that setup the content store ensures that it is ready
         bool _isReady = false;
-		readonly System.Threading.ManualResetEventSlim _isReadyEvent = new System.Threading.ManualResetEventSlim(false);
+		readonly ManualResetEventSlim _isReadyEvent = new ManualResetEventSlim(false);
 		private DatabaseContext _databaseContext;
 		private ServiceContext _services;
 
@@ -112,18 +142,18 @@ namespace Umbraco.Core
         //   the system is configured if they match
         //   if they don't, install runs, updates web.config (presumably) and updates GlobalSettings.ConfiguredStatus
         //
-        //   then there is Application["umbracoNeedConfiguration"] which makes no sense... getting rid of it...
+        //   then there is Application["umbracoNeedConfiguration"] which makes no sense... getting rid of it... SD: I have actually remove that now!
         //
         public bool IsConfigured
         {
-            // fixme - let's do this for the time being
+            // todo - we should not do this - ok for now
             get
             {
             	return Configured;
             }
         }
 
-        /// <summary>
+	    /// <summary>
         /// The original/first url that the web application executes
         /// </summary>
         /// <remarks>
@@ -135,6 +165,9 @@ namespace Umbraco.Core
         /// </remarks>
         internal string OriginalRequestUrl { get; set; }
 
+        /// <summary>
+        /// Checks if the version configured matches the assembly version
+        /// </summary>
 		private bool Configured
 		{
 			get

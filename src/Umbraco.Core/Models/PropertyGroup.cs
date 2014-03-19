@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Umbraco.Core.Models.EntityBase;
-using Umbraco.Core.Persistence.Mappers;
 
 namespace Umbraco.Core.Models
 {
@@ -12,6 +12,7 @@ namespace Umbraco.Core.Models
     /// </summary>
     [Serializable]
     [DataContract(IsReference = true)]
+    [DebuggerDisplay("Id: {Id}, Name: {Name}")]
     public class PropertyGroup : Entity, IEquatable<PropertyGroup>
     {
         private string _name;

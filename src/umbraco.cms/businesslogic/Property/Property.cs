@@ -1,12 +1,16 @@
 using System;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Web.UI;
 using System.Xml;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Persistence;
 using umbraco.DataLayer;
 using umbraco.BusinessLogic;
 using umbraco.cms.businesslogic.datatype;
 using umbraco.cms.businesslogic.propertytype;
+using umbraco.interfaces;
 
 namespace umbraco.cms.businesslogic.property
 {
@@ -37,6 +41,8 @@ namespace umbraco.cms.businesslogic.property
 
             _pt = pt;
             _id = Id;
+            if (_pt.DataTypeDefinition.DataType == null)
+                throw new Exception(string.Format("Could not load datatype '{0}'", _pt.DataTypeDefinition.Text));
             _data = _pt.DataTypeDefinition.DataType.Data;
             _data.PropertyId = Id;
         }
@@ -47,6 +53,8 @@ namespace umbraco.cms.businesslogic.property
             _pt = PropertyType.GetPropertyType(
                 SqlHelper.ExecuteScalar<int>("select propertytypeid from cmsPropertyData where id = @id",
                                              SqlHelper.CreateParameter("@id", Id)));
+            if (_pt.DataTypeDefinition.DataType == null)
+                throw new Exception(string.Format("Could not load datatype '{0}'", _pt.DataTypeDefinition.Text));
             _data = _pt.DataTypeDefinition.DataType.Data;
             _data.PropertyId = Id;
         }
@@ -59,8 +67,28 @@ namespace umbraco.cms.businesslogic.property
 
             //Just to ensure that there is a PropertyType available
             _pt = PropertyType.GetPropertyType(property.PropertyTypeId);
-            _data = _pt.DataTypeDefinition.DataType.Data;
+
+            //ensure we have data property editor set
+            if (_pt.DataTypeDefinition.DataType != null)
+            {
+                _data = _pt.DataTypeDefinition.DataType.Data;
+            }
+            else
+            {
+                //send back null we will handle it in ContentControl AddControlNew 
+                //and display to use message from the dictionary errors section 
+                _data= new DefaultData(null);
+            }
+            
             _data.PropertyId = Id;
+
+            //set the value so it doesn't need to go to the database
+            var dvs = _data as IDataValueSetter;
+            if (dvs != null)
+            {
+                dvs.SetValue(property.Value, property.PropertyType.DataTypeDatabaseType.ToString());
+            }
+            
         }
 
         public Guid VersionId
@@ -109,11 +137,11 @@ namespace umbraco.cms.businesslogic.property
         }
         public XmlNode ToXml(XmlDocument xd)
         {
-            string nodeName = UmbracoSettings.UseLegacyXmlSchema ? "data" : helpers.Casing.SafeAlias(PropertyType.Alias);
+            string nodeName = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "data" : helpers.Casing.SafeAlias(PropertyType.Alias);
             XmlNode x = xd.CreateNode(XmlNodeType.Element, nodeName, "");
 
             // Alias
-            if (UmbracoSettings.UseLegacyXmlSchema)
+            if (UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema)
             {
                 XmlAttribute alias = xd.CreateAttribute("alias");
                 alias.Value = this.PropertyType.Alias;

@@ -5,11 +5,12 @@ using System.Text;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
-
+using Umbraco.Core.Configuration;
+using Umbraco.Core.IO;
 using umbraco.cms.businesslogic.macro;
 using System.Reflection;
 using System.Collections;
-using umbraco.IO;
+
 namespace umbraco.controls
 {
     [DefaultProperty("Text")]
@@ -74,7 +75,7 @@ namespace umbraco.controls
         /// <returns>The correct syntax for the macro including all parameters</returns>
         public string GetMacroTag() {
             string tag = "";
-            if (UmbracoSettings.UseAspNetMasterPages)
+            if (UmbracoConfig.For.UmbracoSettings().Templates.UseAspNetMasterPages)
             {
                 tag = "<umbraco:Macro runat=\"server\"";
             }
@@ -114,11 +115,11 @@ namespace umbraco.controls
 
             loadMacro();
 
-            addParameterControls();
+            AddParameterControls();
 
         }
 
-        private void addParameterControls()
+        private void AddParameterControls()
         {
             Controls.Add(new LiteralControl("<table border=\"0\" cellspacing=\"0\" cellpadding=\"0\">"));
             foreach (MacroProperty mp in m_macro.Properties)
@@ -131,7 +132,7 @@ namespace umbraco.controls
                     Assembly assembly = Assembly.LoadFrom( IOHelper.MapPath(SystemDirectories.Bin + "/" + macroAssembly + ".dll"));
 
                     Type type = assembly.GetType(macroAssembly + "." + macroType);
-                    interfaces.IMacroGuiRendering typeInstance = Activator.CreateInstance(type) as interfaces.IMacroGuiRendering;
+                    var typeInstance = Activator.CreateInstance(type) as interfaces.IMacroGuiRendering;
                     if (typeInstance != null)
                     {
                         ((Control) typeInstance).ID = mp.Alias;

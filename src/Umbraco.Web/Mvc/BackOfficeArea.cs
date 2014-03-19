@@ -1,6 +1,10 @@
-﻿using System.Web.Mvc;
+﻿using System.Web;
+using System.Web.Mvc;
+using System.Web.Routing;
 using Umbraco.Core.Configuration;
+using Umbraco.Web.Editors;
 using Umbraco.Web.Install;
+using Umbraco.Web.Install.Controllers;
 
 namespace Umbraco.Web.Mvc
 {
@@ -20,12 +24,18 @@ namespace Umbraco.Web.Mvc
         /// </remarks>
         public override void RegisterArea(AreaRegistrationContext context)
         {
-            //Create the install routes
             context.MapRoute(
-                "Umbraco_install_packages",
-                "Install/PackageInstaller/{action}/{id}",
-                new {controller = "InstallPackage", action = "Index", id = UrlParameter.Optional},
-                new[] {typeof (InstallPackageController).Namespace});
+                "Umbraco_back_office",
+                GlobalSettings.UmbracoMvcArea + "/{action}/{id}",
+                new {controller = "BackOffice", action = "Default", id = UrlParameter.Optional},
+                //limit the action/id to only allow characters - this is so this route doesn't hog all other 
+                // routes like: /umbraco/channels/word.aspx, etc...
+                new
+                    {
+                        action = @"[a-zA-Z]*", 
+                        id = @"[a-zA-Z]*"
+                    },
+                new[] {typeof (BackOfficeController).Namespace});
             
             //Create the REST/web/script service routes
             context.MapRoute(

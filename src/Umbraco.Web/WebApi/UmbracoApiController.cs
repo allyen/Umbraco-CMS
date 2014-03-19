@@ -1,8 +1,14 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Linq;
 using System.Web;
 using System.Web.Http;
+using System.Web.Http.ModelBinding;
 using Umbraco.Core;
+using Umbraco.Core.Models;
+using Umbraco.Core.Models.Validation;
 using Umbraco.Core.Services;
+using Umbraco.Web.Models.ContentEditing;
 using Umbraco.Web.Security;
 
 namespace Umbraco.Web.WebApi
@@ -21,7 +27,10 @@ namespace Umbraco.Web.WebApi
             UmbracoContext = umbracoContext;
             InstanceId = Guid.NewGuid();
             Umbraco = new UmbracoHelper(umbracoContext);
+            _membershipHelper = new MembershipHelper(UmbracoContext);
         }
+
+        private readonly MembershipHelper _membershipHelper;
 
         /// <summary>
         /// Tries to retreive the current HttpContext if one exists.
@@ -29,21 +38,7 @@ namespace Umbraco.Web.WebApi
         /// <returns></returns>
         protected Attempt<HttpContextBase> TryGetHttpContext()
         {
-            object context;
-            if (Request.Properties.TryGetValue("MS_HttpContext", out context))
-            {
-                var httpContext = context as HttpContextBase;
-                if (httpContext != null)
-                {
-                    return new Attempt<HttpContextBase>(true, httpContext);
-                }
-            }
-            if (HttpContext.Current != null)
-            {
-                return new Attempt<HttpContextBase>(true, new HttpContextWrapper(HttpContext.Current));
-            }
-
-            return Attempt<HttpContextBase>.False;
+            return Request.TryGetHttpContext();
         }
 
         /// <summary>
@@ -81,16 +76,25 @@ namespace Umbraco.Web.WebApi
         public UmbracoContext UmbracoContext { get; private set; }
 
         /// <summary>
-        /// Useful for debugging
-        /// </summary>
-        internal Guid InstanceId { get; private set; }
-
-        /// <summary>
         /// Returns the WebSecurity instance
         /// </summary>
         public WebSecurity Security
         {
             get { return UmbracoContext.Security; }
         }
+
+        /// <summary>
+        /// Returns the MemberHelper instance
+        /// </summary>
+        public MembershipHelper Members
+        {
+            get { return _membershipHelper; }
+        }
+
+        /// <summary>
+        /// Useful for debugging
+        /// </summary>
+        internal Guid InstanceId { get; private set; }
+
     }
 }

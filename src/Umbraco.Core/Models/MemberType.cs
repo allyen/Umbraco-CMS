@@ -1,0 +1,146 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
+
+namespace Umbraco.Core.Models
+{
+    /// <summary>
+    /// Represents the content type that a <see cref="Member"/> object is based on
+    /// </summary>
+    [Serializable]
+    [DataContract(IsReference = true)]
+    public class MemberType : ContentTypeCompositionBase, IMemberType
+    {
+        //Dictionary is divided into string: PropertyTypeAlias, Tuple: MemberCanEdit, VisibleOnProfile, PropertyTypeId
+        private string _alias;
+
+        public MemberType(int parentId) : base(parentId)
+        {
+            MemberTypePropertyTypes = new Dictionary<string, MemberTypePropertyProfileAccess>();
+        }
+
+        public MemberType(IContentTypeComposition parent) : base(parent)
+        {
+            MemberTypePropertyTypes = new Dictionary<string, MemberTypePropertyProfileAccess>();
+        }
+
+        private static readonly PropertyInfo AliasSelector = ExpressionHelper.GetPropertyInfo<MemberType, string>(x => x.Alias);
+
+        /// <summary>
+        /// The Alias of the ContentType
+        /// </summary>
+        [DataMember]
+        public override string Alias
+        {
+            get { return _alias; }
+            set
+            {
+                //NOTE: WE are overriding this because we don't want to do a ToSafeAlias when the alias is the special case of
+                // "_umbracoSystemDefaultProtectType" which is used internally, currently there is an issue with the safe alias as it strips
+                // leading underscores which we don't want in this case.
+                // see : http://issues.umbraco.org/issue/U4-3968
+
+                SetPropertyValueAndDetectChanges(o =>
+                {
+                    _alias = value == "_umbracoSystemDefaultProtectType" ? value : value.ToSafeAlias();
+                    return _alias;
+                }, _alias, AliasSelector);
+            }
+        }
+
+        /// <summary>
+        /// Gets or Sets a Dictionary of Tuples (MemberCanEdit, VisibleOnProfile) by the PropertyTypes' alias.
+        /// </summary>
+        [DataMember]
+        internal IDictionary<string, MemberTypePropertyProfileAccess> MemberTypePropertyTypes { get; private set; }
+
+        /// <summary>
+        /// Gets a boolean indicating whether a Property is editable by the Member.
+        /// </summary>
+        /// <param name="propertyTypeAlias">PropertyType Alias of the Property to check</param>
+        /// <returns></returns>
+        public bool MemberCanEditProperty(string propertyTypeAlias)
+        {
+            if (MemberTypePropertyTypes.ContainsKey(propertyTypeAlias))
+            {
+                return MemberTypePropertyTypes[propertyTypeAlias].IsEditable;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets a boolean indicating whether a Property is visible on the Members profile.
+        /// </summary>
+        /// <param name="propertyTypeAlias">PropertyType Alias of the Property to check</param>
+        /// <returns></returns>
+        public bool MemberCanViewProperty(string propertyTypeAlias)
+        {
+            if (MemberTypePropertyTypes.ContainsKey(propertyTypeAlias))
+            {
+                return MemberTypePropertyTypes[propertyTypeAlias].IsVisible;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Sets a boolean indicating whether a Property is editable by the Member.
+        /// </summary>
+        /// <param name="propertyTypeAlias">PropertyType Alias of the Property to set</param>
+        /// <param name="value">Boolean value, true or false</param>
+        public void SetMemberCanEditProperty(string propertyTypeAlias, bool value)
+        {
+            if (MemberTypePropertyTypes.ContainsKey(propertyTypeAlias))
+            {
+                MemberTypePropertyTypes[propertyTypeAlias].IsEditable = value;
+            }
+            else
+            {
+                var tuple = new MemberTypePropertyProfileAccess(false, value);
+                MemberTypePropertyTypes.Add(propertyTypeAlias, tuple);
+            }
+        }
+
+        /// <summary>
+        /// Sets a boolean indicating whether a Property is visible on the Members profile.
+        /// </summary>
+        /// <param name="propertyTypeAlias">PropertyType Alias of the Property to set</param>
+        /// <param name="value">Boolean value, true or false</param>
+        public void SetMemberCanViewProperty(string propertyTypeAlias, bool value)
+        {
+            if (MemberTypePropertyTypes.ContainsKey(propertyTypeAlias))
+            {
+                MemberTypePropertyTypes[propertyTypeAlias].IsVisible = value;
+            }
+            else
+            {
+                var tuple = new MemberTypePropertyProfileAccess(value, false);
+                MemberTypePropertyTypes.Add(propertyTypeAlias, tuple);
+            }
+        }
+
+        /// <summary>
+        /// Method to call when Entity is being saved
+        /// </summary>
+        /// <remarks>Created date is set and a Unique key is assigned</remarks>
+        internal override void AddingEntity()
+        {
+            base.AddingEntity();
+
+            if (Key == Guid.Empty)
+                Key = Guid.NewGuid();
+        }
+
+        /// <summary>
+        /// Method to call when Entity is being updated
+        /// </summary>
+        /// <remarks>Modified Date is set and a new Version guid is set</remarks>
+        internal override void UpdatingEntity()
+        {
+            base.UpdatingEntity();
+        }
+    }
+}

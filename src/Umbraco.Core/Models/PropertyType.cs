@@ -3,7 +3,8 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Umbraco.Core.Models.EntityBase;
-using Umbraco.Core.Persistence.Mappers;
+using Umbraco.Core.Persistence;
+using Umbraco.Core.PropertyEditors;
 
 namespace Umbraco.Core.Models
 {
@@ -14,12 +15,13 @@ namespace Umbraco.Core.Models
     [DataContract(IsReference = true)]
     public class PropertyType : Entity, IEquatable<PropertyType>
     {
+        private readonly bool _isExplicitDbType;
         private string _name;
         private string _alias;
         private string _description;
         private int _dataTypeDefinitionId;
         private Lazy<int> _propertyGroupId;
-        private Guid _dataTypeId;
+        private string _propertyEditorAlias;
         private DataTypeDatabaseType _dataTypeDatabaseType;
         private bool _mandatory;
         private string _helpText;
@@ -29,23 +31,36 @@ namespace Umbraco.Core.Models
         public PropertyType(IDataTypeDefinition dataTypeDefinition)
         {
             if(dataTypeDefinition.HasIdentity)
-                DataTypeDefinitionId = dataTypeDefinition.Id;
+                _dataTypeDefinitionId = dataTypeDefinition.Id;
 
-            DataTypeId = dataTypeDefinition.ControlId;
-            DataTypeDatabaseType = dataTypeDefinition.DatabaseType;
+            _propertyEditorAlias = dataTypeDefinition.PropertyEditorAlias;
+            _dataTypeDatabaseType = dataTypeDefinition.DatabaseType;
+        }
+        
+        internal PropertyType(string propertyEditorAlias, DataTypeDatabaseType dataTypeDatabaseType)
+            : this(propertyEditorAlias, dataTypeDatabaseType, false)
+        {
+            PropertyEditorAlias = propertyEditorAlias;
         }
 
-        internal PropertyType(Guid dataTypeControlId, DataTypeDatabaseType dataTypeDatabaseType)
+        /// <summary>
+        /// Used internally to assign an explicity database type for this property type regardless of what the underlying data type/property editor is.
+        /// </summary>
+        /// <param name="propertyEditorAlias"></param>
+        /// <param name="dataTypeDatabaseType"></param>
+        /// <param name="isExplicitDbType"></param>
+        internal PropertyType(string propertyEditorAlias, DataTypeDatabaseType dataTypeDatabaseType, bool isExplicitDbType)
         {
-            DataTypeId = dataTypeControlId;
-            DataTypeDatabaseType = dataTypeDatabaseType;
+            _isExplicitDbType = isExplicitDbType;
+            _propertyEditorAlias = propertyEditorAlias;
+            _dataTypeDatabaseType = dataTypeDatabaseType;
         }
 
         private static readonly PropertyInfo NameSelector = ExpressionHelper.GetPropertyInfo<PropertyType, string>(x => x.Name);
         private static readonly PropertyInfo AliasSelector = ExpressionHelper.GetPropertyInfo<PropertyType, string>(x => x.Alias);
         private static readonly PropertyInfo DescriptionSelector = ExpressionHelper.GetPropertyInfo<PropertyType, string>(x => x.Description);
         private static readonly PropertyInfo DataTypeDefinitionIdSelector = ExpressionHelper.GetPropertyInfo<PropertyType, int>(x => x.DataTypeDefinitionId);
-        private static readonly PropertyInfo DataTypeControlIdSelector = ExpressionHelper.GetPropertyInfo<PropertyType, Guid>(x => x.DataTypeId);
+        private static readonly PropertyInfo PropertyEditorAliasSelector = ExpressionHelper.GetPropertyInfo<PropertyType, string>(x => x.PropertyEditorAlias);
         private static readonly PropertyInfo DataTypeDatabaseTypeSelector = ExpressionHelper.GetPropertyInfo<PropertyType, DataTypeDatabaseType>(x => x.DataTypeDatabaseType);
         private static readonly PropertyInfo MandatorySelector = ExpressionHelper.GetPropertyInfo<PropertyType, bool>(x => x.Mandatory);
         private static readonly PropertyInfo HelpTextSelector = ExpressionHelper.GetPropertyInfo<PropertyType, string>(x => x.HelpText);
@@ -122,21 +137,36 @@ namespace Umbraco.Core.Models
             }
         }
 
+        [DataMember]
+        public string PropertyEditorAlias
+        {
+            get { return _propertyEditorAlias; }
+            set
+            {
+                SetPropertyValueAndDetectChanges(o =>
+                {
+                    _propertyEditorAlias = value;
+                    return _propertyEditorAlias;
+                }, _propertyEditorAlias, PropertyEditorAliasSelector);
+            }
+        }
+
         /// <summary>
         /// Gets of Sets the Id of the DataType control
         /// </summary>
         /// <remarks>This is the Id of the actual DataType control</remarks>
-        [DataMember]
+        [Obsolete("Property editor's are defined by a string alias from version 7 onwards, use the PropertyEditorAlias property instead. This method will return a generated GUID for any property editor alias not explicitly mapped to a legacy ID")]
         public Guid DataTypeId
         {
-            get { return _dataTypeId; }
-            internal set
+            get
             {
-                SetPropertyValueAndDetectChanges(o =>
-                {
-                    _dataTypeId = value;
-                    return _dataTypeId;
-                }, _dataTypeId, DataTypeControlIdSelector);
+                return LegacyPropertyEditorIdToAliasConverter.GetLegacyIdFromAlias(
+                    _propertyEditorAlias, LegacyPropertyEditorIdToAliasConverter.NotFoundLegacyIdResponseBehavior.GenerateId).Value;
+            }
+            set
+            {
+                var alias = LegacyPropertyEditorIdToAliasConverter.GetAliasFromLegacyId(value, true);
+                PropertyEditorAlias = alias;
             }
         }
 
@@ -149,6 +179,9 @@ namespace Umbraco.Core.Models
             get { return _dataTypeDatabaseType; }
             set
             {
+                //don't allow setting this if an explicit declaration has been made in the ctor
+                if (_isExplicitDbType) return;
+
                 SetPropertyValueAndDetectChanges(o =>
                 {
                     _dataTypeDatabaseType = value;
@@ -319,7 +352,7 @@ namespace Umbraco.Core.Models
                 return argument == type;
             }*/
 
-            if (DataTypeId != Guid.Empty)
+            if (PropertyEditorAlias.IsNullOrWhiteSpace() == false)
             {
                 //Find DataType by Id
                 //IDataType dataType = DataTypesResolver.Current.GetById(DataTypeControlId);
@@ -361,8 +394,16 @@ namespace Umbraco.Core.Models
             //Check against Regular Expression for Legacy DataTypes - Validation exists and value is not null:
             if(string.IsNullOrEmpty(ValidationRegExp) == false && (value != null && string.IsNullOrEmpty(value.ToString()) == false))
             {
-                var regexPattern = new Regex(ValidationRegExp);
-                return regexPattern.IsMatch(value.ToString());
+                try
+                {
+                    var regexPattern = new Regex(ValidationRegExp);
+                    return regexPattern.IsMatch(value.ToString());
+                }
+                catch 
+                {
+                         throw new Exception(string .Format("Invalid validation expression on property {0}",this.Alias));
+                }
+                
             }
 
             //TODO Add PropertyEditor validation when its relevant to introduce
@@ -380,7 +421,7 @@ namespace Umbraco.Core.Models
 
         internal PropertyType Clone()
         {
-            var clone = (PropertyType) this.MemberwiseClone();
+            var clone = (PropertyType) MemberwiseClone();
             clone.ResetIdentity();
             clone.ResetDirtyProperties(false);
             return clone;
@@ -389,10 +430,10 @@ namespace Umbraco.Core.Models
         public bool Equals(PropertyType other)
         {
             //Check whether the compared object is null. 
-            if (Object.ReferenceEquals(other, null)) return false;
+            if (ReferenceEquals(other, null)) return false;
 
             //Check whether the compared object references the same data. 
-            if (Object.ReferenceEquals(this, other)) return true;
+            if (ReferenceEquals(this, other)) return true;
 
             //Check whether the PropertyType's properties are equal. 
             return Alias.Equals(other.Alias) && Name.Equals(other.Name);

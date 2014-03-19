@@ -5,8 +5,10 @@ using System.Data;
 using System.IO;
 using System.Text;
 using System.Web;
+using System.Web.Security;
 using System.Xml;
 using System.Configuration;
+using Umbraco.Core.Security;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
 using umbraco.businesslogic;
@@ -31,7 +33,7 @@ namespace umbraco
     /// <summary>
     /// Handles loading of the member application into the application tree
     /// </summary>
-    [Tree(Constants.Applications.Members, "member", "Members")]
+    [Obsolete("This is no longer used and will be removed from the codebase in the future")]
     public class loadMembers : BaseTree
     {
         public loadMembers(string application) : base(application) { }
@@ -90,6 +92,8 @@ function openContentItem(id) {
         /// <param name="Tree">The tree.</param>
         public override void Render(ref XmlDocument Tree)
         {
+            var provider = MembershipProviderExtensions.GetMembersMembershipProvider();
+
             string letter = "";
             string ContentItemParent = "";
             if (HttpContext.Current.Request.QueryString.ToString().IndexOf("letter") >= 0)
@@ -156,7 +160,7 @@ function openContentItem(id) {
                     }
                     else
                     {
-                        if (Member.InUmbracoMemberMode())
+                        if (provider.IsUmbracoMembershipProvider())
                         {
                             foreach (Member m in Member.getMemberFromFirstLetter(letter.ToCharArray()[0]))
                             {
@@ -176,7 +180,7 @@ function openContentItem(id) {
                         else
                         {
                             int total;
-                            foreach (System.Web.Security.MembershipUser u in System.Web.Security.Membership.Provider.FindUsersByName(letter + "%", 0, 9999, out total))
+                            foreach (MembershipUser u in provider.FindUsersByName(letter + "%", 0, 9999, out total))
                             {
                                 XmlElement treeElement = Tree.CreateElement("tree");
 
@@ -220,7 +224,7 @@ function openContentItem(id) {
                 }
 
                 //Add folder named "Others", only supported by umbraco
-                if (Member.InUmbracoMemberMode())
+                if (provider.IsUmbracoMembershipProvider())
                 {
                     XmlElement treeElementOther = Tree.CreateElement("tree");
                     treeElementOther.SetAttribute("menu", "");

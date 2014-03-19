@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using Examine;
@@ -8,6 +9,7 @@ using Examine.LuceneEngine.Providers;
 using Examine.LuceneEngine.SearchCriteria;
 using Examine.SearchCriteria;
 using Examine.Providers;
+using Umbraco.Core.Macros;
 using UmbracoExamine.DataServices;
 
 namespace UmbracoExamine
@@ -18,6 +20,8 @@ namespace UmbracoExamine
     /// <remarks>
     /// XSLT extensions will ONLY work for provider that have a base class of BaseUmbracoIndexer
     /// </remarks>
+    [XsltExtension("Examine")]
+    [SecuritySafeCritical]
     public class XsltExtensions
     {
         ///<summary>

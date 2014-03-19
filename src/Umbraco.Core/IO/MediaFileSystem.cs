@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Umbraco.Core.Configuration;
+using Umbraco.Core.Configuration.UmbracoSettings;
 
 namespace Umbraco.Core.IO
 {
@@ -11,23 +13,30 @@ namespace Umbraco.Core.IO
 	[FileSystemProvider("media")]
 	public class MediaFileSystem : FileSystemWrapper
 	{
-		public MediaFileSystem(IFileSystem wrapped)
-			: base(wrapped)
+	    private readonly IContentSection _contentConfig;
+
+	    public MediaFileSystem(IFileSystem wrapped)
+			: this(wrapped, UmbracoConfig.For.UmbracoSettings().Content)
 		{
 		}
 
-		public string GetRelativePath(int propertyId, string fileName)
+        public MediaFileSystem(IFileSystem wrapped, IContentSection contentConfig) : base(wrapped)
+        {
+            _contentConfig = contentConfig;
+        }
+
+	    public string GetRelativePath(int propertyId, string fileName)
 		{
-			var seperator = UmbracoSettings.UploadAllowDirectories
+            var seperator = _contentConfig.UploadAllowDirectories
 				? Path.DirectorySeparatorChar
 				: '-';
 
-			return propertyId.ToString() + seperator + fileName;
+			return propertyId.ToString(CultureInfo.InvariantCulture) + seperator + fileName;
 		}
 
         public string GetRelativePath(string subfolder, string fileName)
         {
-            var seperator = UmbracoSettings.UploadAllowDirectories
+            var seperator = _contentConfig.UploadAllowDirectories
                 ? Path.DirectorySeparatorChar
                 : '-';
 
@@ -36,11 +45,11 @@ namespace Umbraco.Core.IO
 
 		public IEnumerable<string> GetThumbnails(string path)
 		{
-			var parentDirectory = System.IO.Path.GetDirectoryName(path);
-			var extension = System.IO.Path.GetExtension(path);
+			var parentDirectory = Path.GetDirectoryName(path);
+			var extension = Path.GetExtension(path);
 
 			return GetFiles(parentDirectory)
-				.Where(x => x.StartsWith(path.TrimEnd(extension) + "_thumb"))
+				.Where(x => x.StartsWith(path.TrimEnd(extension) + "_thumb") || x.StartsWith(path.TrimEnd(extension) + "_big-thumb"))
 				.ToList();
 		}
 
@@ -48,7 +57,7 @@ namespace Umbraco.Core.IO
 		{
 			DeleteFile(path);
 
-			if (!deleteThumbnails)
+			if (deleteThumbnails == false)
 				return;
 
 			DeleteThumbnails(path);

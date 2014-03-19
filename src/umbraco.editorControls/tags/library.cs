@@ -13,10 +13,9 @@ using umbraco.interfaces;
 
 namespace umbraco.editorControls.tags
 {
+    [Obsolete("Use the TagService to query tags or the UmbracoHelper on the front-end and use the SetTags, RemoveTags extension methods on IContentBase to manipulate tags")]
     public class library
     {
-        
-
         /// <summary>
         /// Gets everything (content, media, members) in Umbraco with the specified tags.
         /// It returns the found nodes as:
@@ -296,7 +295,7 @@ namespace umbraco.editorControls.tags
         
     }
 
-    [Obsolete("Use umbraco.cms.businesslogic.Tags.Tag class instead")]
+    [Obsolete("Use the TagService to query tags or the UmbracoHelper on the front-end and use the SetTags, RemoveTags extension methods on IContentBase to manipulate tags")]
     public class Tag : umbraco.interfaces.ITag
     {
 

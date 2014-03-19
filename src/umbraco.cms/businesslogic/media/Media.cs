@@ -1,5 +1,6 @@
 using System;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
 using umbraco.BusinessLogic;
@@ -22,18 +23,7 @@ namespace umbraco.cms.businesslogic.media
         #region Constants and static members
 
 	    protected internal IMedia MediaItem;
-        private const string m_SQLOptimizedMany = @"
-			select 
-				count(children.id) as children, cmsContentType.isContainer, umbracoNode.id, umbracoNode.uniqueId, umbracoNode.level, umbracoNode.parentId, umbracoNode.path, umbracoNode.sortOrder, umbracoNode.createDate, umbracoNode.nodeUser, umbracoNode.text, 
-				cmsContentType.icon, cmsContentType.alias, cmsContentType.thumbnail, cmsContentType.description, cmsContentType.nodeId as contentTypeId
-			from umbracoNode 
-			left join umbracoNode children on children.parentId = umbracoNode.id
-			inner join cmsContent on cmsContent.nodeId = umbracoNode.id
-			inner join cmsContentType on cmsContentType.nodeId = cmsContent.contentType
-			where umbracoNode.nodeObjectType = @nodeObjectType AND {0}
-			group by cmsContentType.isContainer, umbracoNode.id, umbracoNode.uniqueId, umbracoNode.level, umbracoNode.parentId, umbracoNode.path, umbracoNode.sortOrder, umbracoNode.createDate, umbracoNode.nodeUser, umbracoNode.text, 
-				cmsContentType.icon, cmsContentType.alias, cmsContentType.thumbnail, cmsContentType.description, cmsContentType.nodeId
-			order by {1}"; 
+       
         #endregion
 
         #region Constructors
@@ -243,6 +233,15 @@ namespace umbraco.cms.businesslogic.media
 
         #region Public methods
 
+        public override XmlNode ToXml(XmlDocument xd, bool Deep)
+        {
+            if (IsTrashed == false)
+            {
+                return base.ToXml(xd, Deep);   
+            }
+            return null;
+        }
+
         /// <summary>
         /// Overrides the moving of a <see cref="Media"/> object to a new location by changing its parent id.
         /// </summary>
@@ -289,7 +288,7 @@ namespace umbraco.cms.businesslogic.media
                 XmlGenerate(xd);
 
                 // generate preview for blame history?
-                if (UmbracoSettings.EnableGlobalPreviewStorage)
+                if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
                 {
                     // Version as new guid to ensure different versions are generated as media are not versioned currently!
                     SavePreviewXml(generateXmlWithoutSaving(xd), Guid.NewGuid());
@@ -380,6 +379,8 @@ namespace umbraco.cms.businesslogic.media
         private void SetupNode(IMedia media)
         {
             MediaItem = media;
+            //Also need to set the ContentBase item to this one so all the propery values load from it
+            ContentBase = MediaItem;
 
             //Setting private properties from IContentBase replacing CMSNode.setupNode() / CMSNode.PopulateCMSNodeFromReader()
             base.PopulateCMSNodeFromUmbracoEntity(MediaItem, _objectType);

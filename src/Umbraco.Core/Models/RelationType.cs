@@ -11,7 +11,7 @@ namespace Umbraco.Core.Models
     /// </summary>
     [Serializable]
     [DataContract(IsReference = true)]
-    public class RelationType : Entity, IAggregateRoot
+    public class RelationType : Entity, IAggregateRoot, IRelationType
     {
         private string _name;
         private string _alias;
@@ -21,9 +21,18 @@ namespace Umbraco.Core.Models
 
         public RelationType(Guid childObjectType, Guid parentObjectType, string @alias)
         {
+            Mandate.ParameterNotNullOrEmpty(@alias, "alias");
             _childObjectType = childObjectType;
             _parentObjectType = parentObjectType;
             _alias = alias;
+            Name = _alias;
+        }
+
+        public RelationType(Guid childObjectType, Guid parentObjectType, string @alias, string name)
+            :this(childObjectType, parentObjectType, @alias)
+        {
+            Mandate.ParameterNotNullOrEmpty(name, "name");
+            Name = name;
         }
 
         private static readonly PropertyInfo NameSelector = ExpressionHelper.GetPropertyInfo<RelationType, string>(x => x.Name);

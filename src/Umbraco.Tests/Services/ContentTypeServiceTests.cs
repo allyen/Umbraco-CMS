@@ -5,10 +5,12 @@ using NUnit.Framework;
 using Umbraco.Core;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Rdbms;
+using Umbraco.Tests.TestHelpers;
 using Umbraco.Tests.TestHelpers.Entities;
 
 namespace Umbraco.Tests.Services
 {
+    [DatabaseTestBehavior(DatabaseBehavior.NewDbFileAndSchemaPerTest)]
 	[TestFixture, RequiresSTA]
 	public class ContentTypeServiceTests : BaseServiceTest
 	{
@@ -313,7 +315,7 @@ namespace Umbraco.Tests.Services
                                   };
 
             var contentCollection = new PropertyTypeCollection();
-            contentCollection.Add(new PropertyType(new Guid(), DataTypeDatabaseType.Ntext) { Alias = "componentGroup", Name = "Component Group", Description = "", HelpText = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
+            contentCollection.Add(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "componentGroup", Name = "Component Group", Description = "", HelpText = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
             component.PropertyGroups.Add(new PropertyGroup(contentCollection) { Name = "Component", SortOrder = 1 });
 
             return component;
@@ -333,7 +335,7 @@ namespace Umbraco.Tests.Services
                                     Trashed = false
                                 };
 
-            var propertyType = new PropertyType(new Guid(), DataTypeDatabaseType.Ntext)
+            var propertyType = new PropertyType("test", DataTypeDatabaseType.Ntext)
                 {
                     Alias = "bannerName",
                     Name = "Banner Name",
@@ -362,7 +364,7 @@ namespace Umbraco.Tests.Services
                            };
 
             var contentCollection = new PropertyTypeCollection();
-            contentCollection.Add(new PropertyType(new Guid(), DataTypeDatabaseType.Ntext) { Alias = "hostname", Name = "Hostname", Description = "", HelpText = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
+            contentCollection.Add(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "hostname", Name = "Hostname", Description = "", HelpText = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
             site.PropertyGroups.Add(new PropertyGroup(contentCollection) { Name = "Site Settings", SortOrder = 1 });
 
             return site;
@@ -383,16 +385,16 @@ namespace Umbraco.Tests.Services
                              };
 
             var contentCollection = new PropertyTypeCollection();
-            contentCollection.Add(new PropertyType(new Guid(), DataTypeDatabaseType.Ntext) { Alias = "title", Name = "Title", Description = "", HelpText = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
-            contentCollection.Add(new PropertyType(new Guid(), DataTypeDatabaseType.Ntext) { Alias = "bodyText", Name = "Body Text", Description = "", HelpText = "", Mandatory = false, SortOrder = 2, DataTypeDefinitionId = -87 });
-            contentCollection.Add(new PropertyType(new Guid(), DataTypeDatabaseType.Ntext) { Alias = "author", Name = "Author", Description = "Name of the author", HelpText = "", Mandatory = false, SortOrder = 3, DataTypeDefinitionId = -88 });
+            contentCollection.Add(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "title", Name = "Title", Description = "", HelpText = "", Mandatory = false, SortOrder = 1, DataTypeDefinitionId = -88 });
+            contentCollection.Add(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "bodyText", Name = "Body Text", Description = "", HelpText = "", Mandatory = false, SortOrder = 2, DataTypeDefinitionId = -87 });
+            contentCollection.Add(new PropertyType("test", DataTypeDatabaseType.Ntext) { Alias = "author", Name = "Author", Description = "Name of the author", HelpText = "", Mandatory = false, SortOrder = 3, DataTypeDefinitionId = -88 });
 
             contentType.PropertyGroups.Add(new PropertyGroup(contentCollection) { Name = "Content", SortOrder = 1 });
 
             return contentType;
         }
 
-		private IEnumerable<IContentType> CreateContentTypeHierarchy()
+		private IContentType[] CreateContentTypeHierarchy()
 		{
 			//create the master type
 			var masterContentType = MockedContentTypes.CreateSimpleContentType("masterContentType", "MasterContentType");
@@ -411,7 +413,7 @@ namespace Umbraco.Tests.Services
 				list.Add(contentType);				
 			}
 
-			return list;
+		    return list.ToArray();
 		}
 	}
 }

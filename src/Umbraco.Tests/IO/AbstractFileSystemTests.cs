@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using Umbraco.Core.IO;
-using Umbraco.Tests.BusinessLogic;
 
 namespace Umbraco.Tests.IO
 {
@@ -122,11 +121,11 @@ namespace Umbraco.Tests.IO
 
             Assert.AreEqual(DateTime.Today.Year, created.Year);
             Assert.AreEqual(DateTime.Today.Month, created.Month);
-            Assert.AreEqual(DateTime.Today.Date, created.Date);
+            Assert.AreEqual(DateTime.UtcNow.Date, created.Date);
 
             Assert.AreEqual(DateTime.Today.Year, modified.Year);
             Assert.AreEqual(DateTime.Today.Month, modified.Month);
-            Assert.AreEqual(DateTime.Today.Date, modified.Date);
+            Assert.AreEqual(DateTime.UtcNow.Date, modified.Date);
 
             _fileSystem.DeleteFile("test.txt");
         }

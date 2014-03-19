@@ -7,6 +7,7 @@ namespace umbraco.BusinessLogic.Actions
 	/// <summary>
 	/// This action is invoked upon creation of a document
 	/// </summary>
+	[Obsolete("This class is no longer used and will be removed in future versions")]
 	public class ActionNewFolder : IAction
 	{
 		//create singleton
@@ -65,7 +66,7 @@ namespace umbraco.BusinessLogic.Actions
 		{
 			get
 			{
-				return ".sprCreateFolder";
+                return "plus-sign-alt";
 			}
 		}
 

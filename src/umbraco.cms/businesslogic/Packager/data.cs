@@ -4,6 +4,7 @@ using System.Xml.XPath;
 using System.Collections.Generic;
 using System.IO;
 using Umbraco.Core;
+using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
 
 namespace umbraco.cms.businesslogic.packager
@@ -25,17 +26,17 @@ namespace umbraco.cms.businesslogic.packager
             //do some error checking and create the folders/files if they don't exist
             if (!File.Exists(dataSource))
             {
-                if (!Directory.Exists(IO.IOHelper.MapPath(Settings.PackagerRoot)))
+                if (!Directory.Exists(IOHelper.MapPath(Settings.PackagerRoot)))
                 {
-                    Directory.CreateDirectory(IO.IOHelper.MapPath(Settings.PackagerRoot));
+                    Directory.CreateDirectory(IOHelper.MapPath(Settings.PackagerRoot));
                 }
-                if (!Directory.Exists(IO.IOHelper.MapPath(Settings.PackagesStorage)))
+                if (!Directory.Exists(IOHelper.MapPath(Settings.PackagesStorage)))
                 {
-                    Directory.CreateDirectory(IO.IOHelper.MapPath(Settings.PackagesStorage));
+                    Directory.CreateDirectory(IOHelper.MapPath(Settings.PackagesStorage));
                 }
-                if (!Directory.Exists(IO.IOHelper.MapPath(Settings.InstalledPackagesStorage)))
+                if (!Directory.Exists(IOHelper.MapPath(Settings.InstalledPackagesStorage)))
                 {
-                    Directory.CreateDirectory(IO.IOHelper.MapPath(Settings.InstalledPackagesStorage));
+                    Directory.CreateDirectory(IOHelper.MapPath(Settings.InstalledPackagesStorage));
                 }
 
                 StreamWriter sw = File.CreateText(dataSource);
@@ -115,8 +116,8 @@ namespace umbraco.cms.businesslogic.packager
                 instance.Attributes.Append(xmlHelper.addAttribute(Source, "skinRepoGuid", ""));
 
                 XmlElement license = Source.CreateElement("license");
-                license.InnerText = "MIT license";
-                license.Attributes.Append(xmlHelper.addAttribute(Source, "url", "http://www.opensource.org/licenses/mit-license.php"));
+                license.InnerText = "MIT License";
+                license.Attributes.Append(xmlHelper.addAttribute(Source, "url", "http://opensource.org/licenses/MIT"));
                 instance.AppendChild(license);
 
                 XmlElement author = Source.CreateElement("author");

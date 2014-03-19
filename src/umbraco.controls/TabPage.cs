@@ -21,6 +21,10 @@ namespace umbraco.uicontrols {
         private LiteralControl _closeButtonControl = new LiteralControl();
         private readonly ValidationSummary _vs = new ValidationSummary();
         private readonly Control _tempErr = new Control();
+        internal TabView parent;
+
+
+        public string Text { get; set; }
 
         internal TabPage()
         {
@@ -34,25 +38,17 @@ namespace umbraco.uicontrols {
 
         public string ErrorHeader { get; set; }
         public string CloseCaption { get; set; }
+        public bool Active { get; set; }
 
         public Control ErrorControl
         {
             get { return _tempErr; }
         }
 
-        protected override void OnLoad(EventArgs e)
-        {
-            if (this.HasMenu)
-            {
-                Menu.Width = Unit.Pixel((int) this.Width.Value - 12);
-                _menu.ID = this.ID + "_menu";
-                this.Controls.Add(_menu);
-            }
-        }
-
         protected override void OnInit(EventArgs e)
         {
             base.OnInit(e);
+            
             _vs.ShowSummary = true;
             _vs.Attributes.Remove("style");
             _vs.Style.Clear();
@@ -71,10 +67,9 @@ namespace umbraco.uicontrols {
             this.Controls.Add(_tempErr);
         }
 
-
         public ScrollingMenu Menu
         {
-            get { return _menu; }
+            get { return parent.Menu; }
         }
 
         public bool HasMenu
@@ -83,43 +78,21 @@ namespace umbraco.uicontrols {
             set { _hasMenu = value; }
         }
 
-        protected override void Render(HtmlTextWriter writer)
+        protected override void Render(System.Web.UI.HtmlTextWriter writer)
         {
             _closeButtonControl.Text = "<div id=\"errorPane_" + this.ClientID + "\" style='margin: 10px 0px 10px 0px; text-align: left;' class=\"error\"><div style=\"float: right; padding: 5px;\"><a href=\"#\" onClick=\"javascript:document.getElementById('errorPane_" + this.ClientID + "').style.display = 'none'; return false;\">" + CloseCaption + "</a></div><h3>";
             ErrorHeaderControl.Text = ErrorHeader;
-            CreateChildControls();
-            writer.WriteLine("<div id='" + this.ClientID + "' class='tabpage'>");
-            if (HasMenu)
-            {
-                writer.WriteLine("<div class='menubar'>");
-                Menu.Width = this.Width;
-                Menu.RenderControl(writer);
-                writer.WriteLine("</div>");
-            }
-            var scrollingLayerHeight = (int) ((WebControl) this.Parent).Height.Value - 22;
-            var scrollingLayerWidth = (int) ((WebControl) this.Parent).Width.Value;
-            if (HasMenu)
-                scrollingLayerHeight = scrollingLayerHeight - 28;
-            writer.WriteLine("<div class='tabpagescrollinglayer' id='" + this.ClientID + "_contentlayer' style='height:" + scrollingLayerHeight + "px;width:" + scrollingLayerWidth + "px'>");
+           
+            var activeClass = string.Empty;
 
-            string styleString = "";
-            foreach (string key in this.Style.Keys)
-            {
-                styleString += key + ":" + this.Style[key] + ";";
-            }
+            if (this.ID == parent.ActiveTabId)
+                activeClass = "active";
 
-            writer.WriteLine("<div class=\"tabpageContent\" style='" + styleString + "'>");
+            writer.WriteLine("<div id='" + this.ID + "' class='umb-tab-pane tab-pane form-horizontal umb-scrollable " + activeClass + " " + parent.ActiveTabId + "'>");
+            writer.WriteLine("<div class='umb-tab-pane-inner' id='" + this.ClientID + "_contentlayer'>");
 
-            _tempErr.RenderControl(writer);
+            this.RenderChildren(writer);
 
-            foreach (Control C in this.Controls)
-            {
-                if (C.ClientID != _menu.ClientID && C.ClientID != _tempErr.ClientID)
-                {
-                    C.RenderControl(writer);
-                }
-            }
-            writer.WriteLine("</div>");
             writer.WriteLine("</div>");
             writer.WriteLine("</div>");
         }

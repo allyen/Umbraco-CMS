@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Drawing;
 using System.Web;
@@ -6,6 +6,8 @@ using System.Web.UI.WebControls;
 using System.Web.UI.HtmlControls;
 using System.IO;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
+using Umbraco.Web.UI;
 using Umbraco.Core.IO;
 using umbraco.cms.helpers;
 using umbraco.BasePages;
@@ -24,43 +26,26 @@ namespace umbraco.presentation.create
         protected void Page_Load(object sender, System.EventArgs e)
         {
             sbmt.Text = ui.Text("create");
-            foreach (string fileName in Directory.GetFiles(IOHelper.MapPath(SystemDirectories.Umbraco + getXsltTemplatePath()), "*.xslt"))
+            foreach (string fileName in Directory.GetFiles(IOHelper.MapPath(SystemDirectories.Umbraco + GetXsltTemplatePath()), "*.xslt"))
             {
                 FileInfo fi = new FileInfo(fileName);
                 if (fi.Name != "Clean.xslt")
                 {
                     var liText = fi.Name.Replace(".xslt", "").SplitPascalCasing().ToFirstUpperInvariant();
-                    xsltTemplate.Items.Add(new ListItem(liText, fi.Name));                    
+                    xsltTemplate.Items.Add(new ListItem(liText, fi.Name));
                 }
             }
 
         }
 
-        #region Web Form Designer generated code
-        override protected void OnInit(EventArgs e)
+        private static string GetXsltTemplatePath()
         {
-            //
-            // CODEGEN: This call is required by the ASP.NET Web Form Designer.
-            //
-            InitializeComponent();
-            base.OnInit(e);
-        }
-
-        /// <summary>
-        ///		Required method for Designer support - do not modify
-        ///		the contents of this method with the code editor.
-        /// </summary>
-        private void InitializeComponent()
-        {
-
-        }
-        #endregion
-
-        private static string getXsltTemplatePath()
-        {
-            if (UmbracoSettings.UseLegacyXmlSchema) {
+            if (UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema)
+            {
                 return "/xslt/templates";
-            } else {
+            }
+            else
+            {
                 return "/xslt/templates/schema2";
             }
         }
@@ -69,14 +54,16 @@ namespace umbraco.presentation.create
         {
             if (Page.IsValid)
             {
-                int createMacroVal = 0;
+                var createMacroVal = 0;
                 if (createMacro.Checked)
                     createMacroVal = 1;
 
-                string xsltName = UmbracoSettings.UseLegacyXmlSchema ? xsltTemplate.SelectedValue :
+                var xsltName = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? xsltTemplate.SelectedValue :
                     Path.Combine("schema2", xsltTemplate.SelectedValue);
 
-                string returnUrl = dialogHandler_temp.Create(
+                var returnUrl = LegacyDialogHandler.Create(
+                    new HttpContextWrapper(Context),
+                    BasePage.Current.getUser(),
                     helper.Request("nodeType"),
                     createMacroVal,
                     xsltName + "|||" + rename.Text);
@@ -92,5 +79,59 @@ namespace umbraco.presentation.create
             }
 
         }
+
+        /// <summary>
+        /// rename control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox rename;
+
+        /// <summary>
+        /// RequiredFieldValidator1 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.RequiredFieldValidator RequiredFieldValidator1;
+
+        /// <summary>
+        /// xsltTemplate control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.ListBox xsltTemplate;
+
+        /// <summary>
+        /// createMacro control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox createMacro;
+
+        /// <summary>
+        /// Textbox1 control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox Textbox1;
+
+        /// <summary>
+        /// sbmt control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button sbmt;
     }
 }

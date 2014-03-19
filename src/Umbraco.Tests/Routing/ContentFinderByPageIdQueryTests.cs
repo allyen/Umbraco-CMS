@@ -1,23 +1,13 @@
+using Moq;
 using NUnit.Framework;
-using Rhino.Mocks;
 using Umbraco.Tests.TestHelpers;
 using Umbraco.Web.Routing;
-using umbraco.BusinessLogic;
-using umbraco.cms.businesslogic.template;
 
 namespace Umbraco.Tests.Routing
 {
 	[TestFixture]
 	public class ContentFinderByPageIdQueryTests : BaseRoutingTest
 	{
-		/// <summary>
-		/// We don't need a db for this test, will run faster without one
-		/// </summary>
-        protected override DatabaseBehavior DatabaseTestBehavior
-        {
-            get { return DatabaseBehavior.NoDatabasePerFixture; }
-        }
-
 		[TestCase("/?umbPageId=1046", 1046)]
 		[TestCase("/?UMBPAGEID=1046", 1046)]
 		[TestCase("/default.aspx?umbPageId=1046", 1046)] //TODO: Should this match??
@@ -31,8 +21,10 @@ namespace Umbraco.Tests.Routing
 			var lookup = new ContentFinderByPageIdQuery();			
 
 			//we need to manually stub the return output of HttpContext.Request["umbPageId"]
-			routingContext.UmbracoContext.HttpContext.Request.Stub(x => x["umbPageID"])
-				.Return(routingContext.UmbracoContext.HttpContext.Request.QueryString["umbPageID"]);
+		    var requestMock = Mock.Get(routingContext.UmbracoContext.HttpContext.Request);
+
+            requestMock.Setup(x => x["umbPageID"])
+				.Returns(routingContext.UmbracoContext.HttpContext.Request.QueryString["umbPageID"]);
 
 			var result = lookup.TryFindContent(docRequest);
 

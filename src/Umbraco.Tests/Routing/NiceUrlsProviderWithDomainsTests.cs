@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Configuration;
+using Moq;
 using NUnit.Framework;
+using Umbraco.Core.Configuration.UmbracoSettings;
 using Umbraco.Tests.TestHelpers;
 using Umbraco.Web.PublishedCache.XmlPublishedCache;
 using Umbraco.Web.Routing;
@@ -12,6 +12,7 @@ using umbraco.cms.businesslogic.language;
 
 namespace Umbraco.Tests.Routing
 {
+    [DatabaseTestBehavior(DatabaseBehavior.NewDbFileAndSchemaPerFixture)]
 	[TestFixture]
 	public class NiceUrlsProviderWithDomainsTests : BaseRoutingTest
 	{
@@ -19,14 +20,15 @@ namespace Umbraco.Tests.Routing
         {
             base.Initialize();
 
+            //generate new mock settings and assign so we can configure in individual tests
+            _umbracoSettings = SettingsForTests.GenerateMockSettings();
+            SettingsForTests.ConfigureSettings(_umbracoSettings);
+
             // ensure we can create them although the content is not in the database
             TestHelper.DropForeignKeys("umbracoDomains");            
         }
 
-        protected override DatabaseBehavior DatabaseTestBehavior
-        {
-            get { return DatabaseBehavior.NewSchemaPerFixture; }
-        }
+        private IUmbracoSettingsSection _umbracoSettings;
 
         protected override void FreezeResolution()
         {
@@ -203,7 +205,8 @@ namespace Umbraco.Tests.Routing
 
 		    SettingsForTests.UseDirectoryUrls = true;
 		    SettingsForTests.HideTopLevelNodeFromPath = false; // ignored w/domains
-		    SettingsForTests.UseDomainPrefixes = false;
+            var requestMock = Mock.Get(_umbracoSettings.RequestHandler);
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
 
 			InitializeLanguagesAndDomains();
 			SetDomains1();
@@ -232,7 +235,8 @@ namespace Umbraco.Tests.Routing
 
             SettingsForTests.UseDirectoryUrls = true;
             SettingsForTests.HideTopLevelNodeFromPath = false; // ignored w/domains
-            SettingsForTests.UseDomainPrefixes = false;
+            var requestMock = Mock.Get(_umbracoSettings.RequestHandler);
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
 
 			InitializeLanguagesAndDomains();
 			SetDomains2();
@@ -253,7 +257,8 @@ namespace Umbraco.Tests.Routing
 
             SettingsForTests.UseDirectoryUrls = true;
             SettingsForTests.HideTopLevelNodeFromPath = false; // ignored w/domains
-            SettingsForTests.UseDomainPrefixes = false;
+            var requestMock = Mock.Get(_umbracoSettings.RequestHandler);
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
 
 			InitializeLanguagesAndDomains();
 			SetDomains3();
@@ -280,7 +285,8 @@ namespace Umbraco.Tests.Routing
 
             SettingsForTests.UseDirectoryUrls = true;
             SettingsForTests.HideTopLevelNodeFromPath = false; // ignored w/domains
-            SettingsForTests.UseDomainPrefixes = false;
+            var requestMock = Mock.Get(_umbracoSettings.RequestHandler);
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
             
 			InitializeLanguagesAndDomains();
 			SetDomains4();
@@ -297,7 +303,8 @@ namespace Umbraco.Tests.Routing
 
             SettingsForTests.UseDirectoryUrls = true;
             SettingsForTests.HideTopLevelNodeFromPath = false; // ignored w/domains
-            SettingsForTests.UseDomainPrefixes = false;
+            var requestMock = Mock.Get(_umbracoSettings.RequestHandler);
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
 
 			InitializeLanguagesAndDomains();
 			SetDomains4();
@@ -362,16 +369,21 @@ namespace Umbraco.Tests.Routing
 			InitializeLanguagesAndDomains();
 			SetDomains4();
 
-            SettingsForTests.UseDomainPrefixes = false;
+            //mock the Umbraco settings that we need
+            var requestMock = Mock.Get(_umbracoSettings.RequestHandler);
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
+            
             Assert.AreEqual("/en/1001-1-1/", routingContext.UrlProvider.GetUrl(100111));
 			Assert.AreEqual("http://domain3.com/en/1003-1-1/", routingContext.UrlProvider.GetUrl(100311));
 
-            SettingsForTests.UseDomainPrefixes = true;
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(true);
+
             Assert.AreEqual("http://domain1.com/en/1001-1-1/", routingContext.UrlProvider.GetUrl(100111));
 			Assert.AreEqual("http://domain3.com/en/1003-1-1/", routingContext.UrlProvider.GetUrl(100311));
 
-            SettingsForTests.UseDomainPrefixes = false;
+            requestMock.Setup(x => x.UseDomainPrefixes).Returns(false);
             routingContext.UrlProvider.Mode = UrlProviderMode.Absolute;
+
 			Assert.AreEqual("http://domain1.com/en/1001-1-1/", routingContext.UrlProvider.GetUrl(100111));
 			Assert.AreEqual("http://domain3.com/en/1003-1-1/", routingContext.UrlProvider.GetUrl(100311));
 		}

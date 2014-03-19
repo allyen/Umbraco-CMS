@@ -8,6 +8,7 @@ using Umbraco.Core.Persistence.UnitOfWork;
 
 namespace Umbraco.Core.Persistence.Repositories
 {
+
     /// <summary>
     /// Represent an abstract Repository, which is the base of the Repository implementations
     /// </summary>
@@ -26,7 +27,9 @@ namespace Umbraco.Core.Persistence.Repositories
 
 		internal RepositoryBase(IUnitOfWork work, IRepositoryCacheProvider cache)
         {
-            _work = work;
+		    if (work == null) throw new ArgumentNullException("work");
+		    if (cache == null) throw new ArgumentNullException("cache");
+		    _work = work;
             _cache = cache;
         }
 
@@ -55,7 +58,7 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <param name="entity"></param>
         public void AddOrUpdate(TEntity entity)
         {
-            if (!entity.HasIdentity)
+            if (entity.HasIdentity == false)
             {
                 _work.RegisterAdded(entity, this);
             }
@@ -101,7 +104,7 @@ namespace Umbraco.Core.Persistence.Repositories
             {
                 //on initial construction we don't want to have dirty properties tracked
                 // http://issues.umbraco.org/issue/U4-1946
-                TracksChangesEntityBase asEntity = entity as TracksChangesEntityBase;
+                var asEntity = entity as TracksChangesEntityBase;
                 if (asEntity != null)
                 {
                     asEntity.ResetDirtyProperties(false);
@@ -117,9 +120,9 @@ namespace Umbraco.Core.Persistence.Repositories
             var rEntity = _cache.GetById(typeof(TEntity), key);
             if (rEntity != null)
             {
-                return new Attempt<TEntity>(true, (TEntity) rEntity);
+                return Attempt.Succeed((TEntity) rEntity);
             }
-            return Attempt<TEntity>.False;
+            return Attempt<TEntity>.Fail();
         } 
 
         protected abstract IEnumerable<TEntity> PerformGetAll(params TId[] ids);
@@ -132,13 +135,16 @@ namespace Umbraco.Core.Persistence.Repositories
         {
             if (ids.Any())
             {
-                var entities = _cache.GetByIds(typeof(TEntity), ids.Select(id => id is int ? ConvertIdToGuid(id) : ConvertStringIdToGuid(id.ToString())).ToList());
+                var entities = _cache.GetByIds(
+                    typeof (TEntity), ids.Select(id => id is int ? ConvertIdToGuid(id) : ConvertStringIdToGuid(id.ToString())).ToList())
+                    .ToArray();
+
                 if (ids.Count().Equals(entities.Count()) && entities.Any(x => x == null) == false)
                     return entities.Select(x => (TEntity)x);
             }
             else
             {
-                var allEntities = _cache.GetAllByType(typeof(TEntity));
+                var allEntities = _cache.GetAllByType(typeof (TEntity)).ToArray();
                 
                 if (allEntities.Any())
                 {
@@ -151,7 +157,10 @@ namespace Umbraco.Core.Persistence.Repositories
                 }
             }
 
-            var entityCollection = PerformGetAll(ids);
+            var entityCollection = PerformGetAll(ids)
+                //ensure we don't include any null refs in the returned collection!
+                .WhereNotNull()
+                .ToArray();
 
             foreach (var entity in entityCollection)
             {
@@ -172,7 +181,9 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <returns></returns>
         public IEnumerable<TEntity> GetByQuery(IQuery<TEntity> query)
         {
-            return PerformGetByQuery(query);
+            return PerformGetByQuery(query)
+                //ensure we don't include any null refs in the returned collection!
+                .WhereNotNull();
         }
 
         protected abstract bool PerformExists(TId id);
@@ -212,8 +223,19 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <param name="entity"></param>
         public virtual void PersistNewItem(IEntity entity)
         {
-            PersistNewItem((TEntity)entity);
-            _cache.Save(typeof(TEntity), entity);
+            try
+            {
+                PersistNewItem((TEntity)entity);
+                _cache.Save(typeof(TEntity), entity);
+            }
+            catch (Exception)
+            {
+                //if an exception is thrown we need to remove the entry from cache, this is ONLY a work around because of the way
+                // that we cache entities: http://issues.umbraco.org/issue/U4-4259
+                _cache.Delete(typeof (TEntity), entity);
+                throw;
+            }
+            
         }
 
         /// <summary>
@@ -222,8 +244,19 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <param name="entity"></param>
         public virtual void PersistUpdatedItem(IEntity entity)
         {
-            PersistUpdatedItem((TEntity)entity);
-            _cache.Save(typeof(TEntity), entity);
+            try
+            {
+                PersistUpdatedItem((TEntity)entity);
+                _cache.Save(typeof(TEntity), entity);
+            }
+            catch (Exception)
+            {
+                //if an exception is thrown we need to remove the entry from cache, this is ONLY a work around because of the way
+                // that we cache entities: http://issues.umbraco.org/issue/U4-4259
+                _cache.Delete(typeof (TEntity), entity);
+                throw;
+            }
+            
         }
 
         /// <summary>

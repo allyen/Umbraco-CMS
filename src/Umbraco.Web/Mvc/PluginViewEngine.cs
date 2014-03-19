@@ -7,7 +7,7 @@ using Umbraco.Core.IO;
 namespace Umbraco.Web.Mvc
 {
 	/// <summary>
-	/// A view engine to look into the App_Plugins/Packages folder for views for packaged controllers
+	/// A view engine to look into the App_Plugins folder for views for packaged controllers
 	/// </summary>
 	public class PluginViewEngine : FixedRazorViewEngine
 	{
@@ -84,7 +84,7 @@ namespace Umbraco.Web.Mvc
 			{
 				using (var writer = File.CreateText(Path.Combine(viewFolder, "web.config")))
 				{
-					writer.Write(Strings.web_config);
+                    writer.Write(Strings.WebConfigTemplate);
 				}
 			}
 		}

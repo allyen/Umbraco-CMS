@@ -4,13 +4,14 @@ using System.IO;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
+using Umbraco.Core.IO;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
-using umbraco.cms.businesslogic.skinning;
+
 using umbraco.cms.businesslogic.template;
 using umbraco.cms.presentation.Trees;
 using umbraco.DataLayer;
-using umbraco.IO;
 using umbraco.uicontrols;
 using System.Linq;
 
@@ -22,6 +23,7 @@ namespace umbraco.cms.presentation.settings
 	public partial class editTemplate : UmbracoEnsuredPage
 	{
 		private Template _template;
+        public MenuButton SaveButton;
 
 		public editTemplate()
 		{
@@ -33,9 +35,9 @@ namespace umbraco.cms.presentation.settings
 			base.OnPreRender(e);
 
 			ScriptManager.GetCurrent(Page).Services.Add(
-				new ServiceReference(IOHelper.ResolveUrl(SystemDirectories.Webservices + "/codeEditorSave.asmx")));
+				new ServiceReference(IOHelper.ResolveUrl(SystemDirectories.WebServices + "/codeEditorSave.asmx")));
 			ScriptManager.GetCurrent(Page).Services.Add(
-				new ServiceReference(IOHelper.ResolveUrl(SystemDirectories.Webservices + "/legacyAjaxCalls.asmx")));
+                new ServiceReference(IOHelper.ResolveUrl(SystemDirectories.WebServices + "/legacyAjaxCalls.asmx")));
 		}
 
         protected string TemplateTreeSyncPath { get; private set; }
@@ -43,7 +45,6 @@ namespace umbraco.cms.presentation.settings
 		protected void Page_Load(object sender, EventArgs e)
 		{
 			MasterTemplate.Attributes.Add("onchange", "changeMasterPageFile()");
-
 		    TemplateTreeSyncPath = "-1,init," + _template.Path.Replace("-1,", "");
 
 			if (!IsPostBack)
@@ -91,20 +92,26 @@ namespace umbraco.cms.presentation.settings
 			base.OnInit(e);
 			Panel1.hasMenu = true;
 
-			MenuIconI save = Panel1.Menu.NewIcon();
-			save.ImageURL = SystemDirectories.Umbraco + "/images/editor/save.gif";
-			save.OnClickCommand = "doSubmit()";
-			save.AltText = ui.Text("save");
-			save.ID = "save";
+		    var editor = Panel1.NewTabPage(ui.Text("template"));
+            editor.Controls.Add(Pane8);
+
+            var props = Panel1.NewTabPage(ui.Text("properties"));
+            props.Controls.Add(Pane7);
+
+            SaveButton = Panel1.Menu.NewButton();
+            SaveButton.Text = ui.Text("save");
+            SaveButton.ButtonType = MenuButtonType.Primary;
+            SaveButton.ID = "save";
+            SaveButton.CssClass = "client-side";
 
 			Panel1.Text = ui.Text("edittemplate");
-			pp_name.Text = ui.Text("name", base.getUser());
-			pp_alias.Text = ui.Text("alias", base.getUser());
-			pp_masterTemplate.Text = ui.Text("mastertemplate", base.getUser());
+			pp_name.Text = ui.Text("name", UmbracoUser);
+            pp_alias.Text = ui.Text("alias", UmbracoUser);
+            pp_masterTemplate.Text = ui.Text("mastertemplate", UmbracoUser);
+
 
 			// Editing buttons
-			Panel1.Menu.InsertSplitter();
-			MenuIconI umbField = Panel1.Menu.NewIcon();
+            MenuIconI umbField = editorSource.Menu.NewIcon();
 			umbField.ImageURL = UmbracoPath + "/images/editor/insField.gif";
 			umbField.OnClickCommand =
 				ClientTools.Scripts.OpenModalWindow(
@@ -112,8 +119,9 @@ namespace umbraco.cms.presentation.settings
 					editorSource.ClientID + "&tagName=UMBRACOGETDATA", ui.Text("template", "insertPageField"), 640, 550);
 			umbField.AltText = ui.Text("template", "insertPageField");
 
+
 			// TODO: Update icon
-			MenuIconI umbDictionary = Panel1.Menu.NewIcon();
+            MenuIconI umbDictionary = editorSource.Menu.NewIcon();
 			umbDictionary.ImageURL = GlobalSettings.Path + "/images/editor/dictionaryItem.gif";
 			umbDictionary.OnClickCommand =
 				ClientTools.Scripts.OpenModalWindow(
@@ -122,18 +130,11 @@ namespace umbraco.cms.presentation.settings
 					640, 550);
 			umbDictionary.AltText = "Insert umbraco dictionary item";
 
-			//uicontrols.MenuIconI umbMacro = Panel1.Menu.NewIcon();
-			//umbMacro.ImageURL = UmbracoPath + "/images/editor/insMacro.gif";
-			//umbMacro.AltText = ui.Text("template", "insertMacro");
-			//umbMacro.OnClickCommand = umbraco.BasePages.ClientTools.Scripts.OpenModalWindow(umbraco.IO.IOHelper.ResolveUrl(umbraco.IO.SystemDirectories.Umbraco) + "/dialogs/editMacro.aspx?objectId=" + editorSource.ClientID, ui.Text("template", "insertMacro"), 470, 530);
+		    editorSource.Menu.NewElement("div", "splitButtonMacroPlaceHolder", "sbPlaceHolder", 40);
 
-			Panel1.Menu.NewElement("div", "splitButtonMacroPlaceHolder", "sbPlaceHolder", 40);
-
-			if (UmbracoSettings.UseAspNetMasterPages)
+			if (UmbracoConfig.For.UmbracoSettings().Templates.UseAspNetMasterPages)
 			{
-				Panel1.Menu.InsertSplitter();
-
-				MenuIconI umbContainer = Panel1.Menu.NewIcon();
+			    MenuIconI umbContainer = editorSource.Menu.NewIcon();
 				umbContainer.ImageURL = UmbracoPath + "/images/editor/masterpagePlaceHolder.gif";
 				umbContainer.AltText = ui.Text("template", "insertContentAreaPlaceHolder");
 				umbContainer.OnClickCommand =
@@ -142,7 +143,7 @@ namespace umbraco.cms.presentation.settings
 						"/dialogs/insertMasterpagePlaceholder.aspx?&id=" + _template.Id,
 						ui.Text("template", "insertContentAreaPlaceHolder"), 470, 320);
 
-				MenuIconI umbContent = Panel1.Menu.NewIcon();
+                MenuIconI umbContent = editorSource.Menu.NewIcon();
 				umbContent.ImageURL = UmbracoPath + "/images/editor/masterpageContent.gif";
 				umbContent.AltText = ui.Text("template", "insertContentArea");
 				umbContent.OnClickCommand =
@@ -153,25 +154,13 @@ namespace umbraco.cms.presentation.settings
 
 
 			//Spit button
-			Panel1.Menu.InsertSplitter();
-			Panel1.Menu.NewElement("div", "splitButtonPlaceHolder", "sbPlaceHolder", 40);
-
-			if (Skinning.StarterKitGuid(_template.Id).HasValue)
-			{
-				Panel1.Menu.InsertSplitter();
-				MenuIconI umbContainer = Panel1.Menu.NewIcon();
-				umbContainer.ImageURL = UmbracoPath + "/images/editor/skin.gif";
-				umbContainer.AltText = ui.Text("template", "modifyTemplateSkin");
-				//umbContainer.OnClickCommand = umbraco.BasePages.ClientTools.Scripts.OpenModalWindow(umbraco.IO.IOHelper.ResolveUrl(umbraco.IO.SystemDirectories.Umbraco) + "/dialogs/TemplateSkinning.aspx?&id=" + _template.Id.ToString(), ui.Text("template", "modifyTemplateSkin"), 570, 420);
-				umbContainer.OnClickCommand = "window.open('" + GlobalSettings.Path + "/canvas.aspx?redir=" +
-											  ResolveUrl("~/") + "&umbSkinning=true&umbSkinningConfigurator=true" +
-											  "','canvas')";
-			}
+            editorSource.Menu.InsertSplitter();
+            editorSource.Menu.NewElement("div", "splitButtonPlaceHolder", "sbPlaceHolder", 40);
 
 			// Help
-			Panel1.Menu.InsertSplitter();
+            editorSource.Menu.InsertSplitter();
 
-			MenuIconI helpIcon = Panel1.Menu.NewIcon();
+            MenuIconI helpIcon = editorSource.Menu.NewIcon();
 			helpIcon.OnClickCommand =
 				ClientTools.Scripts.OpenModalWindow(
 					IOHelper.ResolveUrl(SystemDirectories.Umbraco) + "/settings/modals/showumbracotags.aspx?alias=" +
@@ -261,7 +250,7 @@ namespace umbraco.cms.presentation.settings
 		/// Auto-generated field.
 		/// To modify move field declaration from designer file to code-behind file.
 		/// </remarks>
-		protected global::umbraco.uicontrols.UmbracoPanel Panel1;
+		protected global::umbraco.uicontrols.TabView Panel1;
 
 		/// <summary>
 		/// Pane7 control.
@@ -271,6 +260,7 @@ namespace umbraco.cms.presentation.settings
 		/// To modify move field declaration from designer file to code-behind file.
 		/// </remarks>
 		protected global::umbraco.uicontrols.Pane Pane7;
+        protected global::umbraco.uicontrols.Pane Pane8;
 
 		/// <summary>
 		/// pp_name control.

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Web;
+using Umbraco.Core.Configuration;
 
 namespace Umbraco.Core.IO
 {
@@ -51,31 +52,6 @@ namespace Umbraco.Core.IO
             }
         }
 
-        public static string XsltextensionsConfig
-        {
-            get
-            {
-                return SystemDirectories.Config + "/xsltextensions.config";
-            }
-        }
-
-        public static string RestextensionsConfig
-        {
-            get
-            {
-                return SystemDirectories.Config + "/restextensions.config";
-            }
-        }
-
-
-        public static string SkinningXml
-        {
-            get
-            {
-                return SystemDirectories.Data + "/skinning.config";
-            }
-        }
-
         public static string NotFoundhandlersConfig
         {
             get
@@ -96,7 +72,7 @@ namespace Umbraco.Core.IO
         {
             get
             {
-                if (ContentCacheXmlIsEphemeral && SystemUtilities.GetCurrentTrustLevel() == AspNetHostingPermissionLevel.Unrestricted)
+                if (GlobalSettings.ContentCacheXmlStoredInCodeGen && SystemUtilities.GetCurrentTrustLevel() == AspNetHostingPermissionLevel.Unrestricted)
                 {
                     return Path.Combine(HttpRuntime.CodegenDir, @"UmbracoData\umbraco.config");
                 }
@@ -104,19 +80,10 @@ namespace Umbraco.Core.IO
             }
         }
 
-        internal static bool ContentCacheXmlIsEphemeral
+        [Obsolete("Use GlobalSettings.ContentCacheXmlStoredInCodeGen instead")]
+        internal static bool ContentCacheXmlStoredInCodeGen
         {
-            get
-            {
-                bool returnValue = false;
-                string configSetting = ConfigurationManager.AppSettings["umbracoContentXMLUseLocalTemp"];
-
-                if (!string.IsNullOrEmpty(configSetting))
-                    if(bool.TryParse(configSetting, out returnValue))
-                        return returnValue;
-
-                return false;
-            }
+            get { return GlobalSettings.ContentCacheXmlStoredInCodeGen; }
         }
     }
 }

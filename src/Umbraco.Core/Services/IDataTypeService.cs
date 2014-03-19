@@ -61,12 +61,14 @@ namespace Umbraco.Core.Services
         /// </summary>
         /// <param name="id">Id of the DataType, which corresponds to the Guid Id of the control</param>
         /// <returns><see cref="IDataType"/> object</returns>
+        [Obsolete("IDataType is obsolete and is no longer used, it will be removed from the codebase in future versions")]
         IDataType GetDataTypeById(Guid id);
-
+        
         /// <summary>
         /// Gets a complete list of all registered <see cref="IDataType"/>'s
         /// </summary>
         /// <returns>An enumerable list of <see cref="IDataType"/> objects</returns>
+        [Obsolete("IDataType is obsolete and is no longer used, it will be removed from the codebase in future versions")]
         IEnumerable<IDataType> GetAllDataTypes();
 
         /// <summary>
@@ -74,7 +76,15 @@ namespace Umbraco.Core.Services
         /// </summary>
         /// <param name="id">Id of the DataType control</param>
         /// <returns><see cref="IDataTypeDefinition"/></returns>
+        [Obsolete("Property editor's are defined by a string alias from version 7 onwards, use the overload GetDataTypeDefinitionByPropertyEditorAlias instead")]
         IEnumerable<IDataTypeDefinition> GetDataTypeDefinitionByControlId(Guid id);
+
+        /// <summary>
+        /// Gets a <see cref="IDataTypeDefinition"/> by its control Id
+        /// </summary>
+        /// <param name="propertyEditorAlias">Alias of the property editor</param>
+        /// <returns>Collection of <see cref="IDataTypeDefinition"/> objects with a matching contorl id</returns>
+        IEnumerable<IDataTypeDefinition> GetDataTypeDefinitionByPropertyEditorAlias(string propertyEditorAlias);
 
         /// <summary>
         /// Gets all values for an <see cref="IDataTypeDefinition"/>
@@ -84,11 +94,34 @@ namespace Umbraco.Core.Services
         IEnumerable<string> GetPreValuesByDataTypeId(int id);
 
         /// <summary>
+        /// Gets a pre-value collection by data type id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        PreValueCollection GetPreValuesCollectionByDataTypeId(int id);
+
+        /// <summary>
         /// Saves a list of PreValues for a given DataTypeDefinition
         /// </summary>
         /// <param name="id">Id of the DataTypeDefinition to save PreValues for</param>
         /// <param name="values">List of string values to save</param>
+        [Obsolete("This should no longer be used, use the alternative SavePreValues or SaveDataTypeAndPreValues methods instead. This will only insert pre-values without keys")]
         void SavePreValues(int id, IEnumerable<string> values);
+
+        /// <summary>
+        /// Saves a list of PreValues for a given DataTypeDefinition
+        /// </summary>
+        /// <param name="id">Id of the DataTypeDefinition to save PreValues for</param>
+        /// <param name="values">List of key/value pairs to save</param>
+        void SavePreValues(int id, IDictionary<string, PreValue> values);
+
+        /// <summary>
+        /// Saves the data type and it's prevalues
+        /// </summary>
+        /// <param name="dataTypeDefinition"></param>
+        /// <param name="values"></param>
+        /// <param name="userId"></param>
+        void SaveDataTypeAndPreValues(IDataTypeDefinition dataTypeDefinition, IDictionary<string, PreValue> values, int userId = 0);
 
         /// <summary>
         /// Gets a specific PreValue by its Id

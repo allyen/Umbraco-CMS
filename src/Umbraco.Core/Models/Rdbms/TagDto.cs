@@ -15,10 +15,12 @@ namespace Umbraco.Core.Models.Rdbms
         [Column("tag")]
         [NullSetting(NullSetting = NullSettings.Null)]
         [Length(200)]
+        [Index(IndexTypes.NonClustered, ForColumns = "tag,group", Name = "IX_cmsTags")]
         public string Tag { get; set; }//NOTE Is set to [varchar] (200) in Sql Server script
 
         [Column("ParentId")]
         [NullSetting(NullSetting = NullSettings.Null)]
+        [ForeignKey(typeof(TagDto), Name = "FK_cmsTags_cmsTags")]
         public int? ParentId { get; set; }
 
         [Column("group")]

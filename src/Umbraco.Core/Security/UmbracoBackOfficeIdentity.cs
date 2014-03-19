@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using System.Web;
 using System.Web.Security;
 using Newtonsoft.Json;
@@ -11,7 +12,8 @@ namespace Umbraco.Core.Security
     /// <remarks>
     /// All values are lazy loaded for performance reasons as the constructor is called for every single request
     /// </remarks>
-    internal class UmbracoBackOfficeIdentity : FormsIdentity
+    [Serializable]
+    public class UmbracoBackOfficeIdentity : FormsIdentity
     {
         public UmbracoBackOfficeIdentity(FormsAuthenticationTicket ticket) 
             : base(ticket)
@@ -23,14 +25,12 @@ namespace Umbraco.Core.Security
         protected readonly string UserData;
         internal UserData DeserializedData;
 
-        public string UserContextId
-        {
-            get { return DeserializedData.UserContextId; }
-        }
-
         public int StartContentNode
         {
-            get { return DeserializedData.StartContentNode; }
+            get
+            {
+                return DeserializedData.StartContentNode;
+            }
         }
 
         public int StartMediaNode
@@ -56,6 +56,11 @@ namespace Umbraco.Core.Security
         public string Culture
         {
             get { return DeserializedData.Culture; }
+        }
+
+        public string SessionId
+        {
+            get { return DeserializedData.SessionId; }
         }
 
         //public int SessionTimeout
@@ -106,5 +111,6 @@ namespace Umbraco.Core.Security
                 HttpContext.Current.Items[typeof (UmbracoBackOfficeIdentity)] = DeserializedData;
             }
         }
+
     }
 }

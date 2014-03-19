@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Web.Http;
 using Umbraco.Core;
-using Umbraco.Web.Security;
 
 namespace Umbraco.Web.WebApi
 {
     /// <summary>
     /// Ensures authorization is successful for a back office user
-    /// </summary>
+    /// </summary>    
     public sealed class UmbracoAuthorizeAttribute : AuthorizeAttribute
     {
+        /// <summary>
+        /// Can be used by unit tests to enable/disable this filter
+        /// </summary>
+        internal static bool Enable = true;
+
         private readonly ApplicationContext _applicationContext;
         private readonly UmbracoContext _umbracoContext;
 
@@ -40,13 +44,22 @@ namespace Umbraco.Web.WebApi
 
         protected override bool IsAuthorized(System.Web.Http.Controllers.HttpActionContext actionContext)
         {
+            if (Enable == false)
+            {
+                return true;
+            }
+
             try
             {
+                var appContext = GetApplicationContext();
+                var umbContext = GetUmbracoContext();
+
                 //we need to that the app is configured and that a user is logged in
-                if (!GetApplicationContext().IsConfigured)
+                if (appContext.IsConfigured == false)
                     return false;
-                var umbCtx = GetUmbracoContext();
-                var isLoggedIn = umbCtx.Security.ValidateUserContextId(umbCtx.Security.UmbracoUserContextId);
+
+                var isLoggedIn = umbContext.Security.ValidateCurrentUser();
+
                 return isLoggedIn;
             }
             catch (Exception)

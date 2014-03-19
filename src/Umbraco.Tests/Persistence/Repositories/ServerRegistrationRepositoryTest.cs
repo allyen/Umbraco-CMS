@@ -3,6 +3,7 @@ using System.Data.SqlServerCe;
 using System.Linq;
 using NUnit.Framework;
 using Umbraco.Core.Models;
+using Umbraco.Core.Persistence.Caching;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.Repositories;
 using Umbraco.Core.Persistence.UnitOfWork;
@@ -10,6 +11,7 @@ using Umbraco.Tests.TestHelpers;
 
 namespace Umbraco.Tests.Persistence.Repositories
 {
+    [DatabaseTestBehavior(DatabaseBehavior.NewDbFileAndSchemaPerTest)]
     [TestFixture]
     public class ServerRegistrationRepositoryTest : BaseDatabaseFactoryTest
     {
@@ -21,6 +23,11 @@ namespace Umbraco.Tests.Persistence.Repositories
             CreateTestData();
         }
 
+        private ServerRegistrationRepository CreateRepositor(IDatabaseUnitOfWork unitOfWork)
+        {
+            return new ServerRegistrationRepository(unitOfWork, NullCacheProvider.Current);
+        }
+
         [Test]
         public void Cannot_Add_Duplicate_Computer_Names()
         {
@@ -29,7 +36,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             var unitOfWork = provider.GetUnitOfWork();
 
             // Act
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 var server = new ServerRegistration("http://shazwazza.com", "COMPUTER1", DateTime.Now);
                 repository.AddOrUpdate(server);
@@ -47,7 +54,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             var unitOfWork = provider.GetUnitOfWork();
 
             // Act
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 var server = repository.Get(1);
                 server.ComputerName = "COMPUTER2";
@@ -65,7 +72,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             var unitOfWork = provider.GetUnitOfWork();
 
             // Act
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Assert
                 Assert.That(repository, Is.Not.Null);    
@@ -78,7 +85,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var server = repository.Get(1);
@@ -98,7 +105,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var servers = repository.GetAll();
@@ -115,7 +122,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var query = Query<ServerRegistration>.Builder.Where(x => x.ComputerName.ToUpper() == "COMPUTER3");
@@ -132,7 +139,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var query = Query<ServerRegistration>.Builder.Where(x => x.ServerAddress.StartsWith("http://"));
@@ -149,7 +156,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var server = new ServerRegistration("http://shazwazza.com", "COMPUTER4", DateTime.Now);
@@ -168,7 +175,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var server = repository.Get(2);
@@ -193,7 +200,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var server = repository.Get(3);
@@ -214,7 +221,7 @@ namespace Umbraco.Tests.Persistence.Repositories
             // Arrange
             var provider = new PetaPocoUnitOfWorkProvider();
             var unitOfWork = provider.GetUnitOfWork();
-            using (var repository = new ServerRegistrationRepository(unitOfWork))
+            using (var repository = CreateRepositor(unitOfWork))
             {
                 // Act
                 var exists = repository.Exists(3);

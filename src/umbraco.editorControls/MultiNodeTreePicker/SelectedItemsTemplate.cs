@@ -1,15 +1,17 @@
+using System;
 using System.Web;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
 using umbraco.controls.Images;
-using umbraco.IO;
+using Umbraco.Core.IO;
 
 namespace umbraco.editorControls.MultiNodeTreePicker
 {
     /// <summary>
     /// The item template for the selected items repeater
     /// </summary>
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
     internal class SelectedItemsTemplate : ITemplate
     {
         #region ITemplate Members

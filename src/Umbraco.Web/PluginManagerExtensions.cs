@@ -5,6 +5,7 @@ using Umbraco.Core;
 using Umbraco.Core.Media;
 using Umbraco.Web.Mvc;
 using Umbraco.Web.Routing;
+using Umbraco.Web.Trees;
 using Umbraco.Web.WebApi;
 using umbraco;
 using umbraco.interfaces;
@@ -16,6 +17,17 @@ namespace Umbraco.Web
 	/// </summary>
 	public static class PluginManagerExtensions
 	{
+
+        /// <summary>
+        /// Returns all available TreeApiController's in application that are attribute with TreeAttribute
+        /// </summary>
+        /// <param name="resolver"></param>
+        /// <returns></returns>
+        internal static IEnumerable<Type> ResolveAttributedTreeControllers(this PluginManager resolver)
+        {
+            return resolver.ResolveTypesWithAttribute<TreeController, TreeAttribute>();
+        }
+
 		internal static IEnumerable<Type> ResolveSurfaceControllers(this PluginManager resolver)
 		{
 			return resolver.ResolveTypes<SurfaceController>();
@@ -37,16 +49,6 @@ namespace Umbraco.Web
 		}
 
 		/// <summary>
-		/// Returns all classes attributed with legacy RestExtension attribute
-		/// </summary>
-		/// <param name="resolver"></param>
-		/// <returns></returns>
-		internal static IEnumerable<Type> ResolveLegacyRestExtensions(this PluginManager resolver)
-		{
-			return resolver.ResolveAttributedTypes<global::umbraco.presentation.umbracobase.RestExtension>();
-		}
-
-		/// <summary>
 		/// Returns all classes attributed with RestExtensionAttribute attribute
 		/// </summary>
 		/// <param name="resolver"></param>
@@ -63,7 +65,7 @@ namespace Umbraco.Web
 		/// <returns></returns>
 		internal static IEnumerable<Type> ResolveXsltExtensions(this PluginManager resolver)
 		{
-			return resolver.ResolveAttributedTypes<XsltExtensionAttribute>();
+			return resolver.ResolveAttributedTypes<Umbraco.Core.Macros.XsltExtensionAttribute>();
 		}
 
 		/// <summary>

@@ -14,39 +14,15 @@ using System.Linq;
 
 namespace Umbraco.Tests.PublishedContent
 {
+    [DatabaseTestBehavior(DatabaseBehavior.NewDbFileAndSchemaPerFixture)]
     [TestFixture]
     public class DynamicNodeTests : DynamicDocumentTestsBase<DynamicNode, DynamicNodeList>
     {
-        /// <summary>
-        /// We only need a new schema per fixture... speeds up testing
-        /// </summary>
-        protected override DatabaseBehavior DatabaseTestBehavior
-        {
-            get { return DatabaseBehavior.NewSchemaPerFixture; }
-        }
 
         public override void Initialize()
         {
             base.Initialize();
-            //copy the umbraco settings file over
-            var currDir = new DirectoryInfo(TestHelper.CurrentAssemblyDirectory);
-
-            var configPath = Path.Combine(currDir.Parent.Parent.FullName, "config");
-            if (Directory.Exists(configPath) == false)
-                Directory.CreateDirectory(configPath);
-
-            var umbracoSettingsFile = Path.Combine(currDir.Parent.Parent.FullName, "config", "umbracoSettings.config");
-            if (File.Exists(umbracoSettingsFile) == false)
-                File.Copy(
-                    currDir.Parent.Parent.Parent.GetDirectories("Umbraco.Web.UI")
-                        .First()
-                        .GetDirectories("config").First()
-                        .GetFiles("umbracoSettings.Release.config").First().FullName,
-                    Path.Combine(currDir.Parent.Parent.FullName, "config", "umbracoSettings.config"),
-                    true);
-
-            UmbracoSettings.SettingsFilePath = IOHelper.MapPath(SystemDirectories.Config + Path.DirectorySeparatorChar, false);
-
+           
             //need to specify a custom callback for unit tests
             DynamicNode.GetDataTypeCallback = (docTypeAlias, propertyAlias) =>
             {
@@ -79,19 +55,6 @@ namespace Umbraco.Tests.PublishedContent
         public override void Is_Position_Root_Nodes()
         {
             base.Is_Position_Root_Nodes();
-        }
-
-        public override void TearDown()
-        {
-            //TODO: Deleting the umbracoSettings.config file makes a lot of tests fail
-
-            //var currDir = new DirectoryInfo(TestHelper.CurrentAssemblyDirectory);
-
-            //var umbracoSettingsFile = Path.Combine(currDir.Parent.Parent.FullName, "config", "umbracoSettings.config");
-            //if (File.Exists(umbracoSettingsFile))
-            //    File.Delete(umbracoSettingsFile);
-
-            base.TearDown();
         }
 
         protected override dynamic GetDynamicNode(int id)

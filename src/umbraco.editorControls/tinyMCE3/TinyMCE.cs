@@ -3,6 +3,7 @@ using System.Collections;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.UI;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Logging;
 using umbraco.BasePages;
 using umbraco.BusinessLogic;
@@ -11,13 +12,14 @@ using umbraco.editorControls.tinymce;
 using umbraco.editorControls.tinyMCE3.webcontrol;
 using umbraco.editorControls.wysiwyg;
 using umbraco.interfaces;
-using umbraco.IO;
+using Umbraco.Core.IO;
 using umbraco.presentation;
 using umbraco.uicontrols;
 
 namespace umbraco.editorControls.tinyMCE3
 {
-    public class TinyMCE : TinyMCEWebControl, IDataEditor, IMenuElement, ILiveEditingDataEditor
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
+    public class TinyMCE : TinyMCEWebControl, IDataEditor, IMenuElement
     {
         private readonly string _activateButtons = "";
         private readonly string _advancedUsers = "";
@@ -37,8 +39,6 @@ namespace umbraco.editorControls.tinyMCE3
         private readonly int m_maxImageWidth = 500;
         private bool _isInitialized;
         private string _plugins = "";
-        private bool m_isInLiveEditingMode;
-
 
         public TinyMCE(IData Data, string Configuration)
         {
@@ -101,8 +101,7 @@ namespace umbraco.editorControls.tinyMCE3
 
                     // If the editor is used in umbraco, use umbraco's own toolbar
                     bool onFront = false;
-                    if (GlobalSettings.RequestIsInUmbracoApplication(HttpContext.Current) ||
-                        UmbracoContext.Current.LiveEditingContext.Enabled)
+                    if (GlobalSettings.RequestIsInUmbracoApplication(HttpContext.Current))
                     {
                         config.Add("theme_umbraco_toolbar_location", "external");
                         config.Add("skin", "umbraco");
@@ -265,7 +264,7 @@ namespace umbraco.editorControls.tinyMCE3
                         }
                     }
 
-                    //if (HttpContext.Current.Request.Path.IndexOf(umbraco.IO.SystemDirectories.Umbraco) > -1)
+                    //if (HttpContext.Current.Request.Path.IndexOf(Umbraco.Core.IO.SystemDirectories.Umbraco) > -1)
                     //    config.Add("language", User.GetUser(BasePage.GetUserId(BasePage.umbracoUserContextID)).Language);
                     //else
                     //    config.Add("language", System.Threading.Thread.CurrentThread.CurrentCulture.TwoLetterISOLanguageName);
@@ -328,7 +327,7 @@ namespace umbraco.editorControls.tinyMCE3
                 parsedString = replaceMacroTags(parsedString).Trim();
 
                 // tidy html - refactored, see #30534
-                if (UmbracoSettings.TidyEditorContent)
+                if (UmbracoConfig.For.UmbracoSettings().Content.TidyEditorContent)
                 {
                     // always wrap in a <div> - using <p> was a bad idea
                     parsedString = "<div>" + parsedString + "</div>";
@@ -402,19 +401,6 @@ namespace umbraco.editorControls.tinyMCE3
             }
         }
 
-        #region ILiveEditingDataEditor Members
-
-        public Control LiveEditingControl
-        {
-            get
-            {
-                m_isInLiveEditingMode = true;
-                base.IsInLiveEditingMode = true;
-                return this;
-            }
-        }
-
-        #endregion
 
         #region IMenuElement Members
 
@@ -457,20 +443,9 @@ namespace umbraco.editorControls.tinyMCE3
                     config.Add("theme_umbraco_versionId", base.VersionId.ToString());
 
                     // we'll need to make an extra check for the liveediting as that value is set after the constructor have initialized
-                    if (IsInLiveEditingMode)
-                    {
-                        if (config["theme_umbraco_toolbar_location"] == null)
-                            config.Add("theme_umbraco_toolbar_location", "");
-                        config["theme_umbraco_toolbar_location"] = "external";
-                        config.Add("umbraco_toolbar_id",
-                                   "LiveEditingClientToolbar");
-                    }
-                    else
-                    {
-                        config.Add("umbraco_toolbar_id",
+                    config.Add("umbraco_toolbar_id",
                                    ElementIdPreFix +
                                    ((cms.businesslogic.datatype.DefaultData)_data).PropertyId);
-                    }
                 }
                 else
                 {

@@ -6,9 +6,10 @@ using System.Data.OleDb;
 using System.Data.SqlClient;
 using NUnit.Framework;
 using Umbraco.Core;
-using Umbraco.Tests.PartialTrust;
 using Umbraco.Web;
+using Umbraco.Web.Cache;
 using UmbracoExamine;
+using UmbracoExamine.DataServices;
 using umbraco;
 using umbraco.presentation;
 using umbraco.presentation.nodeFactory;
@@ -20,7 +21,7 @@ namespace Umbraco.Tests
     /// Tests for TypeHelper
     /// </summary>
     [TestFixture]
-    public class TypeHelperTests : AbstractPartialTrustFixture<TypeHelperTests>
+    public class TypeHelperTests
     {
 
         [Test]
@@ -61,24 +62,17 @@ namespace Umbraco.Tests
                                                    typeof(int));
             Assert.IsFalse(t4.Success);
 
-            var t5 = TypeHelper.GetLowestBaseType(typeof(UmbracoEventManager));
+            var t5 = TypeHelper.GetLowestBaseType(typeof(PropertyAliasDto));
             Assert.IsTrue(t5.Success);
-            Assert.AreEqual(typeof(UmbracoEventManager), t5.Result);
+            Assert.AreEqual(typeof(PropertyAliasDto), t5.Result);
 
             var t6 = TypeHelper.GetLowestBaseType(typeof (IApplicationEventHandler),
                                                   typeof (LegacyScheduledTasks),
-                                                  typeof(CacheHelperExtensions.CacheHelperApplicationEventListener));
+                                                  typeof(CacheRefresherEventHandler));
             Assert.IsTrue(t6.Success);
             Assert.AreEqual(typeof(IApplicationEventHandler), t6.Result);
 
         }
 
-        public override void TestSetup()
-        {
-        }
-
-        public override void TestTearDown()
-        {
-        }
     }
 }

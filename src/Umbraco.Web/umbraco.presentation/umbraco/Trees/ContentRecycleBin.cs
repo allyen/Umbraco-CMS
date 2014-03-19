@@ -14,7 +14,7 @@ namespace umbraco.cms.presentation.Trees
     /// <summary>
     /// Handles loading the content tree into umbraco's application tree
     /// </summary>
-    [Tree(Constants.Applications.Content, "contentRecycleBin", "Recycle Bin", "folder.gif", "folder_o.gif", initialize: false)]
+    [Obsolete("This is no longer used and will be removed from the codebase in the future")]
     public class ContentRecycleBin : BaseContentTree
     {
 

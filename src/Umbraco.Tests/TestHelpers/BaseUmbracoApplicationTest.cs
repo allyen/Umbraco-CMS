@@ -1,8 +1,20 @@
-﻿using NUnit.Framework;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Reflection;
+using AutoMapper;
+using NUnit.Framework;
 using Umbraco.Core;
-using Umbraco.Core.Configuration;
+using Umbraco.Core.Models.Mapping;
 using Umbraco.Core.ObjectResolution;
+using Umbraco.Core.Persistence;
+using Umbraco.Core.Persistence.UnitOfWork;
+using Umbraco.Core.PropertyEditors;
+using Umbraco.Core.Publishing;
+using Umbraco.Core.Services;
 using Umbraco.Web;
+using Umbraco.Web.Models.Mapping;
+using umbraco.BusinessLogic;
+using ObjectExtensions = Umbraco.Core.ObjectExtensions;
 
 namespace Umbraco.Tests.TestHelpers
 {
@@ -11,38 +23,92 @@ namespace Umbraco.Tests.TestHelpers
     /// ensures everything is torn down properly.
     /// </summary>
     [TestFixture]
-    public abstract class BaseUmbracoApplicationTest
+    public abstract class BaseUmbracoApplicationTest : BaseUmbracoConfigurationTest
     {
+
         [SetUp]
-        public virtual void Initialize()
+        public override void Initialize()
         {
-            TestHelper.SetupLog4NetForTests();
-            TestHelper.InitializeContentDirectories();
+            base.Initialize();
 
-            SettingsForTests.UseLegacyXmlSchema = false;
-            SettingsForTests.ForceSafeAliases = true;
-            SettingsForTests.UmbracoLibraryCacheDuration = 1800;
+            using (DisposableTimer.TraceDuration<BaseUmbracoApplicationTest>("init", "init"))
+            {
+                TestHelper.InitializeContentDirectories();
+                
+                InitializeLegacyMappingsForCoreEditors();
+
+                SetupPluginManager();
+
+                SetupApplicationContext();
+
+                InitializeMappers();
+
+                FreezeResolution();
+            }
             
-            SetupPluginManager();
-
-            SetupApplicationContext();
-
-            FreezeResolution();
         }
 
         [TearDown]
-        public virtual void TearDown()
+        public override void TearDown()
         {
-            //reset settings
-            SettingsForTests.Reset();
-            UmbracoContext.Current = null;
-            TestHelper.CleanContentDirectories();
-            //reset the app context, this should reset most things that require resetting like ALL resolvers
-            ApplicationContext.Current.DisposeIfDisposable();
-            ApplicationContext.Current = null;
-            ResetPluginManager();
+            base.TearDown();
+
+            using (DisposableTimer.TraceDuration<BaseUmbracoApplicationTest>("teardown"))
+            {
+                //reset settings
+                SettingsForTests.Reset();
+                UmbracoContext.Current = null;
+                TestHelper.CleanContentDirectories();
+                TestHelper.CleanUmbracoSettingsConfig();
+                //reset the app context, this should reset most things that require resetting like ALL resolvers
+                ObjectExtensions.DisposeIfDisposable(ApplicationContext.Current);
+                ApplicationContext.Current = null;
+                ResetPluginManager();                
+            }
+            
         }
         
+        private static readonly object Locker = new object();        
+
+        private static void InitializeLegacyMappingsForCoreEditors()
+        {
+            lock (Locker)
+            {
+                if (LegacyPropertyEditorIdToAliasConverter.Count() == 0)
+                {
+                    //Create the legacy prop-eds mapping
+                    LegacyPropertyEditorIdToAliasConverter.CreateMappingsForCoreEditors();
+                }
+            }         
+        }
+        
+        /// <summary>
+        /// If this class requires auto-mapper mapping initialization then init them
+        /// </summary>
+        /// <remarks>
+        /// This is an opt-in option because initializing the mappers takes about 500ms which equates to quite a lot
+        /// of time with every test.
+        /// </remarks>
+        private void InitializeMappers()
+        {
+            if (this.GetType().GetCustomAttribute<RequiresAutoMapperMappingsAttribute>(false) != null)
+            {
+                Mapper.Initialize(configuration =>
+                {
+                    var mappers = PluginManager.Current.FindAndCreateInstances<IMapperConfiguration>(
+                        specificAssemblies: new[]
+                        {
+                            typeof(ContentModelMapper).Assembly,
+                            typeof(ApplicationRegistrar).Assembly
+                        });
+                    foreach (var mapper in mappers)
+                    {
+                        mapper.ConfigureMappings(configuration, ApplicationContext);
+                    }
+                });      
+            }
+        }
+
         /// <summary>
         /// By default this returns false which means the plugin manager will not be reset so it doesn't need to re-scan 
         /// all of the assemblies. Inheritors can override this if plugin manager resetting is required, generally needs
@@ -69,8 +135,18 @@ namespace Umbraco.Tests.TestHelpers
         /// </summary>
         protected virtual void SetupApplicationContext()
         {
-            //DO NOT ENABLE CACHE
-            ApplicationContext.Current = new ApplicationContext(false) {IsReady = true};
+            //disable cache
+            var cacheHelper = CacheHelper.CreateDisabledCacheHelper();
+
+            ApplicationContext.Current = new ApplicationContext(
+                //assign the db context
+                new DatabaseContext(new DefaultDatabaseFactory()),
+                //assign the service context
+                new ServiceContext(new PetaPocoUnitOfWorkProvider(), new FileUnitOfWorkProvider(), new PublishingStrategy(), cacheHelper),
+                cacheHelper)
+            {
+                IsReady = true
+            };
         }
 
         /// <summary>
@@ -80,7 +156,20 @@ namespace Umbraco.Tests.TestHelpers
         {
             if (PluginManager.Current == null || PluginManagerResetRequired)
             {
-                PluginManager.Current = new PluginManager(false);    
+                PluginManager.Current = new PluginManager(false);
+                PluginManager.Current.AssembliesToScan = new[]
+                {
+                    Assembly.Load("Umbraco.Core"),
+                    Assembly.Load("umbraco"),
+                    Assembly.Load("Umbraco.Tests"),
+                    Assembly.Load("businesslogic"),
+                    Assembly.Load("cms"),
+                    Assembly.Load("controls"),
+                    Assembly.Load("umbraco.editorControls"),
+                    Assembly.Load("umbraco.MacroEngines"),
+                    Assembly.Load("umbraco.providers"),
+                    Assembly.Load("Umbraco.Web.UI"),
+                };
             }
         }
 

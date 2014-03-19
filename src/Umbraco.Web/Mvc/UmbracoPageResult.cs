@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Web;
 using System.Web.Mvc;
 using System.Web.Routing;
 using Umbraco.Core;
@@ -17,25 +19,33 @@ namespace Umbraco.Web.Mvc
             ValidateRouteData(context.RouteData);
 
 			var routeDef = (RouteDefinition)context.RouteData.DataTokens["umbraco-route-def"];
-            var factory = ControllerBuilder.Current.GetControllerFactory();
 
-			context.RouteData.Values["action"] = routeDef.ActionName;
-
-		    ControllerBase controller = null;
-
-		    try
+            //Special case, if it is webforms but we're posting to an MVC surface controller, then we 
+            // need to return the webforms result instead
+		    if (routeDef.PublishedContentRequest.RenderingEngine == RenderingEngine.WebForms)
 		    {
-                controller = CreateController(context, factory, routeDef);
-                
-                controller.ViewData.ModelState.Merge(context.Controller.ViewData.ModelState);
-
-                CopyControllerData(context, controller);
-
-		        ExecuteControllerAction(context, controller);
+		        EnsureViewContextForWebForms(context);
+		        var webFormsHandler = RenderRouteHandler.GetWebFormsHandler();
+		        webFormsHandler.ProcessRequest(HttpContext.Current);
 		    }
-		    finally
+		    else
 		    {
-		        CleanupController(controller, factory);
+                var factory = ControllerBuilder.Current.GetControllerFactory();
+                context.RouteData.Values["action"] = routeDef.ActionName;
+                ControllerBase controller = null;
+
+                try
+                {
+                    controller = CreateController(context, factory, routeDef);
+
+                    CopyControllerData(context, controller);
+
+                    ExecuteControllerAction(context, controller);
+                }
+                finally
+                {
+                    CleanupController(controller, factory);
+                }    
 		    }
 		}
 
@@ -73,14 +83,50 @@ namespace Umbraco.Web.Mvc
         }
 
         /// <summary>
-        /// Ensure TempData and ViewData is copied across
+        /// When POSTing to MVC but rendering in WebForms we need to do some trickery, we'll create a dummy viewcontext with all of the
+        /// current modelstate, tempdata, viewdata so that if we're rendering partial view macros within the webforms view, they will
+        /// get all of this merged into them.
+        /// </summary>
+        /// <param name="context"></param>
+        private static void EnsureViewContextForWebForms(ControllerContext context)
+        {
+            var tempDataDictionary = new TempDataDictionary();
+            tempDataDictionary.Save(context, new SessionStateTempDataProvider());
+            var viewCtx = new ViewContext(context, new DummyView(), new ViewDataDictionary(), tempDataDictionary, new StringWriter());
+
+            viewCtx.ViewData.ModelState.Merge(context.Controller.ViewData.ModelState);
+
+            foreach (var d in context.Controller.ViewData)
+                viewCtx.ViewData[d.Key] = d.Value;
+
+            //now we need to add it to the special route tokens so it's picked up later
+            context.HttpContext.Request.RequestContext.RouteData.DataTokens[Constants.DataTokenCurrentViewContext] = viewCtx;
+        }
+
+        /// <summary>
+        /// Ensure ModelState, ViewData and TempData is copied across
         /// </summary>
         private static void CopyControllerData(ControllerContext context, ControllerBase controller)
         {
+            controller.ViewData.ModelState.Merge(context.Controller.ViewData.ModelState);
+
             foreach (var d in context.Controller.ViewData)
                 controller.ViewData[d.Key] = d.Value;
 
-            controller.TempData = context.Controller.TempData;
+            //We cannot simply merge the temp data because during controller execution it will attempt to 'load' temp data
+            // but since it has not been saved, there will be nothing to load and it will revert to nothing, so the trick is 
+            // to Save the state of the temp data first then it will automatically be picked up.
+            // http://issues.umbraco.org/issue/U4-1339
+
+            var targetController = controller as Controller;
+            var sourceController = context.Controller as Controller;
+            if (targetController != null && sourceController != null)
+            {
+                targetController.TempDataProvider = sourceController.TempDataProvider;
+                targetController.TempData = sourceController.TempData;
+                targetController.TempData.Save(sourceController.ControllerContext, sourceController.TempDataProvider);    
+            }
+            
         }
 
         /// <summary>
@@ -107,5 +153,12 @@ namespace Umbraco.Web.Mvc
             if (controller != null)
                 controller.DisposeIfDisposable();
         }
+
+	    private class DummyView : IView
+	    {
+	        public void Render(ViewContext viewContext, TextWriter writer)
+	        {
+	        }
+	    }
 	}
 }

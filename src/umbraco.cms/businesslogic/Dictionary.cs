@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Data;
+using System.Threading;
 using System.Xml;
 using System.Linq;
+using Umbraco.Core;
 using umbraco.cms.businesslogic.language;
 using umbraco.DataLayer;
 using umbraco.BusinessLogic;
@@ -19,7 +21,7 @@ namespace umbraco.cms.businesslogic
     public class Dictionary
     {
         private static volatile bool _cacheIsEnsured = false;
-        private static readonly object Locker = new object();
+        private static readonly ReaderWriterLockSlim Locker = new ReaderWriterLockSlim();
         private static readonly ConcurrentDictionary<string, DictionaryItem> DictionaryItems = new ConcurrentDictionary<string, DictionaryItem>();
         private static readonly Guid TopLevelParent = new Guid("41c7638d-f529-4bff-853e-59a0c2fb1bde");
 
@@ -33,30 +35,28 @@ namespace umbraco.cms.businesslogic
         /// </summary>
         private static void EnsureCache()
         {
-            if (!_cacheIsEnsured)
+            using (var lck = new UpgradeableReadLock(Locker))
             {
-                lock (Locker)
+                if (_cacheIsEnsured) return;
+                
+                lck.UpgradeToWriteLock();
+
+                using (var dr = SqlHelper.ExecuteReader("Select pk, id, [key], parent from cmsDictionary"))
                 {
-                    if (!_cacheIsEnsured)
+                    while (dr.Read())
                     {
-                        using (IRecordsReader dr = SqlHelper.ExecuteReader("Select pk, id, [key], parent from cmsDictionary"))
-                        {
-                            while (dr.Read())
-                            {
-                                //create new dictionaryitem object and put in cache
-                                var item = new DictionaryItem(dr.GetInt("pk"),
-                                    dr.GetString("key"),
-                                    dr.GetGuid("id"),
-                                    dr.GetGuid("parent"));
+                        //create new dictionaryitem object and put in cache
+                        var item = new DictionaryItem(dr.GetInt("pk"),
+                                                      dr.GetString("key"),
+                                                      dr.GetGuid("id"),
+                                                      dr.GetGuid("parent"));
 
-                                DictionaryItems.TryAdd(item.key, item);
-                            }
-                        }
-
-                        _cacheIsEnsured = true;
+                        DictionaryItems.TryAdd(item.key, item);
                     }
                 }
-            }
+
+                _cacheIsEnsured = true;
+            }            
         }
 
         /// <summary>
@@ -64,9 +64,12 @@ namespace umbraco.cms.businesslogic
         /// </summary>
         internal static void ClearCache()
         {
-            DictionaryItems.Clear();
-            //ensure the flag is reset so that EnsureCache will re-cache everything
-            _cacheIsEnsured = false;
+            using (new WriteLock(Locker))
+            {
+                DictionaryItems.Clear();
+                //ensure the flag is reset so that EnsureCache will re-cache everything
+                _cacheIsEnsured = false;
+            }
         }
 
         /// <summary>
@@ -529,5 +532,24 @@ namespace umbraco.cms.businesslogic
             }
             #endregion
         }
+
+        // zb023 - utility method
+        public static string ReplaceKey(string text)
+        {
+            if (text.StartsWith("#") == false)
+                return text;
+
+            var lang = Language.GetByCultureCode(Thread.CurrentThread.CurrentCulture.Name);
+            
+            if (lang == null)
+                return "[" + text + "]";
+
+            if (DictionaryItem.hasKey(text.Substring(1, text.Length - 1)) == false) 
+                return "[" + text + "]";
+
+            var di = new DictionaryItem(text.Substring(1, text.Length - 1));
+            return di.Value(lang.id);
+        }
+    
     }
 }

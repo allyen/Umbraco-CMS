@@ -3,17 +3,19 @@ using System.Collections;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
 using umbraco.cms.businesslogic.Files;
 
 namespace umbraco.editorControls.tinymce
 {
+    [Obsolete("IDataType and all other references to the legacy property editors are no longer used this will be removed from the codebase in future versions")]
     internal class tinyMCEImageHelper
     {
         public static string cleanImages(string html)
         {
-            var allowedAttributes = UmbracoSettings.ImageAllowedAttributes.ToLower().Split(',').ToList();
+            var allowedAttributes = UmbracoConfig.For.UmbracoSettings().Content.ImageTagAllowedAttributes.Select(x => x.ToLower()).ToList();
             
             //Always add src as it's essential to output any image at all
             if (allowedAttributes.Contains("src") == false)

@@ -1,22 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Web;
 using Umbraco.Core;
-using Umbraco.Core.Services;
-using Umbraco.Core.CodeAnnotations;
 using Umbraco.Web.PublishedCache;
 using Umbraco.Web.Routing;
 using Umbraco.Web.Security;
 using umbraco;
-using umbraco.IO;
-using umbraco.presentation;
-using umbraco.presentation.LiveEditing;
-using umbraco.BasePages;
-using umbraco.cms.businesslogic.web;
 using umbraco.BusinessLogic;
-using System.Xml;
 using umbraco.presentation.preview;
-using Examine.Providers;
-using Examine;
+using IOHelper = Umbraco.Core.IO.IOHelper;
+using SystemDirectories = Umbraco.Core.IO.SystemDirectories;
 
 namespace Umbraco.Web
 {
@@ -30,12 +23,40 @@ namespace Umbraco.Web
         private static readonly object Locker = new object();
 
         private bool _replacing;
-        private PreviewContent _previewContent;
+        private bool? _previewing;
+        private Lazy<ContextualPublishedContentCache> _contentCache;
+        private Lazy<ContextualPublishedMediaCache> _mediaCache;
 
         /// <summary>
         /// Used if not running in a web application (no real HttpContext)
         /// </summary>
+        [ThreadStatic]
         private static UmbracoContext _umbracoContext;
+
+        #region EnsureContext methods
+        /// <summary>
+        /// This is a helper method which is called to ensure that the singleton context is created and the nice url and routing
+        /// context is created and assigned.
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <param name="applicationContext"></param>
+        /// <param name="webSecurity"></param>
+        /// <returns>
+        /// The Singleton context object
+        /// </returns>
+        /// <remarks>
+        /// This is created in order to standardize the creation of the singleton. Normally it is created during a request
+        /// in the UmbracoModule, however this module does not execute during application startup so we need to ensure it
+        /// during the startup process as well.
+        /// See: http://issues.umbraco.org/issue/U4-1890, http://issues.umbraco.org/issue/U4-1717
+        /// </remarks>
+        public static UmbracoContext EnsureContext(
+            HttpContextBase httpContext,
+            ApplicationContext applicationContext,
+            WebSecurity webSecurity)
+        {
+            return EnsureContext(httpContext, applicationContext, webSecurity, false);
+        }
 
         /// <summary>
         /// This is a helper method which is called to ensure that the singleton context is created and the nice url and routing
@@ -52,9 +73,11 @@ namespace Umbraco.Web
         /// during the startup process as well.
         /// See: http://issues.umbraco.org/issue/U4-1890, http://issues.umbraco.org/issue/U4-1717
         /// </remarks>
-        public static UmbracoContext EnsureContext(HttpContextBase httpContext, ApplicationContext applicationContext)
+        public static UmbracoContext EnsureContext(
+            HttpContextBase httpContext,
+            ApplicationContext applicationContext)
         {
-            return EnsureContext(httpContext, applicationContext, false);
+            return EnsureContext(httpContext, applicationContext, new WebSecurity(httpContext, applicationContext), false);
         }
 
         /// <summary>
@@ -77,7 +100,72 @@ namespace Umbraco.Web
         /// during the startup process as well.
         /// See: http://issues.umbraco.org/issue/U4-1890, http://issues.umbraco.org/issue/U4-1717
         /// </remarks>
-        public static UmbracoContext EnsureContext(HttpContextBase httpContext, ApplicationContext applicationContext, bool replaceContext)
+        public static UmbracoContext EnsureContext(
+            HttpContextBase httpContext,
+            ApplicationContext applicationContext,
+            bool replaceContext)
+        {
+            return EnsureContext(httpContext, applicationContext, new WebSecurity(httpContext, applicationContext), replaceContext);
+        }
+
+        /// <summary>
+        /// This is a helper method which is called to ensure that the singleton context is created and the nice url and routing
+        /// context is created and assigned.
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <param name="applicationContext"></param>
+        /// <param name="webSecurity"></param>
+        /// <param name="replaceContext">
+        /// if set to true will replace the current singleton with a new one, this is generally only ever used because
+        /// during application startup the base url domain will not be available so after app startup we'll replace the current
+        /// context with a new one in which we can access the httpcontext.Request object.
+        /// </param>
+        /// <returns>
+        /// The Singleton context object
+        /// </returns>
+        /// <remarks>
+        /// This is created in order to standardize the creation of the singleton. Normally it is created during a request
+        /// in the UmbracoModule, however this module does not execute during application startup so we need to ensure it
+        /// during the startup process as well.
+        /// See: http://issues.umbraco.org/issue/U4-1890, http://issues.umbraco.org/issue/U4-1717
+        /// </remarks>
+        public static UmbracoContext EnsureContext(
+            HttpContextBase httpContext,
+            ApplicationContext applicationContext,
+            WebSecurity webSecurity,
+            bool replaceContext)
+        {
+            return EnsureContext(httpContext, applicationContext, new WebSecurity(httpContext, applicationContext), replaceContext, null);
+        }
+
+        /// <summary>
+        /// This is a helper method which is called to ensure that the singleton context is created and the nice url and routing
+        /// context is created and assigned.
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <param name="applicationContext"></param>
+        /// <param name="webSecurity"></param>
+        /// <param name="replaceContext">
+        /// if set to true will replace the current singleton with a new one, this is generally only ever used because
+        /// during application startup the base url domain will not be available so after app startup we'll replace the current
+        /// context with a new one in which we can access the httpcontext.Request object.
+        /// </param>
+        /// <param name="preview"></param>
+        /// <returns>
+        /// The Singleton context object
+        /// </returns>
+        /// <remarks>
+        /// This is created in order to standardize the creation of the singleton. Normally it is created during a request
+        /// in the UmbracoModule, however this module does not execute during application startup so we need to ensure it
+        /// during the startup process as well.
+        /// See: http://issues.umbraco.org/issue/U4-1890, http://issues.umbraco.org/issue/U4-1717
+        /// </remarks>
+        public static UmbracoContext EnsureContext(
+            HttpContextBase httpContext,
+            ApplicationContext applicationContext,
+            WebSecurity webSecurity,
+            bool replaceContext,
+            bool? preview)
         {
             if (UmbracoContext.Current != null)
             {
@@ -89,20 +177,22 @@ namespace Umbraco.Web
             var umbracoContext = new UmbracoContext(
                 httpContext,
                 applicationContext,
-                PublishedCachesResolver.Current.Caches);
-
-            // create the nice urls provider
-            // there's one per request because there are some behavior parameters that can be changed
-            var urlProvider = new UrlProvider(
-                umbracoContext,
-                UrlProviderResolver.Current.Providers);
+                new Lazy<IPublishedCaches>(() => PublishedCachesResolver.Current.Caches, false),
+                webSecurity,
+                preview);
 
             // create the RoutingContext, and assign
             var routingContext = new RoutingContext(
                 umbracoContext,
-                ContentFinderResolver.Current.Finders,
-                ContentLastChanceFinderResolver.Current.Finder,
-                urlProvider);
+                new Lazy<IEnumerable<IContentFinder>>(() => ContentFinderResolver.Current.Finders),
+                new Lazy<IContentFinder>(() => ContentLastChanceFinderResolver.Current.Finder),
+                // create the nice urls provider
+                // there's one per request because there are some behavior parameters that can be changed
+                new Lazy<UrlProvider>(
+                    () => new UrlProvider(
+                        umbracoContext,
+                        UrlProviderResolver.Current.Providers),
+                    false));
 
             //assign the routing context back
             umbracoContext.RoutingContext = routingContext;
@@ -118,29 +208,54 @@ namespace Umbraco.Web
         /// <param name="httpContext"></param>
         /// <param name="applicationContext"> </param>
         /// <param name="publishedCaches">The published caches.</param>
+        /// <param name="webSecurity"></param>
+        /// <param name="preview">An optional value overriding detection of preview mode.</param>
+        internal UmbracoContext(
+            HttpContextBase httpContext,
+            ApplicationContext applicationContext,
+            IPublishedCaches publishedCaches,
+            WebSecurity webSecurity,
+            bool? preview = null)
+            : this(httpContext, applicationContext, new Lazy<IPublishedCaches>(() => publishedCaches), webSecurity, preview)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new Umbraco context.
+        /// </summary>
+        /// <param name="httpContext"></param>
+        /// <param name="applicationContext"> </param>
+        /// <param name="publishedCaches">The published caches.</param>
+        /// <param name="webSecurity"></param>
         /// <param name="preview">An optional value overriding detection of preview mode.</param>
         internal UmbracoContext(
 			HttpContextBase httpContext, 
 			ApplicationContext applicationContext,
-            IPublishedCaches publishedCaches,
+            Lazy<IPublishedCaches> publishedCaches,
+            WebSecurity webSecurity,
             bool? preview = null)
         {
+            //This ensures the dispose method is called when the request terminates, though
+            // we also ensure this happens in the Umbraco module because the UmbracoContext is added to the
+            // http context items.
+            httpContext.DisposeOnPipelineCompleted(this);
+
             if (httpContext == null) throw new ArgumentNullException("httpContext");
             if (applicationContext == null) throw new ArgumentNullException("applicationContext");
 
-    		ObjectCreated = DateTime.Now;
-	        UmbracoRequestId = Guid.NewGuid();
+            ObjectCreated = DateTime.Now;
+            UmbracoRequestId = Guid.NewGuid();
 
-            HttpContext = httpContext;            
+            HttpContext = httpContext;
             Application = applicationContext;
-            Security = new WebSecurity();
+            Security = webSecurity;
 
-            ContentCache = publishedCaches.CreateContextualContentCache(this);
-            MediaCache = publishedCaches.CreateContextualMediaCache(this);
-            InPreviewMode = preview ?? DetectInPreviewModeFromRequest();
-
-			// set the urls...
-			//original request url
+            _contentCache = new Lazy<ContextualPublishedContentCache>(() => publishedCaches.Value.CreateContextualContentCache(this));
+            _mediaCache = new Lazy<ContextualPublishedMediaCache>(() => publishedCaches.Value.CreateContextualMediaCache(this));
+            _previewing = preview;
+            
+            // set the urls...
+            //original request url
             //NOTE: The request will not be available during app startup so we can only set this to an absolute URL of localhost, this
             // is a work around to being able to access the UmbracoContext during application startup and this will also ensure that people
             // 'could' still generate URLs during startup BUT any domain driven URL generation will not work because it is NOT possible to get
@@ -154,10 +269,11 @@ namespace Umbraco.Web
                 requestUrl = request.Url;
             }
             this.OriginalRequestUrl = requestUrl;
-			//cleaned request url
-			this.CleanedUmbracoUrl = UriUtility.UriToUmbraco(this.OriginalRequestUrl);
-			
-        }
+            //cleaned request url
+            this.CleanedUmbracoUrl = UriUtility.UriToUmbraco(this.OriginalRequestUrl);
+
+        } 
+        #endregion
 
         /// <summary>
         /// Gets the current Umbraco Context.
@@ -235,17 +351,23 @@ namespace Umbraco.Web
         /// <summary>
         /// Gets or sets the published content cache.
         /// </summary>
-        public ContextualPublishedContentCache ContentCache { get; private set; }
+        public ContextualPublishedContentCache ContentCache
+        {
+            get { return _contentCache.Value; }
+        }
 
         /// <summary>
         /// Gets or sets the published media cache.
         /// </summary>
-        public ContextualPublishedMediaCache MediaCache { get; private set; }
+        public ContextualPublishedMediaCache MediaCache
+        {
+            get { return _mediaCache.Value; }
+        }
 
         /// <summary>
-		/// Boolean value indicating whether the current request is a front-end umbraco request
-		/// </summary>
-		public bool IsFrontEndUmbracoRequest
+        /// Boolean value indicating whether the current request is a front-end umbraco request
+        /// </summary>
+        public bool IsFrontEndUmbracoRequest
 		{
 			get { return PublishedContentRequest != null; }
 		}
@@ -304,6 +426,8 @@ namespace Umbraco.Web
             // TODO - this is dirty old legacy tricks, we should clean it up at some point
             // also, what is a "custom page" and when should this be either null, or different
             // from PublishedContentRequest.PublishedContent.Id ??
+            // SD: Have found out it can be different when rendering macro contents in the back office, but really youshould just be able
+            // to pass a page id to the macro renderer instead but due to all the legacy bits that's real difficult.
             get
             {
                 try
@@ -322,11 +446,13 @@ namespace Umbraco.Web
         /// Gets the current logged in Umbraco user (editor).
         /// </summary>
         /// <value>The Umbraco user object or null</value>
+        [Obsolete("This should no longer be used since it returns the legacy user object, use The Security.CurrentUser instead to return the proper user object")]
         public User UmbracoUser
         {
             get
             {
-                return Security.CurrentUser;
+                var user = Security.CurrentUser;
+                return user == null ? null : new User(user);
             }
 
         }
@@ -334,7 +460,12 @@ namespace Umbraco.Web
         /// <summary>
         /// Determines whether the current user is in a preview mode and browsing the site (ie. not in the admin UI)
         /// </summary>
-        public bool InPreviewMode { get; private set; }
+        /// <remarks>Can be internally set by the RTE macro rendering to render macros in the appropriate mode.</remarks>
+        public bool InPreviewMode
+        {
+            get { return _previewing ?? (_previewing = DetectInPreviewModeFromRequest()).Value; }
+			set { _previewing = value; }
+        }
 
         private bool DetectInPreviewModeFromRequest()
         {
@@ -345,9 +476,10 @@ namespace Umbraco.Web
             var currentUrl = request.Url.AbsolutePath;
             // zb-00004 #29956 : refactor cookies names & handling
             return
-                StateHelper.Cookies.Preview.HasValue // has preview cookie
-                && UmbracoUser != null // has user
-                && !currentUrl.StartsWith(Core.IO.IOHelper.ResolveUrl(Core.IO.SystemDirectories.Umbraco)); // is not in admin UI
+                //StateHelper.Cookies.Preview.HasValue // has preview cookie
+                HttpContext.Request.HasPreviewCookie()
+                && currentUrl.StartsWith(IOHelper.ResolveUrl(SystemDirectories.Umbraco)) == false
+                && UmbracoUser != null; // has user
         }
         
         private HttpRequestBase GetRequestFromContext()
@@ -361,12 +493,12 @@ namespace Umbraco.Web
                 return null;
             }
         }
-        
+
+
         protected override void DisposeResources()
         {
             Security.DisposeIfDisposable();
             Security = null;
-            _previewContent = null;
             _umbracoContext = null;
             //ensure not to dispose this!
             Application = null;

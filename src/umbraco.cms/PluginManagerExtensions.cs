@@ -16,16 +16,6 @@ namespace umbraco.cms
 	{
 
 		/// <summary>
-		/// Returns all available IActionHandler in application
-		/// </summary>
-		/// <param name="resolver"></param>
-		/// <returns></returns>
-		internal static IEnumerable<Type> ResolveActionHandlers(this PluginManager resolver)
-		{
-			return resolver.ResolveTypes<IActionHandler>();
-		}
-
-		/// <summary>
 		/// Returns all available IActions in application
 		/// </summary>
 		/// <param name="resolver"></param>
@@ -50,6 +40,7 @@ namespace umbraco.cms
 		/// </summary>
 		/// <param name="resolver"></param>
 		/// <returns></returns>
+		[Obsolete("We don't use IMediaFactory anymore, we need to remove this when we remove the MediaFactory instance that uses this method")]
 		internal static IEnumerable<Type> ResolveMediaFactories(this PluginManager resolver)
 		{
 			return resolver.ResolveTypes<IMediaFactory>();

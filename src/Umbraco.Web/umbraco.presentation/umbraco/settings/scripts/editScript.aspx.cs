@@ -11,6 +11,7 @@ using System.Web.UI.WebControls;
 using System.Web.UI.HtmlControls;
 using System.IO;
 using Umbraco.Core;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using umbraco.cms.presentation.Trees;
 using System.Linq;
@@ -27,9 +28,10 @@ namespace umbraco.cms.presentation.settings.scripts
 
         }
         protected System.Web.UI.HtmlControls.HtmlForm Form1;
-        protected uicontrols.UmbracoPanel Panel1;
+        protected uicontrols.TabView Panel1;
         protected System.Web.UI.WebControls.TextBox NameTxt;
         protected uicontrols.Pane Pane7;
+        protected uicontrols.Pane Pane8;
 
         protected System.Web.UI.WebControls.Literal lttPath;
         protected System.Web.UI.WebControls.Literal editorJs;
@@ -37,7 +39,7 @@ namespace umbraco.cms.presentation.settings.scripts
         protected umbraco.uicontrols.PropertyPanel pp_name;
         protected umbraco.uicontrols.PropertyPanel pp_path;
 
-        protected MenuIconI SaveButton;
+        protected MenuButton SaveButton;
 
         private string file;
 
@@ -48,34 +50,34 @@ namespace umbraco.cms.presentation.settings.scripts
 
             string path = "";
             if (file.StartsWith("~/"))
-                path = Umbraco.Core.IO.IOHelper.ResolveUrl(file);
+                path = IOHelper.ResolveUrl(file);
             else
-                path = Umbraco.Core.IO.IOHelper.ResolveUrl(Umbraco.Core.IO.SystemDirectories.Scripts + "/" + file);
+                path = IOHelper.ResolveUrl(SystemDirectories.Scripts + "/" + file);
 
 
             lttPath.Text = "<a target='_blank' href='" + path + "'>" + path + "</a>";
 
-            var exts = UmbracoSettings.ScriptFileTypes.Split(',').ToList();
-            if (Umbraco.Core.Configuration.UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc)
+            var exts = UmbracoConfig.For.UmbracoSettings().Content.ScriptFileTypes.ToList();
+            if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc)
             {
                 exts.Add("cshtml");
                 exts.Add("vbhtml");
             }
 
-            var dirs = Umbraco.Core.IO.SystemDirectories.Scripts;
-            if (Umbraco.Core.Configuration.UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc)
-                dirs += "," + Umbraco.Core.IO.SystemDirectories.MvcViews;
+            var dirs = SystemDirectories.Scripts;
+            if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc)
+                dirs += "," + SystemDirectories.MvcViews;
 
             // validate file
-            Umbraco.Core.IO.IOHelper.ValidateEditPath(Umbraco.Core.IO.IOHelper.MapPath(path), dirs.Split(','));
+            IOHelper.ValidateEditPath(IOHelper.MapPath(path), dirs.Split(','));
 
             // validate extension
-            Umbraco.Core.IO.IOHelper.ValidateFileExtension(Umbraco.Core.IO.IOHelper.MapPath(path), exts);
+            IOHelper.ValidateFileExtension(IOHelper.MapPath(path), exts);
 
 
             StreamReader SR;
             string S;
-            SR = File.OpenText(Umbraco.Core.IO.IOHelper.MapPath(path));
+            SR = File.OpenText(IOHelper.MapPath(path));
             S = SR.ReadToEnd();
             SR.Close();
 
@@ -106,10 +108,19 @@ namespace umbraco.cms.presentation.settings.scripts
             else if (file.EndsWith("master"))
                 editorSource.CodeBase = uicontrols.CodeArea.EditorType.HTML;
 
-            SaveButton = Panel1.Menu.NewIcon();
-            SaveButton.ImageURL = SystemDirectories.Umbraco + "/images/editor/save.gif";
-            SaveButton.AltText = "Save File";
+
+            var editor = Panel1.NewTabPage(ui.Text("settings","script"));
+            editor.Controls.Add(Pane7);
+
+            var props = Panel1.NewTabPage(ui.Text("properties"));
+            props.Controls.Add(Pane8);
+
+
+            SaveButton = Panel1.Menu.NewButton();
+            SaveButton.Text = ui.Text("save");
+            SaveButton.ButtonType = MenuButtonType.Primary;
             SaveButton.ID = "save";
+            SaveButton.CssClass = "client-side";
 
             if (editorSource.CodeBase == uicontrols.CodeArea.EditorType.HTML)
             {
@@ -135,7 +146,7 @@ namespace umbraco.cms.presentation.settings.scripts
                 Panel1.Menu.InsertSplitter();
 
                 uicontrols.MenuIconI helpIcon = Panel1.Menu.NewIcon();
-                helpIcon.OnClickCommand = umbraco.BasePages.ClientTools.Scripts.OpenModalWindow(umbraco.IO.IOHelper.ResolveUrl(umbraco.IO.SystemDirectories.Umbraco) + "/settings/modals/showumbracotags.aspx?alias=", ui.Text("template", "quickGuide"), 600, 580);
+                helpIcon.OnClickCommand = umbraco.BasePages.ClientTools.Scripts.OpenModalWindow(Umbraco.Core.IO.IOHelper.ResolveUrl(Umbraco.Core.IO.SystemDirectories.Umbraco) + "/settings/modals/showumbracotags.aspx?alias=", ui.Text("template", "quickGuide"), 600, 580);
                 helpIcon.ImageURL = UmbracoPath + "/images/editor/help.png";
                 helpIcon.AltText = ui.Text("template", "quickGuide");
 

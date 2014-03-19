@@ -2,7 +2,7 @@ using System.Web.Mvc;
 
 namespace Umbraco.Web.Mvc
 {
-	internal static class ViewDataContainerExtensions
+    internal static class ViewDataContainerExtensions
 	{
 		private class ViewDataContainer : IViewDataContainer
 		{
@@ -23,6 +23,8 @@ namespace Umbraco.Web.Mvc
 		{
 			var newContainer = new ViewDataContainer();
 			newContainer.ViewData.ModelState.Merge(container.ViewData.ModelState, prefix);
+            //change the html field name too
+		    newContainer.ViewData.TemplateInfo.HtmlFieldPrefix = prefix;
 			return newContainer;
 		}
 

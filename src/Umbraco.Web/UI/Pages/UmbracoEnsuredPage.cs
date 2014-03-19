@@ -28,7 +28,7 @@ namespace Umbraco.Web.UI.Pages
 
             try
             {
-                Security.ValidateCurrentUser(new HttpContextWrapper(Context), true);
+                Security.ValidateCurrentUser(true);
                 _hasValidated = true;
 
                 if (!Security.ValidateUserApp(CurrentApp))
@@ -46,9 +46,9 @@ namespace Umbraco.Web.UI.Pages
 
                 // Some umbraco pages should not be loaded on timeout, but instead reload the main application in the top window. Like the treeview for instance
                 if (RedirectToUmbraco)
-                    Response.Redirect(SystemDirectories.Umbraco + "/logout.aspx?", true);
+                    Response.Redirect(SystemDirectories.Umbraco + "/logout.aspx?t=" + Security.GetSessionId(), true);
                 else
-                    Response.Redirect(SystemDirectories.Umbraco + "/logout.aspx?redir=" + Server.UrlEncode(Request.RawUrl), true);
+                    Response.Redirect(SystemDirectories.Umbraco + "/logout.aspx?redir=" + Server.UrlEncode(Request.RawUrl) + "&t=" + Security.GetSessionId(), true);
             }
         }
 
@@ -65,6 +65,7 @@ namespace Umbraco.Web.UI.Pages
         /// <summary>
         /// Returns the current user
         /// </summary>
+        [Obsolete("This should no longer be used since it returns the legacy user object, use The Security.CurrentUser instead to return the proper user object")]
         protected User UmbracoUser
         {
             get
@@ -72,11 +73,11 @@ namespace Umbraco.Web.UI.Pages
                 //throw exceptions if not valid (true)
                 if (!_hasValidated)
                 {
-                    Security.ValidateCurrentUser(new HttpContextWrapper(Context), true);
+                    Security.ValidateCurrentUser(true);
                     _hasValidated = true;
                 }
                 
-                return Security.CurrentUser;
+                return new User(Security.CurrentUser);
             }
         }
         

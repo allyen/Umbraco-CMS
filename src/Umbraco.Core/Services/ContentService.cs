@@ -9,11 +9,13 @@ using Umbraco.Core.Events;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
+using Umbraco.Core.Models.Membership;
 using Umbraco.Core.Models.Rdbms;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.Caching;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.Repositories;
+using Umbraco.Core.Persistence.SqlSyntax;
 using Umbraco.Core.Persistence.UnitOfWork;
 using Umbraco.Core.Publishing;
 
@@ -49,12 +51,41 @@ namespace Umbraco.Core.Services
 
         public ContentService(IDatabaseUnitOfWorkProvider provider, RepositoryFactory repositoryFactory, IPublishingStrategy publishingStrategy)
         {
-	        if (provider == null) throw new ArgumentNullException("provider");
-	        if (repositoryFactory == null) throw new ArgumentNullException("repositoryFactory");
-	        if (publishingStrategy == null) throw new ArgumentNullException("publishingStrategy");
-	        _uowProvider = provider;
-	        _publishingStrategy = publishingStrategy;
+            if (provider == null) throw new ArgumentNullException("provider");
+            if (repositoryFactory == null) throw new ArgumentNullException("repositoryFactory");
+            if (publishingStrategy == null) throw new ArgumentNullException("publishingStrategy");
+            _uowProvider = provider;
+            _publishingStrategy = publishingStrategy;
             _repositoryFactory = repositoryFactory;
+        }
+
+        /// <summary>
+        /// Assigns a single permission to the current content item for the specified user ids
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="permission"></param>
+        /// <param name="userIds"></param>
+        public void AssignContentPermission(IContent entity, char permission, IEnumerable<int> userIds)
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateContentRepository(uow))
+            {
+                repository.AssignEntityPermission(entity, permission, userIds);
+            }
+        }
+
+        /// <summary>
+        /// Gets the list of permissions for the content item
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        public IEnumerable<EntityPermission> GetPermissionsForEntity(IContent content)
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateContentRepository(uow))
+            {
+                return repository.GetPermissionsForEntity(content.Id);
+            }
         }
 
         /// <summary>
@@ -145,7 +176,15 @@ namespace Umbraco.Core.Services
             var contentType = FindContentTypeByAlias(contentTypeAlias);
             var content = new Content(name, parentId, contentType);
 
+            //NOTE: I really hate the notion of these Creating/Created events - they are so inconsistent, I've only just found
+            // out that in these 'WithIdentity' methods, the Saving/Saved events were not fired, wtf. Anyways, they're added now.
             if (Creating.IsRaisedEventCancelled(new NewEventArgs<IContent>(content, contentTypeAlias, parentId), this))
+            {
+                content.WasCancelled = true;
+                return content;
+            }
+
+            if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IContent>(content), this))
             {
                 content.WasCancelled = true;
                 return content;
@@ -159,6 +198,8 @@ namespace Umbraco.Core.Services
                 repository.AddOrUpdate(content);
                 uow.Commit();
             }
+
+            Saved.RaiseEvent(new SaveEventArgs<IContent>(content, false), this);
 
             Created.RaiseEvent(new NewEventArgs<IContent>(content, false, contentTypeAlias, parentId), this);
 
@@ -185,7 +226,15 @@ namespace Umbraco.Core.Services
             var contentType = FindContentTypeByAlias(contentTypeAlias);
             var content = new Content(name, parent, contentType);
 
+            //NOTE: I really hate the notion of these Creating/Created events - they are so inconsistent, I've only just found
+            // out that in these 'WithIdentity' methods, the Saving/Saved events were not fired, wtf. Anyways, they're added now.
             if (Creating.IsRaisedEventCancelled(new NewEventArgs<IContent>(content, contentTypeAlias, parent), this))
+            {
+                content.WasCancelled = true;
+                return content;
+            }
+
+            if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IContent>(content), this))
             {
                 content.WasCancelled = true;
                 return content;
@@ -199,6 +248,8 @@ namespace Umbraco.Core.Services
                 repository.AddOrUpdate(content);
                 uow.Commit();
             }
+
+            Saved.RaiseEvent(new SaveEventArgs<IContent>(content, false), this);
 
             Created.RaiseEvent(new NewEventArgs<IContent>(content, false, contentTypeAlias, parent), this);
 
@@ -217,6 +268,19 @@ namespace Umbraco.Core.Services
             using (var repository = _repositoryFactory.CreateContentRepository(_uowProvider.GetUnitOfWork()))
             {
                 return repository.Get(id);
+            }
+        }
+
+        /// <summary>
+        /// Gets an <see cref="IContent"/> object by Id
+        /// </summary>
+        /// <param name="ids">Ids of the Content to retrieve</param>
+        /// <returns><see cref="IContent"/></returns>
+        public IEnumerable<IContent> GetByIds(IEnumerable<int> ids)
+        {
+            using (var repository = _repositoryFactory.CreateContentRepository(_uowProvider.GetUnitOfWork()))
+            {
+                return repository.GetAll(ids.ToArray());
             }
         }
 
@@ -321,9 +385,9 @@ namespace Umbraco.Core.Services
         /// </summary>
         /// <param name="content"><see cref="IContent"/> to retrieve ancestors for</param>
         /// <returns>An Enumerable list of <see cref="IContent"/> objects</returns>
-	    public IEnumerable<IContent> GetAncestors(IContent content)
-	    {
-	        var ids = content.Path.Split(',').Where(x => x != "-1" && x != content.Id.ToString(CultureInfo.InvariantCulture)).Select(int.Parse).ToArray();
+        public IEnumerable<IContent> GetAncestors(IContent content)
+        {
+            var ids = content.Path.Split(',').Where(x => x != "-1" && x != content.Id.ToString(CultureInfo.InvariantCulture)).Select(int.Parse).ToArray();
             if (ids.Any() == false)
                 return new List<IContent>();
 
@@ -331,9 +395,9 @@ namespace Umbraco.Core.Services
             {
                 return repository.GetAll(ids);
             }
-	    }
+        }
 
-	    /// <summary>
+        /// <summary>
         /// Gets a collection of <see cref="IContent"/> objects by Parent Id
         /// </summary>
         /// <param name="id">Id of the Parent to retrieve Children from</param>
@@ -417,7 +481,7 @@ namespace Umbraco.Core.Services
             return GetById(content.ParentId);
         }
 
-	    /// <summary>
+        /// <summary>
         /// Gets the published version of an <see cref="IContent"/> item
         /// </summary>
         /// <param name="id">Id of the <see cref="IContent"/> to retrieve version from</param>
@@ -508,11 +572,16 @@ namespace Umbraco.Core.Services
         /// <returns>True if the content has any children otherwise False</returns>
         public bool HasChildren(int id)
         {
+            return CountChildren(id) > 0;
+        }
+
+        internal int CountChildren(int id)
+        {
             using (var repository = _repositoryFactory.CreateContentRepository(_uowProvider.GetUnitOfWork()))
             {
                 var query = Query<IContent>.Builder.Where(x => x.ParentId == id);
-                int count = repository.Count(query);
-                return count > 0;
+                var count = repository.Count(query);
+                return count;
             }
         }
 
@@ -569,7 +638,7 @@ namespace Umbraco.Core.Services
             {
                 LogHelper.Error<ContentService>("An error occurred executing RePublishAll", ex);
                 return false;
-            }            
+            }
         }
 
         /// <summary>
@@ -588,7 +657,7 @@ namespace Umbraco.Core.Services
             catch (Exception ex)
             {
                 LogHelper.Error<ContentService>("An error occurred executing RePublishAll", ex);
-            }     
+            }
         }
 
         /// <summary>
@@ -600,7 +669,19 @@ namespace Umbraco.Core.Services
         public bool Publish(IContent content, int userId = 0)
         {
             var result = SaveAndPublishDo(content, userId);
+            LogHelper.Info<ContentService>("Call was made to ContentService.Publish, use PublishWithStatus instead since that method will provide more detailed information on the outcome");
 	        return result.Success;
+        }
+
+        /// <summary>
+        /// Publishes a single <see cref="IContent"/> object
+        /// </summary>
+        /// <param name="content">The <see cref="IContent"/> to publish</param>
+        /// <param name="userId">Optional Id of the User issueing the publishing</param>
+        /// <returns>True if publishing succeeded, otherwise False</returns>
+        public Attempt<PublishStatus> PublishWithStatus(IContent content, int userId = 0)
+        {
+            return SaveAndPublishDo(content, userId);
         }
 
         /// <summary>
@@ -609,16 +690,29 @@ namespace Umbraco.Core.Services
         /// <param name="content">The <see cref="IContent"/> to publish along with its children</param>
         /// <param name="userId">Optional Id of the User issueing the publishing</param>
         /// <returns>True if publishing succeeded, otherwise False</returns>
+        [Obsolete("Use PublishWithChildrenWithStatus instead, that method will provide more detailed information on the outcome and also allows the includeUnpublished flag")]
         public bool PublishWithChildren(IContent content, int userId = 0)
         {
             var result = PublishWithChildrenDo(content, userId, true);
-            
+
             //This used to just return false only when the parent content failed, otherwise would always return true so we'll
             // do the same thing for the moment
-	        if (!result.Any(x => x.Result.ContentItem.Id == content.Id))
-	            return false;
+            if (!result.Any(x => x.Result.ContentItem.Id == content.Id))
+                return false;
 
-	        return result.Single(x => x.Result.ContentItem.Id == content.Id).Success;	        
+            return result.Single(x => x.Result.ContentItem.Id == content.Id).Success;	        
+        }
+
+        /// <summary>
+        /// Publishes a <see cref="IContent"/> object and all its children
+        /// </summary>
+        /// <param name="content">The <see cref="IContent"/> to publish along with its children</param>
+        /// <param name="userId">Optional Id of the User issueing the publishing</param>
+        /// <param name="includeUnpublished">set to true if you want to also publish children that are currently unpublished</param>
+        /// <returns>True if publishing succeeded, otherwise False</returns>
+        public IEnumerable<Attempt<PublishStatus>> PublishWithChildrenWithStatus(IContent content, int userId = 0, bool includeUnpublished = false)
+        {
+            return PublishWithChildrenDo(content, userId, includeUnpublished);
         }
 
         /// <summary>
@@ -639,10 +733,23 @@ namespace Umbraco.Core.Services
         /// <param name="userId">Optional Id of the User issueing the publishing</param>
         /// <param name="raiseEvents">Optional boolean indicating whether or not to raise save events.</param>
         /// <returns>True if publishing succeeded, otherwise False</returns>
+        [Obsolete("Use SaveAndPublishWithStatus instead, that method will provide more detailed information on the outcome")]
         public bool SaveAndPublish(IContent content, int userId = 0, bool raiseEvents = true)
         {
             var result = SaveAndPublishDo(content, userId, raiseEvents);
 	        return result.Success;
+        }
+
+        /// <summary>
+        /// Saves and Publishes a single <see cref="IContent"/> object
+        /// </summary>
+        /// <param name="content">The <see cref="IContent"/> to save and publish</param>
+        /// <param name="userId">Optional Id of the User issueing the publishing</param>
+        /// <param name="raiseEvents">Optional boolean indicating whether or not to raise save events.</param>
+        /// <returns>True if publishing succeeded, otherwise False</returns>
+        public Attempt<PublishStatus> SaveAndPublishWithStatus(IContent content, int userId = 0, bool raiseEvents = true)
+        {
+            return SaveAndPublishDo(content, userId, raiseEvents);
         }
 
         /// <summary>
@@ -727,7 +834,7 @@ namespace Umbraco.Core.Services
                     var repository = _repositoryFactory.CreateContentRepository(uow);
                     //NOTE What about content that has the contenttype as part of its composition?
                     var query = Query<IContent>.Builder.Where(x => x.ContentTypeId == contentTypeId);
-                    var contents = repository.GetByQuery(query);
+                    var contents = repository.GetByQuery(query).ToArray();
 
                     if (Deleting.IsRaisedEventCancelled(new DeleteEventArgs<IContent>(contents), this))
                         return;
@@ -800,15 +907,13 @@ namespace Umbraco.Core.Services
 
         /// <summary>
         /// Permanently deletes versions from an <see cref="IContent"/> object prior to a specific date.
+        /// This method will never delete the latest version of a content item.
         /// </summary>
         /// <param name="id">Id of the <see cref="IContent"/> object to delete versions from</param>
         /// <param name="versionDate">Latest version date</param>
         /// <param name="userId">Optional Id of the User deleting versions of a Content object</param>
         public void DeleteVersions(int id, DateTime versionDate, int userId = 0)
         {
-            //TODO: We should check if we are going to delete the most recent version because if that happens it means the 
-            // entity is completely deleted and we should raise the normal Deleting/Deleted event
-
             if (DeletingVersions.IsRaisedEventCancelled(new DeleteRevisionsEventArgs(id, dateToRetain: versionDate), this))
                 return;
 
@@ -826,6 +931,7 @@ namespace Umbraco.Core.Services
 
         /// <summary>
         /// Permanently deletes specific version(s) from an <see cref="IContent"/> object.
+        /// This method will never delete the latest version of a content item.
         /// </summary>
         /// <param name="id">Id of the <see cref="IContent"/> object to delete a version from</param>
         /// <param name="versionId">Id of the version to delete</param>
@@ -835,17 +941,14 @@ namespace Umbraco.Core.Services
         {
             using (new WriteLock(Locker))
             {
-                //TODO: We should check if we are going to delete the most recent version because if that happens it means the 
-                // entity is completely deleted and we should raise the normal Deleting/Deleted event
+                if (DeletingVersions.IsRaisedEventCancelled(new DeleteRevisionsEventArgs(id, specificVersion: versionId), this))
+                    return;
 
                 if (deletePriorVersions)
                 {
                     var content = GetByVersion(versionId);
                     DeleteVersions(id, content.UpdateDate, userId);
                 }
-
-                if (DeletingVersions.IsRaisedEventCancelled(new DeleteRevisionsEventArgs(id, specificVersion: versionId), this))
-                    return;
 
                 var uow = _uowProvider.GetUnitOfWork();
                 using (var repository = _repositoryFactory.CreateContentRepository(uow))
@@ -991,7 +1094,7 @@ namespace Umbraco.Core.Services
                 }
 
                 //Ensure that Path and Level is updated on children
-                var children = GetChildren(content.Id);
+                var children = GetChildren(content.Id).ToArray();
                 if (children.Any())
                 {
                     foreach (var child in children)
@@ -1069,14 +1172,15 @@ namespace Umbraco.Core.Services
                     uow.Commit();
 
                     //Special case for the Upload DataType
-                    var uploadDataTypeId = new Guid(Constants.PropertyEditors.UploadField);
-                    if (content.Properties.Any(x => x.PropertyType.DataTypeId == uploadDataTypeId))
+                    //TODO: Should we handle this with events?
+
+                    if (content.Properties.Any(x => x.PropertyType.PropertyEditorAlias == Constants.PropertyEditors.UploadFieldAlias))
                     {
                         bool isUpdated = false;
                         var fs = FileSystemProviderManager.Current.GetFileSystemProvider<MediaFileSystem>();
 
                         //Loop through properties to check if the content contains media that should be deleted
-                        foreach (var property in content.Properties.Where(x => x.PropertyType.DataTypeId == uploadDataTypeId
+                        foreach (var property in content.Properties.Where(x => x.PropertyType.PropertyEditorAlias == Constants.PropertyEditors.UploadFieldAlias
                                                                                && string.IsNullOrEmpty(x.Value.ToString()) == false))
                         {
                             if (fs.FileExists(IOHelper.MapPath(property.Value.ToString())))
@@ -1105,22 +1209,18 @@ namespace Umbraco.Core.Services
                         }
                     }
 
-                    //Special case for the Tags DataType
-                    var tagsDataTypeId = new Guid(Constants.PropertyEditors.Tags);
-                    if (content.Properties.Any(x => x.PropertyType.DataTypeId == tagsDataTypeId))
+                    //Special case for the associated tags
+                    var tags = uow.Database.Fetch<TagRelationshipDto>("WHERE nodeId = @Id", new { Id = content.Id });
+                    foreach (var tag in tags)
                     {
-                        var tags = uow.Database.Fetch<TagRelationshipDto>("WHERE nodeId = @Id", new { Id = content.Id });
-                        foreach (var tag in tags)
-                        {
-                            uow.Database.Insert(new TagRelationshipDto { NodeId = copy.Id, TagId = tag.TagId });
-                        }
+                        uow.Database.Insert(new TagRelationshipDto { NodeId = copy.Id, TagId = tag.TagId, PropertyTypeId = tag.PropertyTypeId });
                     }
                 }
 
                 //NOTE This 'Relation' part should eventually be delegated to a RelationService
                 if (relateToOriginal)
                 {
-                    RelationType relationType = null;
+                    IRelationType relationType = null;
                     using (var relationTypeRepository = _repositoryFactory.CreateRelationTypeRepository(uow))
                     {
                         relationType = relationTypeRepository.Get(1);
@@ -1158,24 +1258,27 @@ namespace Umbraco.Core.Services
             }
         }
 
+
         /// <summary>
         /// Sends an <see cref="IContent"/> to Publication, which executes handlers and events for the 'Send to Publication' action.
         /// </summary>
         /// <param name="content">The <see cref="IContent"/> to send to publication</param>
         /// <param name="userId">Optional Id of the User issueing the send to publication</param>
         /// <returns>True if sending publication was succesfull otherwise false</returns>
-        internal bool SendToPublication(IContent content, int userId = 0)
+        public bool SendToPublication(IContent content, int userId = 0)
         {
 
             if (SendingToPublish.IsRaisedEventCancelled(new SendToPublishEventArgs<IContent>(content), this))
                 return false;
 
-            //TODO: Do some stuff here.. RunActionHandlers
+            //TODO: Do some stuff here.. ... what is it supposed to do ?
+            // pretty sure all that legacy stuff did was raise an event? and we no longer have IActionHandlers so no worries there.
 
             SentToPublish.RaiseEvent(new SendToPublishEventArgs<IContent>(content, false), this);
 
             Audit.Add(AuditTypes.SendToPublish, "Send to Publish performed by user", content.WriterId, content.Id);
 
+            //TODO: will this ever be false??
             return true;
         }
 
@@ -1294,7 +1397,7 @@ namespace Umbraco.Core.Services
             if (raiseEvents)
                 Saved.RaiseEvent(new SaveEventArgs<IContent>(items, false), this);
 
-            if(shouldBePublished.Any())
+            if (shouldBePublished.Any())
                 _publishingStrategy.PublishingFinalized(shouldBePublished, false);
 
             Audit.Add(AuditTypes.Sort, "Sorting content performed by user", userId, 0);
@@ -1303,42 +1406,6 @@ namespace Umbraco.Core.Services
         }
 
         #region Internal Methods
-      
-        /// <summary>
-        /// Internal method that Publishes a single <see cref="IContent"/> object for legacy purposes.
-        /// </summary>
-        /// <param name="content">The <see cref="IContent"/> to publish</param>
-        /// <param name="userId">Optional Id of the User issueing the publishing</param>
-        /// <returns>True if publishing succeeded, otherwise False</returns>
-        internal Attempt<PublishStatus> PublishInternal(IContent content, int userId = 0)
-        {
-            return SaveAndPublishDo(content, userId);
-        }
-
-	    /// <summary>
-	    /// Internal method that Publishes a <see cref="IContent"/> object and all its children for legacy purposes.
-	    /// </summary>
-	    /// <param name="content">The <see cref="IContent"/> to publish along with its children</param>
-	    /// <param name="userId">Optional Id of the User issueing the publishing</param>
-	    /// <param name="includeUnpublished">If set to true, this will also publish descendants that are completely unpublished, normally this will only publish children that have previously been published</param>
-	    /// <returns>True if publishing succeeded, otherwise False</returns>
-	    internal IEnumerable<Attempt<PublishStatus>> PublishWithChildrenInternal(
-            IContent content, int userId = 0, bool includeUnpublished = false)
-        {
-            return PublishWithChildrenDo(content, userId, includeUnpublished);
-        }
-
-        /// <summary>
-        /// Saves and Publishes a single <see cref="IContent"/> object
-        /// </summary>
-        /// <param name="content">The <see cref="IContent"/> to save and publish</param>
-        /// <param name="userId">Optional Id of the User issueing the publishing</param>
-        /// <param name="raiseEvents">Optional boolean indicating whether or not to raise save events.</param>
-        /// <returns>True if publishing succeeded, otherwise False</returns>
-        internal Attempt<PublishStatus> SaveAndPublishInternal(IContent content, int userId = 0, bool raiseEvents = true)
-        {
-            return SaveAndPublishDo(content, userId, raiseEvents);
-        }
 
         /// <summary>
         /// Gets a collection of <see cref="IContent"/> descendants by the first Parent.
@@ -1378,71 +1445,84 @@ namespace Umbraco.Core.Services
                 var list = new List<IContent>();
 
                 var uow = _uowProvider.GetUnitOfWork();
-                using (var repository = _repositoryFactory.CreateContentRepository(uow))
+
+                //First we're going to get the data that needs to be inserted before clearing anything, this 
+                //ensures that we don't accidentally leave the content xml table empty if something happens
+                //during the lookup process.
+
+                list.AddRange(contentTypeIds.Any() == false
+                    ? GetAllPublished()
+                    : contentTypeIds.SelectMany(GetPublishedContentOfContentType));
+
+                var xmlItems = new List<ContentXmlDto>();
+                foreach (var c in list)
                 {
-                    //First we're going to get the data that needs to be inserted before clearing anything, this 
-                    //ensures that we don't accidentally leave the content xml table empty if something happens
-                    //during the lookup process.
-
-                    list.AddRange(contentTypeIds.Any() == false 
-                        ? GetAllPublished() 
-                        : contentTypeIds.SelectMany(GetPublishedContentOfContentType));
-
-                    var xmlItems = new List<ContentXmlDto>();
-                    foreach (var c in list)
-                    {
-                        var xml = c.ToXml();
-                        xmlItems.Add(new ContentXmlDto {NodeId = c.Id, Xml = xml.ToString(SaveOptions.None)});
-                    }
-
-                    //Ok, now we need to remove the data and re-insert it, we'll do this all in one transaction too.
-                    using (var tr = uow.Database.GetTransaction())
-                    {
-                        if (contentTypeIds.Any() == false)
-                        {
-                            //Remove all Document records from the cmsContentXml table (DO NOT REMOVE Media/Members!)
-                            uow.Database.Execute(@"DELETE FROM cmsContentXml WHERE nodeId IN
-                                                (SELECT DISTINCT cmsContentXml.nodeId FROM cmsContentXml 
-                                                    INNER JOIN cmsDocument ON cmsContentXml.nodeId = cmsDocument.nodeId)");
-                        }
-                        else
-                        {
-                            foreach (var id in contentTypeIds)
-                            {
-                                //first we'll clear out the data from the cmsContentXml table for this type
-                                uow.Database.Execute(@"delete from cmsContentXml where nodeId in 
-(select cmsDocument.nodeId from cmsDocument 
-	inner join cmsContent on cmsDocument.nodeId = cmsContent.nodeId
-	where published = 1 and contentType = @contentTypeId)", new { contentTypeId = id });
-                            }
-                        }
-
-                        //bulk insert it into the database
-                        uow.Database.BulkInsertRecords(xmlItems, tr);
-                    }
+                    var xml = c.ToXml();
+                    xmlItems.Add(new ContentXmlDto { NodeId = c.Id, Xml = xml.ToString(SaveOptions.None) });
                 }
+
+                //Ok, now we need to remove the data and re-insert it, we'll do this all in one transaction too.
+                using (var tr = uow.Database.GetTransaction())
+                {
+                    if (contentTypeIds.Any() == false)
+                    {
+                        //Remove all Document records from the cmsContentXml table (DO NOT REMOVE Media/Members!) (based on inner join of cmsDocument)
+                        var subQuery = new Sql()
+                            .Select("DISTINCT cmsContentXml.nodeId")
+                            .From<ContentXmlDto>()
+                            .InnerJoin<DocumentDto>()
+                            .On<ContentXmlDto, DocumentDto>(left => left.NodeId, right => right.NodeId);
+
+                        var deleteSql = SqlSyntaxContext.SqlSyntaxProvider.GetDeleteSubquery("cmsContentXml", "nodeId", subQuery);
+                        uow.Database.Execute(deleteSql);
+                    }
+                    else
+                    {
+                        foreach (var id in contentTypeIds)
+                        {
+                            //first we'll clear out the data from the cmsContentXml table for this type
+                            var id1 = id;
+                            var subQuery = new Sql()
+                                .Select("cmsDocument.nodeId")
+                                .From<DocumentDto>()
+                                .InnerJoin<ContentDto>()
+                                .On<DocumentDto, ContentDto>(left => left.NodeId, right => right.NodeId)
+                                .Where<DocumentDto>(dto => dto.Published)
+                                .Where<ContentDto>(dto => dto.ContentTypeId == id1);
+
+                            var deleteSql = SqlSyntaxContext.SqlSyntaxProvider.GetDeleteSubquery("cmsContentXml", "nodeId", subQuery);
+                            uow.Database.Execute(deleteSql);
+                        }
+                    }
+
+                    //bulk insert it into the database
+                    uow.Database.BulkInsertRecords(xmlItems, tr);
+
+                    tr.Complete();    
+                }
+
                 Audit.Add(AuditTypes.Publish, "RebuildXmlStructures completed, the xml has been regenerated in the database", 0, -1);
-            }                        
+            }
         }
 
-	    /// <summary>
-	    /// Publishes a <see cref="IContent"/> object and all its children
-	    /// </summary>
-	    /// <param name="content">The <see cref="IContent"/> to publish along with its children</param>
-	    /// <param name="userId">Optional Id of the User issueing the publishing</param>
-	    /// <param name="includeUnpublished">If set to true, this will also publish descendants that are completely unpublished, normally this will only publish children that have previously been published</param>	    
-	    /// <returns>
-	    /// A list of publish statues. If the parent document is not valid or cannot be published because it's parent(s) is not published
-	    /// then the list will only contain one status item, otherwise it will contain status items for it and all of it's descendants that
-	    /// are to be published.
-	    /// </returns>
-	    private IEnumerable<Attempt<PublishStatus>> PublishWithChildrenDo(
+        /// <summary>
+        /// Publishes a <see cref="IContent"/> object and all its children
+        /// </summary>
+        /// <param name="content">The <see cref="IContent"/> to publish along with its children</param>
+        /// <param name="userId">Optional Id of the User issueing the publishing</param>
+        /// <param name="includeUnpublished">If set to true, this will also publish descendants that are completely unpublished, normally this will only publish children that have previously been published</param>	    
+        /// <returns>
+        /// A list of publish statues. If the parent document is not valid or cannot be published because it's parent(s) is not published
+        /// then the list will only contain one status item, otherwise it will contain status items for it and all of it's descendants that
+        /// are to be published.
+        /// </returns>
+        private IEnumerable<Attempt<PublishStatus>> PublishWithChildrenDo(
             IContent content, int userId = 0, bool includeUnpublished = false)
         {
-	        if (content == null) throw new ArgumentNullException("content");
+            if (content == null) throw new ArgumentNullException("content");
 
-	        using (new WriteLock(Locker))
-	        {
+            using (new WriteLock(Locker))
+            {
                 var result = new List<Attempt<PublishStatus>>();
 
                 //Check if parent is published (although not if its a root node) - if parent isn't published this Content cannot be published
@@ -1452,7 +1532,7 @@ namespace Umbraco.Core.Services
                         string.Format(
                             "Content '{0}' with Id '{1}' could not be published because its parent or one of its ancestors is not published.",
                             content.Name, content.Id));
-                    result.Add(new Attempt<PublishStatus>(false, new PublishStatus(content, PublishStatusType.FailedPathNotPublished)));
+                    result.Add(Attempt.Fail(new PublishStatus(content, PublishStatusType.FailedPathNotPublished)));
                     return result;
                 }
 
@@ -1463,10 +1543,10 @@ namespace Umbraco.Core.Services
                         string.Format("Content '{0}' with Id '{1}' could not be published because of invalid properties.",
                                       content.Name, content.Id));
                     result.Add(
-                        new Attempt<PublishStatus>(false, 
+                        Attempt.Fail(
                             new PublishStatus(content, PublishStatusType.FailedContentInvalid)
                                 {
-                                    InvalidProperties = ((ContentBase) content).LastInvalidProperties
+                                    InvalidProperties = ((ContentBase)content).LastInvalidProperties
                                 }));
                     return result;
                 }
@@ -1517,7 +1597,7 @@ namespace Umbraco.Core.Services
 
 
                 return publishedOutcome;
-	        }	        
+            }
         }
 
         /// <summary>
@@ -1563,13 +1643,13 @@ namespace Umbraco.Core.Services
         /// <param name="userId">Optional Id of the User issueing the publishing</param>
         /// <param name="raiseEvents">Optional boolean indicating whether or not to raise save events.</param>
         /// <returns>True if publishing succeeded, otherwise False</returns>
-	    private Attempt<PublishStatus> SaveAndPublishDo(IContent content, int userId = 0, bool raiseEvents = true)
+        private Attempt<PublishStatus> SaveAndPublishDo(IContent content, int userId = 0, bool raiseEvents = true)
         {
             if (raiseEvents)
             {
                 if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IContent>(content), this))
                 {
-                    return new Attempt<PublishStatus>(false, new PublishStatus(content, PublishStatusType.FailedCancelledByEvent));
+                    return Attempt.Fail(new PublishStatus(content, PublishStatusType.FailedCancelledByEvent));
                 }
             }
 
@@ -1581,11 +1661,14 @@ namespace Umbraco.Core.Services
 
                 //Check if parent is published (although not if its a root node) - if parent isn't published this Content cannot be published
                 publishStatus.StatusType = CheckAndLogIsPublishable(content);
-                //Content contains invalid property values and can therefore not be published - fire event?
-                publishStatus.StatusType = CheckAndLogIsValid(content);
-                //set the invalid properties (if there are any)
-                publishStatus.InvalidProperties = ((ContentBase) content).LastInvalidProperties;
-
+                //if it is not successful, then check if the props are valid
+                if ((int)publishStatus.StatusType < 10)
+                {
+                    //Content contains invalid property values and can therefore not be published - fire event?
+                    publishStatus.StatusType = CheckAndLogIsValid(content);
+                    //set the invalid properties (if there are any)
+                    publishStatus.InvalidProperties = ((ContentBase)content).LastInvalidProperties;
+                }
                 //if we're still successful, then publish using the strategy
                 if (publishStatus.StatusType == PublishStatusType.Success)
                 {
@@ -1603,6 +1686,10 @@ namespace Umbraco.Core.Services
                 using (var repository = _repositoryFactory.CreateContentRepository(uow))
                 {
                     //Since this is the Save and Publish method, the content should be saved even though the publish fails or isn't allowed
+                    if (content.HasIdentity == false)
+                    {
+                        content.CreatorId = userId;
+                    }
                     content.WriterId = userId;
 
                     repository.AddOrUpdate(content);
@@ -1639,8 +1726,8 @@ namespace Umbraco.Core.Services
 
                 Audit.Add(AuditTypes.Publish, "Save and Publish performed by user", userId, content.Id);
 
-                return new Attempt<PublishStatus>(publishStatus.StatusType == PublishStatusType.Success, publishStatus);
-	        }	        	        
+                return Attempt.If(publishStatus.StatusType == PublishStatusType.Success, publishStatus);
+            }
         }
 
         /// <summary>
@@ -1663,6 +1750,10 @@ namespace Umbraco.Core.Services
                 var uow = _uowProvider.GetUnitOfWork();
                 using (var repository = _repositoryFactory.CreateContentRepository(uow))
                 {
+                    if (content.HasIdentity == false)
+                    {
+                        content.CreatorId = userId;
+                    }
                     content.WriterId = userId;
 
                     //Only change the publish state if the "previous" version was actually published or marked as unpublished
@@ -1879,6 +1970,7 @@ namespace Umbraco.Core.Services
         /// <summary>
         /// Occurs before Create
         /// </summary>
+        [Obsolete("Use the Created event instead, the Creating and Created events both offer the same functionality, Creating event has been deprecated.")]
         public static event TypedEventHandler<IContentService, NewEventArgs<IContent>> Creating;
 
         /// <summary>

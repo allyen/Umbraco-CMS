@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -50,6 +51,7 @@ namespace Umbraco.Core.Models
             _contentTypeId = int.Parse(contentType.Id.ToString(CultureInfo.InvariantCulture));
             _properties = properties;
             _properties.EnsurePropertyTypes(PropertyTypes);
+            _additionalData = new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -73,6 +75,7 @@ namespace Umbraco.Core.Models
 			_contentTypeId = int.Parse(contentType.Id.ToString(CultureInfo.InvariantCulture));
 			_properties = properties;
 			_properties.EnsurePropertyTypes(PropertyTypes);
+            _additionalData = new Dictionary<string, object>();
 		}
 
 	    private static readonly PropertyInfo NameSelector = ExpressionHelper.GetPropertyInfo<ContentBase, string>(x => x.Name);
@@ -253,6 +256,16 @@ namespace Umbraco.Core.Models
             }
         }
 
+        private readonly IDictionary<string, object> _additionalData;
+        /// <summary>
+        /// Some entities may expose additional data that other's might not, this custom data will be available in this collection
+        /// </summary>
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        IDictionary<string, object> IUmbracoEntity.AdditionalData
+        {
+            get { return _additionalData; }
+        }
+
         /// <summary>
         /// List of PropertyGroups available on this Content object
         /// </summary>
@@ -293,10 +306,8 @@ namespace Umbraco.Core.Models
         /// <returns><see cref="Property"/> Value as a <see cref="TPassType"/></returns>
         public virtual TPassType GetValue<TPassType>(string propertyTypeAlias)
         {
-            if (Properties[propertyTypeAlias].Value is TPassType)
-                return (TPassType)Properties[propertyTypeAlias].Value;
-
-            return (TPassType)Convert.ChangeType(Properties[propertyTypeAlias].Value, typeof(TPassType));
+            var convertAttempt = Properties[propertyTypeAlias].Value.TryConvertTo<TPassType>();
+            return convertAttempt.Success ? convertAttempt.Result : default(TPassType);
         }
 
         /// <summary>
@@ -372,7 +383,7 @@ namespace Umbraco.Core.Models
         /// Sets the <see cref="System.Web.HttpPostedFile"/> value of a Property
         /// </summary>
         /// <param name="propertyTypeAlias">Alias of the PropertyType</param>
-        /// <param name="value">Value to set for the Property</param>
+        /// <param name="value">Value to set for the Property</param>        
         public virtual void SetPropertyValue(string propertyTypeAlias, HttpPostedFile value)
         {
             ContentExtensions.SetValue(this, propertyTypeAlias, value);
@@ -393,6 +404,7 @@ namespace Umbraco.Core.Models
         /// </summary>
         /// <param name="propertyTypeAlias">Alias of the PropertyType</param>
         /// <param name="value">Value to set for the Property</param>
+        [Obsolete("There is no reason for this overload since HttpPostedFileWrapper inherits from HttpPostedFileBase")]
         public virtual void SetPropertyValue(string propertyTypeAlias, HttpPostedFileWrapper value)
         {
             ContentExtensions.SetValue(this, propertyTypeAlias, value);
@@ -445,7 +457,7 @@ namespace Umbraco.Core.Models
         /// also reset the dirty changes made to the content's Properties (user defined)
         /// </summary>
         /// <param name="rememberPreviouslyChangedProperties"></param>
-        internal override void ResetDirtyProperties(bool rememberPreviouslyChangedProperties)
+        public override void ResetDirtyProperties(bool rememberPreviouslyChangedProperties)
         {
             base.ResetDirtyProperties(rememberPreviouslyChangedProperties);
 

@@ -169,47 +169,46 @@ namespace Umbraco.Core.ObjectResolution
 		{
 			get
 			{
-				// ensure we can
-				if (CanResolveBeforeFrozen == false)
-					Resolution.EnsureIsFrozen();
+			    using (Resolution.Reader(CanResolveBeforeFrozen))
+			    {
+                    // note: we apply .ToArray() to the output of CreateInstance() because that is an IEnumerable that
+                    // comes from the PluginManager we want to be _sure_ that it's not a Linq of some sort, but the
+                    // instances have actually been instanciated when we return.
 
-				// note: we apply .ToArray() to the output of CreateInstance() because that is an IEnumerable that
-				// comes from the PluginManager we want to be _sure_ that it's not a Linq of some sort, but the
-				// instances have actually been instanciated when we return.
+                    switch (LifetimeScope)
+                    {
+                        case ObjectLifetimeScope.HttpRequest:
+                            // create new instances per HttpContext
+                            using (var l = new UpgradeableReadLock(_lock))
+                            {
+                                // create if not already there
+                                if (CurrentHttpContext.Items[_httpContextKey] == null)
+                                {
+                                    l.UpgradeToWriteLock();
+                                    CurrentHttpContext.Items[_httpContextKey] = CreateInstances().ToArray();
+                                }
+                                return (TResolved[])CurrentHttpContext.Items[_httpContextKey];
+                            }
 
-				switch (LifetimeScope)
-				{
-					case ObjectLifetimeScope.HttpRequest:
-						// create new instances per HttpContext
-						using (var l = new UpgradeableReadLock(_lock))
-						{
-							// create if not already there
-							if (CurrentHttpContext.Items[_httpContextKey] == null)
-							{
-								l.UpgradeToWriteLock();
-								CurrentHttpContext.Items[_httpContextKey] = CreateInstances().ToArray();
-							}
-							return (TResolved[])CurrentHttpContext.Items[_httpContextKey];
-						}
+                        case ObjectLifetimeScope.Application:
+                            // create new instances per application
+                            using (var l = new UpgradeableReadLock(_lock))
+                            {
+                                // create if not already there
+                                if (_applicationInstances == null)
+                                {
+                                    l.UpgradeToWriteLock();
+                                    _applicationInstances = CreateInstances().ToArray();
+                                }
+                                return _applicationInstances;
+                            }
 
-					case ObjectLifetimeScope.Application:
-						// create new instances per application
-						using(var l = new UpgradeableReadLock(_lock))
-						{
-							// create if not already there
-							if (_applicationInstances == null)
-							{
-								l.UpgradeToWriteLock();
-								_applicationInstances = CreateInstances().ToArray();
-							}
-							return _applicationInstances;
-						}
-
-					case ObjectLifetimeScope.Transient:
-					default:
-						// create new instances each time
-						return CreateInstances().ToArray();
-				}				
+                        case ObjectLifetimeScope.Transient:
+                        default:
+                            // create new instances each time
+                            return CreateInstances().ToArray();
+                    }
+                }
 			}
 		}
 
@@ -323,7 +322,7 @@ namespace Umbraco.Core.ObjectResolution
 		}
 
 		/// <summary>
-		/// Clears the list of types.
+		/// Clears the list of types
 		/// </summary>
 		/// <exception cref="InvalidOperationException">the resolver does not support clearing types.</exception>
 		public virtual void Clear()
@@ -336,6 +335,20 @@ namespace Umbraco.Core.ObjectResolution
 				_instanceTypes.Clear();
 			}
 		}
+
+        /// <summary>
+        /// WARNING! Do not use this unless you know what you are doing, clear all types registered and instances
+        /// created. Typically only used if a resolver is no longer used in an application and memory is to be GC'd
+        /// </summary>
+        internal void ResetCollections()
+        {
+            using (new WriteLock(_lock))
+            {
+                _instanceTypes.Clear();
+                _sortedValues = null;
+                _applicationInstances = null;
+            }
+        }
 
 		/// <summary>
 		/// Inserts a type at the specified index.
@@ -459,6 +472,21 @@ namespace Umbraco.Core.ObjectResolution
 			}
 		}
 
+        /// <summary>
+        /// Gets the types in the collection of types.
+        /// </summary>
+        /// <returns>The types in the collection of types.</returns>
+        /// <remarks>Returns an enumeration, the list cannot be modified.</remarks>
+        public virtual IEnumerable<Type> GetTypes()
+        {
+            Type[] types;
+            using (new ReadLock(_lock))
+            {
+                types = _instanceTypes.ToArray();
+            }
+            return types;
+        }
+
 		/// <summary>
 		/// Returns a value indicating whether the specified type is already in the collection of types.
 		/// </summary>
@@ -488,7 +516,7 @@ namespace Umbraco.Core.ObjectResolution
         /// </summary>
         /// <param name="value">The type to test.</param>
         /// <exception cref="InvalidOperationException">the type is not a valid type for the resolver.</exception>
-        protected void EnsureCorrectType(Type value)
+        protected virtual void EnsureCorrectType(Type value)
         {
             if (!TypeHelper.IsTypeAssignableFrom<TResolved>(value))
                 throw new InvalidOperationException(string.Format(

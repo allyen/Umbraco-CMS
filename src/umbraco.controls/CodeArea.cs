@@ -11,7 +11,7 @@ using System.Web.UI.HtmlControls;
 using ClientDependency.Core;
 using System.Linq;
 using ClientDependency.Core.Controls;
-using umbraco.IO;
+using Umbraco.Core.Configuration;
 
 namespace umbraco.uicontrols
 {
@@ -35,6 +35,8 @@ namespace umbraco.uicontrols
         public bool AutoSuggest { get; set; }
         public string EditorMimeType { get; set; }
 
+        public ScrollingMenu Menu = new ScrollingMenu();
+
         public int OffSetX { get; set; }
         public int OffSetY { get; set; }
         public string Text
@@ -55,7 +57,7 @@ namespace umbraco.uicontrols
         {
             get
             {
-                return UmbracoSettings.ScriptDisableEditor == false;
+                return UmbracoConfig.For.UmbracoSettings().Content.ScriptEditorDisable == false;
             }
         }
 
@@ -82,6 +84,10 @@ namespace umbraco.uicontrols
                     ClientDependencyLoader.Instance.RegisterDependency(1, "CodeMirror/js/mode/css/css.js", "UmbracoClient", ClientDependencyType.Javascript);
                 }
 
+                ClientDependencyLoader.Instance.RegisterDependency(2, "CodeMirror/js/lib/util/search.js", "UmbracoClient", ClientDependencyType.Javascript);
+                ClientDependencyLoader.Instance.RegisterDependency(2, "CodeMirror/js/lib/util/searchcursor.js", "UmbracoClient", ClientDependencyType.Javascript);
+                ClientDependencyLoader.Instance.RegisterDependency(2, "CodeMirror/js/lib/util/dialog.js", "UmbracoClient", ClientDependencyType.Javascript);
+                ClientDependencyLoader.Instance.RegisterDependency(2, "CodeMirror/js/lib/util/dialog.css", "UmbracoClient", ClientDependencyType.Css);
 
                 ClientDependencyLoader.Instance.RegisterDependency(2, "CodeMirror/js/lib/codemirror.css", "UmbracoClient", ClientDependencyType.Css);
                 ClientDependencyLoader.Instance.RegisterDependency(3, "CodeMirror/css/umbracoCustom.css", "UmbracoClient", ClientDependencyType.Css);
@@ -102,7 +108,8 @@ namespace umbraco.uicontrols
             }
 
             CodeTextBox.TextMode = TextBoxMode.MultiLine;
-            
+
+            this.Controls.Add(Menu);
             this.Controls.Add(CodeTextBox);
 
         }
@@ -137,9 +144,10 @@ namespace umbraco.uicontrols
             {
                 writer.WriteBeginTag("div");
                 writer.WriteAttribute("id", this.ClientID);
-                writer.WriteAttribute("class", this.CssClass);
+                writer.WriteAttribute("class", "umb-editor umb-codeeditor " + this.CssClass);
                 this.ControlStyle.AddAttributesToRender(writer);
                 writer.Write(HtmlTextWriter.TagRightChar);
+                Menu.RenderControl(writer);
                 CodeTextBox.RenderControl(writer);
                 writer.WriteEndTag("div");
 
@@ -154,6 +162,7 @@ namespace umbraco.uicontrols
                 {
                     //reduce the width if using code mirror because of the line numbers
                     OffSetX += 20;
+                    OffSetY += 50;
                 }
 
                 jsEventCode += @"   
@@ -216,7 +225,8 @@ namespace umbraco.uicontrols
                                                 lineNumbers: true" +
                                                 extraKeys + @"
                                                 });
-                                  
+                                    
+                                    //resizeTextArea(m_textEditor, " + OffSetX.ToString() + "," + OffSetY.ToString() + @");
                                     updateLineInfo(codeEditor);
                                 ";
 

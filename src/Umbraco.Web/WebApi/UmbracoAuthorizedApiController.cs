@@ -3,10 +3,20 @@ using System.Web;
 using System.Web.Http;
 using Umbraco.Core.Configuration;
 using Umbraco.Web.Security;
+using Umbraco.Web.WebApi.Filters;
 using umbraco.BusinessLogic;
 
 namespace Umbraco.Web.WebApi
 {
+    /// <summary>
+    /// A base controller that ensures all requests are authorized - the user is logged in. 
+    /// </summary>
+    /// <remarks>
+    /// This controller will also append a custom header to the response if the user is logged in using forms authentication 
+    /// which indicates the seconds remaining before their timeout expires.
+    /// </remarks>
+    [IsBackOffice]
+    [UmbracoUserTimeoutFilter]
     [UmbracoAuthorize]
     public abstract class UmbracoAuthorizedApiController : UmbracoApiController
     {
@@ -25,21 +35,19 @@ namespace Umbraco.Web.WebApi
         /// <summary>
         /// Returns the currently logged in Umbraco User
         /// </summary>
+        [Obsolete("This should no longer be used since it returns the legacy user object, use The Security.CurrentUser instead to return the proper user object")]
         protected User UmbracoUser
         {
             get
-            {
+            {                
                 //throw exceptions if not valid (true)
                 if (!_userisValidated)
                 {
-                    var ctx = TryGetHttpContext();
-                    if (ctx.Success == false) 
-                        throw new InvalidOperationException("To get a current user, this method must occur in a web request");
-                    Security.ValidateCurrentUser(ctx.Result, true);
+                    Security.ValidateCurrentUser(true);
                     _userisValidated = true;
                 }
 
-                return Security.CurrentUser;
+                return new User(Security.CurrentUser);
             }
         }
 

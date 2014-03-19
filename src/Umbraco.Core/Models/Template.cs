@@ -30,14 +30,6 @@ namespace Umbraco.Core.Models
         //private static readonly PropertyInfo MasterTemplateIdSelector = ExpressionHelper.GetPropertyInfo<Template, int>(x => x.MasterTemplateId);
         private static readonly PropertyInfo MasterTemplateAliasSelector = ExpressionHelper.GetPropertyInfo<Template, string>(x => x.MasterTemplateAlias);
         
-
-        internal Template(string path)
-            : base(path)
-        {
-            base.Path = path;
-            ParentId = -1;
-        }
-
         public Template(string path, string name, string alias)
             : base(path)
         {
@@ -157,18 +149,18 @@ namespace Umbraco.Core.Models
         public override bool IsValid()
         {
             var exts = new List<string>();
-            if (UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc)
+            if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc)
             {
                 exts.Add("cshtml");
                 exts.Add("vbhtml");
             }
             else
             {
-                exts.Add(UmbracoSettings.UseAspNetMasterPages ? "master" : "aspx");
+                exts.Add(UmbracoConfig.For.UmbracoSettings().Templates.UseAspNetMasterPages ? "master" : "aspx");
             }
 
             var dirs = SystemDirectories.Masterpages;
-            if (UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc)
+            if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc)
                 dirs += "," + SystemDirectories.MvcViews;
 
             //Validate file
@@ -190,6 +182,12 @@ namespace Umbraco.Core.Models
 
             if (Key == Guid.Empty)
                 Key = Guid.NewGuid();
+        }
+
+
+        public void SetMasterTemplate(ITemplate masterTemplate)
+        {
+            MasterTemplateId = new Lazy<int>(() => masterTemplate.Id);
         }
     }
 }

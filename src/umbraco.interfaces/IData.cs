@@ -3,6 +3,7 @@ using System.Xml;
 
 namespace umbraco.interfaces
 {
+
     /// <summary>
     /// Internal interface used to decorate any IData that can be optimized when exporting
     /// XML like in the packaging service. Instead of relying on the IData to go get the value
@@ -17,6 +18,7 @@ namespace umbraco.interfaces
     /// The IData is part of the IDataType interface for creating new data types in the umbraco backoffice. 
     /// The IData represents the actual value entered by the user.
     /// </summary>
+    [Obsolete("IData is obsolete and is no longer used, it will be removed from the codebase in future versions")]
 	public interface IData 
 	{
         /// <summary>

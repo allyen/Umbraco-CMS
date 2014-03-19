@@ -4,6 +4,7 @@ using System.Collections;
 using System.Xml;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
 using umbraco.DataLayer;
@@ -154,7 +155,7 @@ namespace umbraco.cms.businesslogic.template
             }
             dr.Close();
 
-			if (Umbraco.Core.Configuration.UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc && ViewHelper.ViewExists(this))
+			if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc && ViewHelper.ViewExists(this))
                 _design = ViewHelper.GetFileContents(this);
             else
                 _design = MasterPageHelper.GetFileContents(this);
@@ -265,13 +266,13 @@ namespace umbraco.cms.businesslogic.template
                 _design = value.Trim(NewLineChars);
 
                 //we only switch to MVC View editing if the template has a view file, and MVC editing is enabled
-				if (Umbraco.Core.Configuration.UmbracoSettings.DefaultRenderingEngine == RenderingEngine.Mvc && !MasterPageHelper.IsMasterPageSyntax(_design))
+                if (UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine == RenderingEngine.Mvc && !MasterPageHelper.IsMasterPageSyntax(_design))
 				{
 					MasterPageHelper.RemoveMasterPageFile(this.Alias);
 					MasterPageHelper.RemoveMasterPageFile(_oldAlias);
 					_design = ViewHelper.UpdateViewFile(this, _oldAlias);
 				}
-				else if (UmbracoSettings.UseAspNetMasterPages)
+				else if (UmbracoConfig.For.UmbracoSettings().Templates.UseAspNetMasterPages)
 				{
 					ViewHelper.RemoveViewFile(this.Alias);
 					ViewHelper.RemoveViewFile(_oldAlias);
@@ -288,7 +289,7 @@ namespace umbraco.cms.businesslogic.template
         public XmlNode ToXml(XmlDocument doc)
         {
             XmlNode template = doc.CreateElement("Template");
-            template.AppendChild(xmlHelper.addTextNode(doc, "Name", this.Text));
+            template.AppendChild(xmlHelper.addTextNode(doc, "Name", base.Text));
             template.AppendChild(xmlHelper.addTextNode(doc, "Alias", this.Alias));
 
             if (this.MasterTemplate != 0)
@@ -351,7 +352,7 @@ namespace umbraco.cms.businesslogic.template
 	    /// </remarks>
 	    private static RenderingEngine DetermineRenderingEngine(Template t, string design = null)
 		{
-			var engine = Umbraco.Core.Configuration.UmbracoSettings.DefaultRenderingEngine;
+            var engine = UmbracoConfig.For.UmbracoSettings().Templates.DefaultRenderingEngine;
 
 			if (!design.IsNullOrWhiteSpace() && MasterPageHelper.IsMasterPageSyntax(design))
 			{
@@ -398,9 +399,8 @@ namespace umbraco.cms.businesslogic.template
 
         private static Template MakeNew(string name, BusinessLogic.User u, Template master, string design)
         {
-
             // CMSNode MakeNew(int parentId, Guid objectType, int userId, int level, string text, Guid uniqueID)
-            CMSNode n = CMSNode.MakeNew(-1, ObjectType, u.Id, 1, name, Guid.NewGuid());
+            var node = MakeNew(-1, ObjectType, u.Id, 1, name, Guid.NewGuid());
 
             //ensure unique alias 
             name = helpers.Casing.SafeAlias(name);
@@ -410,38 +410,37 @@ namespace umbraco.cms.businesslogic.template
 
             if (name.Length > 100)
                 name = name.Substring(0, 95) + "...";
-
           
             SqlHelper.ExecuteNonQuery("INSERT INTO cmsTemplate (NodeId, Alias, design, master) VALUES (@nodeId, @alias, @design, @master)",
-                                      SqlHelper.CreateParameter("@nodeId", n.Id),
+                                      SqlHelper.CreateParameter("@nodeId", node.Id),
                                       SqlHelper.CreateParameter("@alias", name),
                                       SqlHelper.CreateParameter("@design", ' '),
                                       SqlHelper.CreateParameter("@master", DBNull.Value));
 
-            Template t = new Template(n.Id);
-            NewEventArgs e = new NewEventArgs();
-            t.OnNew(e);
-
+            var template = new Template(node.Id);
             if (master != null)
-                t.MasterTemplate = master.Id;
+                template.MasterTemplate = master.Id;
 
-			switch (DetermineRenderingEngine(t, design))
+			switch (DetermineRenderingEngine(template, design))
 			{
 				case RenderingEngine.Mvc:
-					ViewHelper.CreateViewFile(t);
+					ViewHelper.CreateViewFile(template);
 					break;
 				case RenderingEngine.WebForms:
-					MasterPageHelper.CreateMasterPage(t);
+					MasterPageHelper.CreateMasterPage(template);
 					break;
 			}
 
 			//if a design is supplied ensure it is updated.
-			if (!design.IsNullOrWhiteSpace())
+			if (design.IsNullOrWhiteSpace() == false)
 			{
-				t.ImportDesign(design);
+				template.ImportDesign(design);
 			}
 
-            return t;
+            var e = new NewEventArgs();
+            template.OnNew(e);
+
+            return template;
         }
 
         private static string EnsureUniqueAlias(string alias, int attempts)
@@ -769,21 +768,9 @@ namespace umbraco.cms.businesslogic.template
 		
         public static Template Import(XmlNode n, User u)
         {
-            string alias = xmlHelper.GetNodeValue(n.SelectSingleNode("Alias"));
-
-            Template t = Template.GetByAlias(alias);
-	        var design = xmlHelper.GetNodeValue(n.SelectSingleNode("Design"));
-
-            if (t == null)
-            {
-				//create the template with the design if one is specified
-				t = MakeNew(xmlHelper.GetNodeValue(n.SelectSingleNode("Name")), u, 
-					design.IsNullOrWhiteSpace() ? null : design);
-            }
-
-            t.Alias = alias;
-
-            return t;
+            var element = System.Xml.Linq.XElement.Parse(n.OuterXml);
+            var templates = ApplicationContext.Current.Services.PackagingService.ImportTemplates(element, u.Id);
+            return new Template(templates.First().Id);
         }
         
 

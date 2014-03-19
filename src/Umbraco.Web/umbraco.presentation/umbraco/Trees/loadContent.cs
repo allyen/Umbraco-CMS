@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Umbraco.Core.Configuration;
 using umbraco.BusinessLogic.Actions;
 using umbraco.businesslogic;
 using umbraco.cms.businesslogic.web;
@@ -13,7 +14,8 @@ namespace umbraco
     /// <summary>
     /// Handles loading the content tree into umbraco's application tree
     /// </summary>
-    [Tree(Constants.Applications.Content, "content", "Content", silent: true)]
+    [Obsolete("This is no longer used and will be removed from the codebase in the future")]
+    //[Tree(Constants.Applications.Content, "content", "Content", silent: true)]
     public class loadContent : BaseContentTree
     {
 
@@ -113,10 +115,6 @@ namespace umbraco
         {
             actions.Clear();
             actions.Add(ActionNew.Instance);
-            if (UmbracoSettings.EnableCanvasEditing)
-            {
-                actions.Add(ActionLiveEdit.Instance);
-            }
             actions.Add(ContextMenuSeperator.Instance);
             actions.Add(ActionDelete.Instance);
             actions.Add(ContextMenuSeperator.Instance);
@@ -125,6 +123,8 @@ namespace umbraco
             actions.Add(ContextMenuSeperator.Instance);
             actions.Add(ActionSort.Instance);
             actions.Add(ActionRollback.Instance);
+            actions.Add(ContextMenuSeperator.Instance);
+            actions.Add(ActionChangeDocType.Instance);
             actions.Add(ContextMenuSeperator.Instance);
             actions.Add(ActionPublish.Instance);
             actions.Add(ActionToPublish.Instance);

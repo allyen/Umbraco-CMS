@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
 using Umbraco.Core.Models.Rdbms;
@@ -10,6 +12,7 @@ using Umbraco.Core.Persistence.Caching;
 using Umbraco.Core.Persistence.Factories;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.Relators;
+using Umbraco.Core.Persistence.SqlSyntax;
 using Umbraco.Core.Persistence.UnitOfWork;
 
 namespace Umbraco.Core.Persistence.Repositories
@@ -54,23 +57,25 @@ namespace Umbraco.Core.Persistence.Repositories
                 yield return dto.ContentTypeNodeId;
             }
         }
-
-        /// <summary>
-        /// We need to override this method to ensure that any content cache is cleared
-        /// </summary>
-        /// <param name="entity"></param>
-        /// <remarks>
-        /// see: http://issues.umbraco.org/issue/U4-1963
-        /// </remarks>
-        public override void PersistUpdatedItem(IEntity entity)
+        
+        protected virtual PropertyType CreatePropertyType(string propertyEditorAlias, DataTypeDatabaseType dbType, string propertyTypeAlias)
         {
-            InMemoryCacheProvider.Current.Clear(typeof(IContent));
-            RuntimeCacheProvider.Current.Clear(typeof(IContent));
-            base.PersistUpdatedItem(entity);
+            return new PropertyType(propertyEditorAlias, dbType);
         }
 
         protected void PersistNewBaseContentType(ContentTypeDto dto, IContentTypeComposition entity)
         {
+            //Cannot add a duplicate content type type
+            var exists = Database.ExecuteScalar<int>(@"SELECT COUNT(*) FROM cmsContentType
+INNER JOIN umbracoNode ON cmsContentType.nodeId = umbracoNode.id
+WHERE cmsContentType." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("alias") + @"= @alias
+AND umbracoNode.nodeObjectType = @objectType",
+                new { alias = entity.Alias, objectType = NodeObjectTypeId });
+            if (exists > 0)
+            {
+                throw new DuplicateNameException("An item with the alias " + entity.Alias + " already exists");
+            }
+
             //Logic for setting Path, Level and SortOrder
             var parent = Database.First<NodeDto>("WHERE id = @ParentId", new { ParentId = entity.ParentId });
             int level = parent.Level + 1;
@@ -155,19 +160,37 @@ namespace Umbraco.Core.Persistence.Repositories
             foreach (var propertyType in entity.PropertyTypes)
             {
                 var tabId = propertyType.PropertyGroupId != null ? propertyType.PropertyGroupId.Value : default(int);
+                //If the Id of the DataType is not set, we resolve it from the db by its PropertyEditorAlias
+                if (propertyType.DataTypeDefinitionId == 0 || propertyType.DataTypeDefinitionId == default(int))
+                {
+                    AssignDataTypeFromPropertyEditor(propertyType);
+                }
                 var propertyTypeDto = propertyFactory.BuildPropertyTypeDto(tabId, propertyType);
                 int typePrimaryKey = Convert.ToInt32(Database.Insert(propertyTypeDto));
                 propertyType.Id = typePrimaryKey; //Set Id on new PropertyType
 
-                //Update the current PropertyType with correct ControlId and DatabaseType
+                //Update the current PropertyType with correct PropertyEditorAlias and DatabaseType
                 var dataTypeDto = Database.FirstOrDefault<DataTypeDto>("WHERE nodeId = @Id", new { Id = propertyTypeDto.DataTypeId });
-                propertyType.DataTypeId = dataTypeDto.ControlId;
+                propertyType.PropertyEditorAlias = dataTypeDto.PropertyEditorAlias;
                 propertyType.DataTypeDatabaseType = dataTypeDto.DbType.EnumParse<DataTypeDatabaseType>(true);
             }
         }
 
         protected void PersistUpdatedBaseContentType(ContentTypeDto dto, IContentTypeComposition entity)
         {
+
+            //Cannot update to a duplicate alias
+            var exists = Database.ExecuteScalar<int>(@"SELECT COUNT(*) FROM cmsContentType
+INNER JOIN umbracoNode ON cmsContentType.nodeId = umbracoNode.id
+WHERE cmsContentType." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("alias") + @"= @alias
+AND umbracoNode.nodeObjectType = @objectType
+AND umbracoNode.id <> @id",
+                new { id = dto.NodeId, alias = entity.Alias, objectType = NodeObjectTypeId });
+            if (exists > 0)
+            {
+                throw new DuplicateNameException("An item with the alias " + entity.Alias + " already exists");
+            }
+
             var propertyGroupFactory = new PropertyGroupFactory(entity.Id);
 
             var nodeDto = dto.NodeDto;
@@ -255,6 +278,7 @@ namespace Umbraco.Core.Persistence.Repositories
                 foreach (var item in items)
                 {
                     //Before a PropertyType can be deleted, all Properties based on that PropertyType should be deleted.
+                    Database.Delete<TagRelationshipDto>("WHERE propertyTypeId = @Id", new { Id = item });
                     Database.Delete<PropertyDataDto>("WHERE propertytypeid = @Id", new {Id = item});
                     Database.Delete<PropertyTypeDto>("WHERE contentTypeId = @Id AND id = @PropertyTypeId",
                                                      new {Id = entity.Id, PropertyTypeId = item});
@@ -306,6 +330,15 @@ namespace Umbraco.Core.Persistence.Repositories
             foreach (var propertyType in entity.PropertyTypes)
             {
                 var tabId = propertyType.PropertyGroupId != null ? propertyType.PropertyGroupId.Value : default(int);
+                //If the Id of the DataType is not set, we resolve it from the db by its PropertyEditorAlias
+                if (propertyType.DataTypeDefinitionId == 0 || propertyType.DataTypeDefinitionId == default(int))
+                {
+                    AssignDataTypeFromPropertyEditor(propertyType);
+                }
+
+                //validate the alias! 
+                ValidateAlias(propertyType);
+
                 var propertyTypeDto = propertyGroupFactory.BuildPropertyTypeDto(tabId, propertyType);
                 int typePrimaryKey = propertyType.HasIdentity
                                          ? Database.Update(propertyTypeDto)
@@ -342,7 +375,7 @@ namespace Umbraco.Core.Persistence.Repositories
 
             var dtos = Database.Fetch<PropertyTypeGroupDto, PropertyTypeDto, DataTypeDto, PropertyTypeGroupDto>(new GroupPropertyTypeRelator().Map, sql);
 
-            var propertyGroupFactory = new PropertyGroupFactory(id, createDate, updateDate);
+            var propertyGroupFactory = new PropertyGroupFactory(id, createDate, updateDate, CreatePropertyType);
             var propertyGroups = propertyGroupFactory.BuildEntity(dtos);
             return new PropertyGroupCollection(propertyGroups);
         }
@@ -359,29 +392,88 @@ namespace Umbraco.Core.Persistence.Repositories
             var dtos = Database.Fetch<PropertyTypeDto, DataTypeDto>(sql);
 
             //TODO Move this to a PropertyTypeFactory
-            var list = (from dto in dtos
-                        where (dto.PropertyTypeGroupId > 0) == false
-                        select
-                            new PropertyType(dto.DataTypeDto.ControlId,
-                                             dto.DataTypeDto.DbType.EnumParse<DataTypeDatabaseType>(true))
-                                {
-                                    Alias = dto.Alias,
-                                    DataTypeDefinitionId = dto.DataTypeId,
-                                    Description = dto.Description,
-                                    Id = dto.Id,
-                                    Name = dto.Name,
-                                    HelpText = dto.HelpText,
-                                    Mandatory = dto.Mandatory,
-                                    SortOrder = dto.SortOrder,
-                                    ValidationRegExp = dto.ValidationRegExp,
-                                    CreateDate = createDate,
-                                    UpdateDate = updateDate
-                                }).ToList();
-
+            var list = new List<PropertyType>();
+            foreach (var dto in dtos.Where(x => (x.PropertyTypeGroupId > 0) == false))
+            {
+                var propType = CreatePropertyType(dto.DataTypeDto.PropertyEditorAlias, dto.DataTypeDto.DbType.EnumParse<DataTypeDatabaseType>(true), dto.Alias);
+                propType.Alias = dto.Alias;
+                propType.DataTypeDefinitionId = dto.DataTypeId;
+                propType.Description = dto.Description;
+                propType.Id = dto.Id;
+                propType.Name = dto.Name;
+                propType.HelpText = dto.HelpText;
+                propType.Mandatory = dto.Mandatory;
+                propType.SortOrder = dto.SortOrder;
+                propType.ValidationRegExp = dto.ValidationRegExp;
+                propType.CreateDate = createDate;
+                propType.UpdateDate = updateDate;
+                list.Add(propType);
+            }
             //Reset dirty properties
             Parallel.ForEach(list, currentFile => currentFile.ResetDirtyProperties(false));
 
             return new PropertyTypeCollection(list);
+        }
+
+        protected void ValidateAlias(PropertyType pt)
+        {
+            Mandate.That<InvalidOperationException>(string.IsNullOrEmpty(pt.Alias) == false,
+                                    () =>
+                                    {
+                                        var message =
+                                            string.Format(
+                                                "{0} '{1}' cannot have an empty Alias. This is most likely due to invalid characters stripped from the Alias.",
+                                                "Property Type",
+                                                pt.Name);
+                                        var exception = new InvalidOperationException(message);
+
+                                        LogHelper.Error<ContentTypeBaseRepository<TId, TEntity>>(message, exception);
+                                        throw exception;
+                                    });
+        }
+
+        protected void ValidateAlias(TEntity entity)
+        {
+            Mandate.That<InvalidOperationException>(string.IsNullOrEmpty(entity.Alias) == false,
+                                    () =>
+                                    {
+                                        var message =
+                                            string.Format(
+                                                "{0} '{1}' cannot have an empty Alias. This is most likely due to invalid characters stripped from the Alias.",
+                                                typeof(TEntity).Name,
+                                                entity.Name);
+                                        var exception = new InvalidOperationException(message);
+
+                                        LogHelper.Error<ContentTypeBaseRepository<TId, TEntity>>(message, exception);
+                                        throw exception;
+                                    });
+        }
+
+        /// <summary>
+        /// Try to set the data type id based on its ControlId
+        /// </summary>
+        /// <param name="propertyType"></param>
+        private void AssignDataTypeFromPropertyEditor(PropertyType propertyType)
+        {
+            //we cannot try to assign a data type of it's empty
+            if (propertyType.PropertyEditorAlias.IsNullOrWhiteSpace() == false)
+            {
+                var sql = new Sql()
+                    .Select("*")
+                    .From<DataTypeDto>()
+                    .Where("propertyEditorAlias = @propertyEditorAlias", new { propertyEditorAlias = propertyType.PropertyEditorAlias })
+                    .OrderBy<DataTypeDto>(typeDto => typeDto.DataTypeId);
+                var datatype = Database.FirstOrDefault<DataTypeDto>(sql);
+                //we cannot assign a data type if one was not found
+                if (datatype != null)
+                {
+                    propertyType.DataTypeDefinitionId = datatype.DataTypeId;
+                }
+                else
+                {
+                    LogHelper.Warn<ContentTypeBaseRepository<TId, TEntity>>("Could not assign a data type for the property type " + propertyType.Alias + " since no data type was found with a property editor " + propertyType.PropertyEditorAlias);
+                }
+            }
         }
     }
 }

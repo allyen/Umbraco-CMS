@@ -20,23 +20,23 @@ namespace Umbraco.Web.Mvc
 	[UmbracoAuthorize]
     public abstract class UmbracoAuthorizedController : UmbracoController
 	{
+
         private bool _userisValidated = false;
 
         /// <summary>
         /// Returns the currently logged in Umbraco User
         /// </summary>
+        [Obsolete("This should no longer be used since it returns the legacy user object, use The Security.CurrentUser instead to return the proper user object")]
         protected User UmbracoUser
         {
             get
             {
-                //throw exceptions if not valid (true)
                 if (!_userisValidated)
                 {
-                    Security.ValidateCurrentUser(HttpContext, true);
+                    Security.ValidateCurrentUser();
                     _userisValidated = true;
                 }
-
-                return Security.CurrentUser;
+                return new User(Security.CurrentUser);
             }
         }
 

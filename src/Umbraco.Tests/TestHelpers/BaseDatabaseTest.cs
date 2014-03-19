@@ -4,6 +4,7 @@ using System.Data.SqlServerCe;
 using System.IO;
 using NUnit.Framework;
 using Umbraco.Core;
+using Umbraco.Core.Cache;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.ObjectResolution;
 using Umbraco.Core.Persistence;
@@ -54,19 +55,22 @@ namespace Umbraco.Tests.TestHelpers
             
 
             RepositoryResolver.Current = new RepositoryResolver(
-                new RepositoryFactory());
+                new RepositoryFactory(true));  //disable all repo caches for tests!
 
             SqlSyntaxProvidersResolver.Current = new SqlSyntaxProvidersResolver(
                 new List<Type> { typeof(MySqlSyntaxProvider), typeof(SqlCeSyntaxProvider), typeof(SqlServerSyntaxProvider) }) { CanResolveBeforeFrozen = true };
 
             Resolution.Freeze();
+
+            //disable cache
+            var cacheHelper = CacheHelper.CreateDisabledCacheHelper();
+
             ApplicationContext.Current = new ApplicationContext(
                 //assign the db context
                 new DatabaseContext(new DefaultDatabaseFactory()),
                 //assign the service context
-                new ServiceContext(new PetaPocoUnitOfWorkProvider(), new FileUnitOfWorkProvider(), new PublishingStrategy()),
-                //disable cache
-                false)
+                new ServiceContext(new PetaPocoUnitOfWorkProvider(), new FileUnitOfWorkProvider(), new PublishingStrategy(), cacheHelper),
+                cacheHelper)
                 {
                     IsReady = true
                 };

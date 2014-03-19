@@ -14,6 +14,7 @@ namespace umbraco.cms.businesslogic.datatype
     /// <summary>
     /// Any data type in umbraco can have PreValues, which is a simple Key/Value collection of items attached to a specific instance of the data type.
     /// </summary>
+    [Obsolete("This class is no longer used and will be removed from the codebase in the future.")]
     public class PreValues
     {
         private static ISqlHelper SqlHelper
@@ -28,15 +29,15 @@ namespace umbraco.cms.businesslogic.datatype
         /// <returns></returns>
         public static SortedList GetPreValues(int DataTypeId)
         {
-            SortedList retval = new SortedList();
-            IRecordsReader dr = SqlHelper.ExecuteReader(
-                "Select id, sortorder, [value] from cmsDataTypePreValues where DataTypeNodeId = @dataTypeId order by sortorder",
+            var retval = new SortedList();
+            var dr = SqlHelper.ExecuteReader(
+                "Select id, sortorder, [value], alias from cmsDataTypePreValues where DataTypeNodeId = @dataTypeId order by sortorder",
                 SqlHelper.CreateParameter("@dataTypeId", DataTypeId));
 
             int counter = 0;
             while (dr.Read())
             {
-                retval.Add(counter, new PreValue(dr.GetInt("id"), dr.GetInt("sortorder"), dr.GetString("value")));
+                retval.Add(counter, new PreValue(dr.GetInt("id"), dr.GetInt("sortorder"), dr.GetString("value"), dr.GetString("alias")));
                 counter++;
             }
             dr.Close();
