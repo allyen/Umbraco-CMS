@@ -511,8 +511,8 @@ namespace umbraco.cms.businesslogic.web
                 }
             }
 
-            CheckDiskCacheForUpdate();
-
+            return hasAccess;
+        }
 
         public static ProtectionType GetProtectionType(int DocumentId)
         {
@@ -533,6 +533,8 @@ namespace umbraco.cms.businesslogic.web
 
         public static bool IsProtected(int DocumentId, string Path)
         {
+            CheckDiskCacheForUpdate();
+
             bool isProtected = false;
 
             if (!CheckedPages.ContainsKey(DocumentId))
@@ -722,7 +724,7 @@ namespace umbraco.cms.businesslogic.web
 
                 _lastDiskCacheReadTime = DateTime.UtcNow;
                 _clearAccessXmlContent = true;
-                clearCheckPages();
+                ClearCheckPages();
             }
         }
 
