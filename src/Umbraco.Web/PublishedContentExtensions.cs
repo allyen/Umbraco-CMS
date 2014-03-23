@@ -1030,7 +1030,7 @@ namespace Umbraco.Web
         }
         
         // broken until we defined FIX_AXES
-        internal static IEnumerable<IPublishedContent> AncestorsOrSelf(this IPublishedContent content, bool orSelf, Func<IPublishedContent, bool> func)
+        public static IEnumerable<IPublishedContent> AncestorsOrSelf(this IPublishedContent content, bool orSelf, Func<IPublishedContent, bool> func)
         {
 #if FIX_AXES
             return content.EnumerateAncestors(orSelf).Where(x => func == null || func(x));
@@ -1225,7 +1225,7 @@ namespace Umbraco.Web
         }
         
         // broken until we defined FIX_AXES
-        internal static IEnumerable<IPublishedContent> DescendantsOrSelf(this IPublishedContent content, bool orSelf, Func<IPublishedContent, bool> func)
+        public static IEnumerable<IPublishedContent> DescendantsOrSelf(this IPublishedContent content, bool orSelf, Func<IPublishedContent, bool> func)
         {
 #if FIX_AXES
             return content.EnumerateDescendants(orSelf).Where(x => func == null || func(x));
