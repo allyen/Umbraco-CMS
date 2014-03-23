@@ -170,8 +170,8 @@ namespace Umbraco.Core.Strings
             }).WithConfig(CleanStringType.Alias, new Config
             {
                 PreFilter = ApplyUrlReplaceCharacters,
-                IsTerm = (c, leading) => leading 
-                    ? char.IsLetter(c) // only letters
+                IsTerm = (c, leading) => leading
+                    ? char.IsLetter(c) || c == '_' // only letters or underscore - but underscore can be used only in doctypealias
                     : (char.IsLetterOrDigit(c) || c == '_'), // letter, digit or underscore
                 StringType = CleanStringType.Ascii | CleanStringType.UmbracoCase,
                 BreakTermsOnUpper = false
