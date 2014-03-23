@@ -15,7 +15,7 @@ namespace Umbraco.Web
 {
     internal static class ImageCropperBaseExtensions
     {
-       
+
         internal static ImageCropData GetImageCrop(this string json, string id)
         {
             var ic = new ImageCropData();
@@ -26,7 +26,10 @@ namespace Umbraco.Web
                     var imageCropperSettings = JsonConvert.DeserializeObject<List<ImageCropData>>(json);
                     ic = imageCropperSettings.GetCrop(id);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LogHelper.Error(typeof(ImageCropperBaseExtensions), "Could not parse the json string: " + json, ex);
+                }
             }
             return ic;
         }
@@ -40,50 +43,13 @@ namespace Umbraco.Web
                 {
                     imageCrops = JsonConvert.DeserializeObject<ImageCropDataSet>(json);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
-                    var e = ex;
+                    LogHelper.Error(typeof(ImageCropperBaseExtensions), "Could not parse the json string: " + json, ex);
                 }
             }
 
             return imageCrops;
-        }
-
-
-
-        internal static bool HasPropertyAndValue(this IPublishedContent publishedContent, string propertyAlias)
-        {
-            try
-            {
-               
-                if (propertyAlias != null && publishedContent.HasProperty(propertyAlias)
-                    && publishedContent.HasValue(propertyAlias))
-                {
-                    var propertyAliasValue = publishedContent.GetPropertyValue<string>(propertyAlias);
-                    if (propertyAliasValue.DetectIsJson() && propertyAliasValue.Length <= 2)
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Warn<IPublishedContent>("The cache unicorn is not happy with node id: " + publishedContent.Id + " - http://issues.umbraco.org/issue/U4-4146");
-                
-                var cropsProperty = publishedContent.Properties.FirstOrDefault(x => x.PropertyTypeAlias == propertyAlias);
-
-                if (cropsProperty != null && !string.IsNullOrEmpty(cropsProperty.Value.ToString()))
-                {
-                    var propertyAliasValue = cropsProperty.Value.ToString();
-                    if (propertyAliasValue.DetectIsJson() && propertyAliasValue.Length <= 2)
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-            }
-            return false;
         }
 
         internal static ImageCropData GetCrop(this ImageCropDataSet dataset, string cropAlias)
@@ -94,7 +60,8 @@ namespace Umbraco.Web
             return dataset.Crops.GetCrop(cropAlias);
         }
 
-        internal static ImageCropData GetCrop(this IEnumerable<ImageCropData> dataset, string cropAlias){
+        internal static ImageCropData GetCrop(this IEnumerable<ImageCropData> dataset, string cropAlias)
+        {
             if (dataset == null || !dataset.Any())
                 return null;
 
@@ -108,65 +75,30 @@ namespace Umbraco.Web
 
         internal static bool HasPropertyAndValueAndCrop(this IPublishedContent publishedContent, string propertyAlias, string cropAlias)
         {
-            try
+            if (propertyAlias != null && publishedContent.HasProperty(propertyAlias)
+                && publishedContent.HasValue(propertyAlias))
             {
-                if (propertyAlias != null && publishedContent.HasProperty(propertyAlias)
-                    && publishedContent.HasValue(propertyAlias))
+                var propertyAliasValue = publishedContent.GetPropertyValue<string>(propertyAlias);
+                if (propertyAliasValue.DetectIsJson() && propertyAliasValue.Length <= 2)
                 {
-                    var propertyAliasValue = publishedContent.GetPropertyValue<string>(propertyAlias);
-                    if (propertyAliasValue.DetectIsJson() && propertyAliasValue.Length <= 2)
-                    {
-                        return false;
-                    }
-                    var allTheCrops = propertyAliasValue.SerializeToCropDataSet();
-                    var selectedCrop = allTheCrops.GetCrop(cropAlias);
-
-                    if (selectedCrop != null)
-                        return true;
-
                     return false;
-
-               }
-            }
-            catch (Exception ex)
-            {
-                LogHelper.Warn<IPublishedContent>("The cache unicorn is not happy with node id: " + publishedContent.Id + " - http://issues.umbraco.org/issue/U4-4146");
-                var cropsProperty = publishedContent.Properties.FirstOrDefault(x => x.PropertyTypeAlias == propertyAlias);
-
-                if (cropsProperty != null && !string.IsNullOrEmpty(cropsProperty.Value.ToString()))
-                {
-                    var propertyAliasValue = cropsProperty.Value.ToString();
-                    if (propertyAliasValue.DetectIsJson() && propertyAliasValue.Length <= 2)
-                    {
-                        return false;
-                    }
-                    var allTheCrops = propertyAliasValue.SerializeToCropDataSet();
-                    return allTheCrops.GetCrop(cropAlias) != null;
                 }
+                var allTheCrops = propertyAliasValue.SerializeToCropDataSet();
+                if (allTheCrops != null && allTheCrops.Crops.Any())
+                {
+                    var crop = cropAlias != null
+                                    ? allTheCrops.Crops.First(x => x.Alias.ToLowerInvariant() == cropAlias.ToLowerInvariant())
+
+                                    : allTheCrops.Crops.First();
+                    if (crop != null)
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
             return false;
         }
 
-        internal static string GetPropertyValueHack(this IPublishedContent publishedContent, string propertyAlias)
-        {
-            string propertyValue = null;
-            try
-            {
-                if (propertyAlias != null && publishedContent.HasProperty(propertyAlias)
-                    && publishedContent.HasValue(propertyAlias))
-                {
-                    propertyValue = publishedContent.GetPropertyValue<string>(propertyAlias);
-                }
-            }
-            catch (Exception ex)
-            {
-                var cropsProperty = publishedContent.Properties.FirstOrDefault(x => x.PropertyTypeAlias == propertyAlias);
-                if (cropsProperty != null)
-                {
-                    propertyValue = cropsProperty.Value.ToString();
-                }
-            }
-            return propertyValue;
-        }
     }
 }

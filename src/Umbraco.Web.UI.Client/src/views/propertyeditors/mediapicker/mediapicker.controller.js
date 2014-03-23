@@ -1,7 +1,7 @@
 //this controller simply tells the dialogs service to open a mediaPicker window
 //with a specified callback, this callback will receive an object with a selection on it
 angular.module('umbraco').controller("Umbraco.PropertyEditors.MediaPickerController",
-    function($rootScope, $scope, dialogService, mediaResource, imageHelper, $timeout) {
+    function($rootScope, $scope, dialogService, mediaResource, mediaHelper, $timeout) {
 
         //check the pre-values for multi-picker
         var multiPicker = $scope.model.config.multiPicker !== '0' ? true : false;
@@ -15,15 +15,26 @@ angular.module('umbraco').controller("Umbraco.PropertyEditors.MediaPickerControl
             $scope.ids = []; 
 
             if ($scope.model.value) {
-                $scope.ids = $scope.model.value.split(',');
+                var ids = $scope.model.value.split(',');
 
-                mediaResource.getByIds($scope.ids).then(function (medias) {
+                mediaResource.getByIds(ids).then(function (medias) {
                     //img.media = media;
                     _.each(medias, function (media, i) {
-                        media.src = imageHelper.getImagePropertyValue({ imageModel: media });
-                        media.thumbnail = imageHelper.getThumbnailFromPath(media.src);
-                        $scope.images.push(media);
+                        
+                        //only show non-trashed items
+                        if(media.parentId >= -1){
+                            if(!media.thumbnail){
+                                media.thumbnail = mediaHelper.resolveFile(media, true);
+                            }
+
+                            //media.src = mediaHelper.getImagePropertyValue({ imageModel: media });
+                            //media.thumbnail = mediaHelper.getThumbnailFromPath(media.src);
+                            $scope.images.push(media);
+                            $scope.ids.push(media.id);   
+                        }
                     });
+
+                    $scope.sync();
                 });
             }
         }
@@ -48,8 +59,10 @@ angular.module('umbraco').controller("Umbraco.PropertyEditors.MediaPickerControl
                     }
                     
                     _.each(data, function(media, i) {
-                        media.src = imageHelper.getImagePropertyValue({ imageModel: media });
-                        media.thumbnail = imageHelper.getThumbnailFromPath(media.src);
+
+                        if(!media.thumbnail){
+                            media.thumbnail = mediaHelper.resolveFile(media, true);
+                        }
                         
                         $scope.images.push(media);
                         $scope.ids.push(media.id);
