@@ -20,7 +20,7 @@ namespace umbraco {
     /// <summary>
     /// THIS CLASS IS PURELY HERE TO SUPPORT THE QUERYBYXPATH METHOD WHICH IS USED BY OTHER LEGACY BITS
     /// </summary>    
-    internal class LegacyRequestHandler
+    public class LegacyRequestHandler
     {
         private const string PageXPathQueryStart = "/root";
         private const string UrlName = "@urlName";
