@@ -162,6 +162,36 @@ function mediaHelper(umbRequestHelper) {
             return result;            
         },
 
+        /*jshint loopfunc: true */
+        hasFilePropertyType : function(mediaItem){
+           function _iterateProps(props){
+               var result = false;
+               for(var resolver in _mediaFileResolvers) {
+                   var property = _.find(props, function(property){ return property.editor === resolver; });
+                   if(property){
+                       result = true;
+                       break;
+                   }
+               }
+               return result;
+           }
+
+           //we either have properties raw on the object, or spread out on tabs
+           var result = false;
+           if(mediaItem.properties){
+               result = _iterateProps(mediaItem.properties);
+           }else if(mediaItem.tabs){
+               for(var tab in mediaItem.tabs) {
+                   if(mediaItem.tabs[tab].properties){
+                       result = _iterateProps(mediaItem.tabs[tab].properties);
+                       if(result){
+                           break;
+                       }
+                   }
+               }
+           }
+           return result;
+        },
 
         /**
          * @ngdoc function
@@ -218,6 +248,11 @@ function mediaHelper(umbRequestHelper) {
          * @param {string} imagePath Image path, ex: /media/1234/my-image.jpg
          */
         getThumbnailFromPath: function (imagePath) {
+
+            //If the path is not an image we cannot get a thumb
+            if (!this.detectIfImageByExtension(imagePath)) {
+                return null;
+            }
 
             //get the proxy url for big thumbnails (this ensures one is always generated)
             var thumbnailUrl = umbRequestHelper.getApiUrl(

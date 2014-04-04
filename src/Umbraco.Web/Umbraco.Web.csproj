@@ -286,6 +286,7 @@
     <Compile Include="Cache\MemberCacheRefresher.cs" />
     <Compile Include="Cache\MemberGroupCacheRefresher.cs" />
     <Compile Include="Cache\PageCacheRefresher.cs" />
+    <Compile Include="Cache\PublicAccessCacheRefresher.cs" />
     <Compile Include="Cache\StylesheetCacheRefresher.cs" />
     <Compile Include="Cache\StylesheetPropertyCacheRefresher.cs" />
     <Compile Include="Cache\TemplateCacheRefresher.cs" />
@@ -351,6 +352,7 @@
     <Compile Include="Models\ImageCropData.cs" />
     <Compile Include="Models\IRenderModel.cs" />
     <Compile Include="Models\PostRedirectModel.cs" />
+    <Compile Include="Models\PublishedProperty.cs" />
     <Compile Include="Mvc\RedirectToUmbracoUrlResult.cs" />
     <Compile Include="PublishedCache\MemberPublishedContent.cs" />
     <Compile Include="PublishedCache\RawValueProperty.cs" />
@@ -1854,7 +1856,9 @@
     <Content Include="umbraco.presentation\umbraco\controls\ProgressBar.ascx">
       <SubType>ASPXCodeBehind</SubType>
     </Content>
-    <Content Include="umbraco.presentation\umbraco\controls\GenericProperties\GenericProperty.ascx" />
+    <Content Include="umbraco.presentation\umbraco\controls\GenericProperties\GenericProperty.ascx">
+      <SubType>ASPXCodeBehind</SubType>
+    </Content>
     <Content Include="umbraco.presentation\umbraco\controls\Images\ImageViewerUpdater.asmx" />
     <Content Include="umbraco.presentation\umbraco\controls\Images\UploadMediaImage.ascx">
       <SubType>ASPXCodeBehind</SubType>

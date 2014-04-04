@@ -4,7 +4,9 @@ angular.module("umbraco")
         function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies) {
 
             var dialogOptions = $scope.$parent.dialogOptions;
+
             $scope.onlyImages = dialogOptions.onlyImages;
+            $scope.showDetails = dialogOptions.showDetails;
             $scope.multiPicker = (dialogOptions.multiPicker && dialogOptions.multiPicker !== "0") ? true : false;
             $scope.startNodeId = dialogOptions.startNodeId ? dialogOptions.startNodeId : -1;
 
@@ -65,19 +67,8 @@ angular.module("umbraco")
                 //mediaResource.rootMedia()
                 mediaResource.getChildren(folder.id)
                     .then(function(data) {
-
-                        $scope.images = [];
-
                         $scope.searchTerm = "";
-                        if(data.items){
-                             $scope.images = data.items;
-                        }
-
-                        if($scope.onlyImages){
-                            $scope.images = _.reject($scope.images, function(item) {
-                                return item.contentTypeAlias.toLowerCase() !== "folder" && item.thumbnail === "";
-                            });    
-                        }
+                        $scope.images = data.items ? data.items : [];
                     });
 
                 $scope.options.formData.currentFolder = folder.id;
@@ -91,17 +82,20 @@ angular.module("umbraco")
             $scope.clickHandler = function(image, ev, select) {
                 ev.preventDefault();
                 
-                if (image.contentTypeAlias.toLowerCase() == 'folder' && !select) {
+                if (image.isFolder && !select) {
                     $scope.gotoFolder(image);
                 }else{
                     eventsService.emit("dialogs.mediaPicker.select", image);
                     
+                    //we have 3 options add to collection (if multi) show details, or submit it right back to the callback
                     if ($scope.multiPicker) {
                         $scope.select(image);
                         image.cssclass = ($scope.dialogData.selection.indexOf(image) > -1) ? "selected" : "";
-                    }else {
+                    }else if($scope.showDetails) {
                         $scope.target= image;
-                        $scope.target.url = mediaHelper.resolveFile(image); // getMediaPropertyValue({mediaModel: image});
+                        $scope.target.url = mediaHelper.resolveFile(image);
+                    }else{
+                        $scope.submit(image);
                     }
                 }
             };
@@ -114,29 +108,7 @@ angular.module("umbraco")
                 $scope.target = undefined;
             };
 
-            $scope.selectFolder= function(folder) {
-                if ($scope.multiPicker) {
-                    $scope.select(folder);
-                }
-                else {
-                    $scope.submit(folder);
-                }                
-            };
-
-            $scope.selectMediaItem = function(image) {
-                if (image.contentTypeAlias.toLowerCase() == 'folder') {
-                    $scope.gotoFolder(image);
-                }else{
-                    eventsService.emit("dialogs.mediaPicker.select", image);
-                    
-                    if ($scope.multiPicker) {
-                        $scope.select(image);
-                    }
-                    else {
-                        $scope.submit(image);
-                    }
-                }
-            };
+           
 
             //default root item
             if(!$scope.target){
