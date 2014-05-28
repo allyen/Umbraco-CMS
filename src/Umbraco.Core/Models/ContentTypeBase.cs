@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using Umbraco.Core.Models.EntityBase;
+using Umbraco.Core.Strings;
 
 namespace Umbraco.Core.Models
 {
@@ -173,7 +174,8 @@ namespace Umbraco.Core.Models
             {
                 SetPropertyValueAndDetectChanges(o =>
                     {
-                        _alias = value.ToSafeAlias();
+                        //_alias = value.ToSafeAlias();
+                        _alias = value.ToCleanString(CleanStringType.Alias | CleanStringType.UmbracoCase);
                         return _alias;
                     }, _alias, AliasSelector);
             }
@@ -319,7 +321,7 @@ namespace Umbraco.Core.Models
             }
         }
 
-        private readonly IDictionary<string, object> _additionalData;
+        private IDictionary<string, object> _additionalData;
         /// <summary>
         /// Some entities may expose additional data that other's might not, this custom data will be available in this collection
         /// </summary>
@@ -328,11 +330,6 @@ namespace Umbraco.Core.Models
         {
             get { return _additionalData; }
         }
-
-        /// <summary>
-        /// Some entities may expose additional data that other's might not, this custom data will be available in this collection
-        /// </summary>
-        public IDictionary<string, object> AdditionalData { get; private set; }
 
         /// <summary>
         /// Gets or sets a list of integer Ids for allowed ContentTypes
@@ -354,7 +351,9 @@ namespace Umbraco.Core.Models
         /// <summary>
         /// List of PropertyGroups available on this ContentType
         /// </summary>
-        /// <remarks>A PropertyGroup corresponds to a Tab in the UI</remarks>
+        /// <remarks>
+        /// A PropertyGroup corresponds to a Tab in the UI
+        /// </remarks>
         [DataMember]
         public virtual PropertyGroupCollection PropertyGroups
         {
@@ -370,7 +369,13 @@ namespace Umbraco.Core.Models
         /// List of PropertyTypes available on this ContentType.
         /// This list aggregates PropertyTypes across the PropertyGroups.
         /// </summary>
+        /// <remarks>
+        /// Marked as DoNotClone because the result of this property is not the natural result of the data, it is 
+        /// a union of data so when auto-cloning if the setter is used it will be setting the unnatural result of the 
+        /// data. We manually clone this instead. 
+        /// </remarks>
         [IgnoreDataMember]
+        [DoNotClone]
         public virtual IEnumerable<PropertyType> PropertyTypes
         {
             get
@@ -386,6 +391,14 @@ namespace Umbraco.Core.Models
         }
 
         /// <summary>
+        /// Returns the property type collection containing types that are non-groups - used for tests
+        /// </summary>
+        internal IEnumerable<PropertyType> NonGroupedPropertyTypes
+        {
+            get { return _propertyTypes; }
+        }
+
+            /// <summary>
         /// A boolean flag indicating if a property type has been removed from this instance.
         /// </summary>
         /// <remarks>
@@ -581,6 +594,20 @@ namespace Umbraco.Core.Models
             {
                 propertyType.ResetDirtyProperties();
             }
+        }
+
+        public override object DeepClone()
+        {
+            var clone = (ContentTypeBase)base.DeepClone();
+
+            //need to manually wire up the event handlers for the property type collections - we've ensured
+            // its ignored from the auto-clone process because its return values are unions, not raw and 
+            // we end up with duplicates, see: http://issues.umbraco.org/issue/U4-4842
+
+            clone._propertyTypes = (PropertyTypeCollection)_propertyTypes.DeepClone();
+            clone._propertyTypes.CollectionChanged += clone.PropertyTypesChanged;
+
+            return clone;
         }
     }
 }

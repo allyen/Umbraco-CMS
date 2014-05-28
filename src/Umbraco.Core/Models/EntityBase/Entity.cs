@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
 
 namespace Umbraco.Core.Models.EntityBase
 {
@@ -93,7 +96,7 @@ namespace Umbraco.Core.Models.EntityBase
         }
 
         /// <summary>
-        /// /// Gets or sets the WasCancelled flag, which is used to track
+        /// Gets or sets the WasCancelled flag, which is used to track
         /// whether some action against an entity was cancelled through some event.
         /// This only exists so we have a way to check if an event was cancelled through
         /// the new api, which also needs to take effect in the legacy api.
@@ -155,6 +158,7 @@ namespace Umbraco.Core.Models.EntityBase
         /// <summary>
         /// Indicates whether the current entity has an identity, eg. Id.
         /// </summary>
+        [DataMember]
         public virtual bool HasIdentity
         {
             get
@@ -225,6 +229,17 @@ namespace Umbraco.Core.Models.EntityBase
             if (!_hash.HasValue)
                 _hash = !HasIdentity ? new int?(base.GetHashCode()) : new int?(Id.GetHashCode() * 397 ^ GetType().GetHashCode());
             return _hash.Value;
+        }
+
+        public virtual object DeepClone()
+        {
+            //Memberwise clone on Entity will work since it doesn't have any deep elements
+            // for any sub class this will work for standard properties as well that aren't complex object's themselves.
+            var clone = (Entity)MemberwiseClone();
+            //Automatically deep clone ref properties that are IDeepCloneable
+            DeepCloneHelper.DeepCloneRefProperties(this, clone);
+            clone.ResetDirtyProperties(false);
+            return clone;
         }
     }
 }

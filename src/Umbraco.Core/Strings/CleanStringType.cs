@@ -57,8 +57,9 @@ namespace Umbraco.Core.Strings
         /// <summary>
         /// Umbraco "safe alias" case.
         /// </summary>
-        /// <remarks>This is for backward compatibility. Casing is unchanged within terms,
-        /// and is pascal otherwise.</remarks>
+        /// <remarks>Uppercases the first char of each term except for the first
+        /// char of the string, everything else including the first char of the
+        /// string is unchanged.</remarks>
         UmbracoCase = 0x20,
 
 
@@ -91,7 +92,7 @@ namespace Umbraco.Core.Strings
         /// <summary>
         /// Flag mask for role.
         /// </summary>
-        RoleMask = UrlSegment | Alias | FileName | ConvertCase,
+        RoleMask = UrlSegment | Alias | UnderscoreAlias | FileName | ConvertCase,
 
         /// <summary>
         ///  Url role.
@@ -111,6 +112,12 @@ namespace Umbraco.Core.Strings
         /// <summary>
         /// ConvertCase role.
         /// </summary>
-        ConvertCase = 0x080000
+        ConvertCase = 0x080000,
+
+        /// <summary>
+        /// UnderscoreAlias role.
+        /// </summary>
+        /// <remarks>This is Alias + leading underscore.</remarks>
+        UnderscoreAlias = 0x100000
     }
 }

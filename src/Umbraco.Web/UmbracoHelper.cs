@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -254,7 +255,7 @@ namespace Umbraco.Web
                 
                 
                 //NOTE: the value could have html encoded values, so we need to deal with that
-                macroProps.Add(i.Key.ToLower(), (i.Value is string) ? HttpUtility.HtmlDecode(i.Value.ToString()) : i.Value);
+                macroProps.Add(i.Key.ToLowerInvariant(), (i.Value is string) ? HttpUtility.HtmlDecode(i.Value.ToString()) : i.Value);
             }
             var macroControl = m.renderMacro(macroProps,
                 umbracoPage.Elements,
@@ -436,8 +437,9 @@ namespace Umbraco.Web
             //currently assigned node. The PublishedContentRequest will be null if:
             // * we are rendering a partial view or child action
             // * we are rendering a view from a custom route
-            if (UmbracoContext.PublishedContentRequest == null 
+            if ((UmbracoContext.PublishedContentRequest == null 
                 || UmbracoContext.PublishedContentRequest.PublishedContent.Id != currentPage.Id)
+                && currentPage.Id > 0) // in case we're rendering a detached content (id == 0)
             {
                 item.NodeId = currentPage.Id.ToString();
             }

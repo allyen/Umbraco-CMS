@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Configuration;
@@ -156,6 +157,14 @@ namespace umbraco.presentation.umbraco.webservices
                         // get the current file
                         var uploadFile = context.Request.Files[j];
 
+                        //Are we allowed to upload this?
+                        var ext = uploadFile.FileName.Substring(uploadFile.FileName.LastIndexOf('.') + 1).ToLower();
+                        if (UmbracoConfig.For.UmbracoSettings().Content.DisallowedUploadFiles.Contains(ext))
+                        {
+                            LogHelper.Warn<MediaUploader>("Cannot upload file " + uploadFile + ", it is not an approved file type");
+                            continue;
+                        }
+
                         using (var inputStream = uploadFile.InputStream)
                         {
                             // if there was a file uploded
@@ -249,10 +258,32 @@ namespace umbraco.presentation.umbraco.webservices
             else
             {
                 var usr = User.GetCurrent();
+                
                 if (BasePage.ValidateUserContextID(BasePage.umbracoUserContextID) && usr != null)
                 {
-                    isValid = true;
-                    AuthenticatedUser = usr;    
+                    //The user is valid based on their cookies, but is the request valid? We need to validate
+                    // against CSRF here. We'll do this by ensuring that the request contains a token which will
+                    // be equal to the decrypted version of the current user's user context id.
+                    var token = context.Request["__reqver"];
+                    if (token.IsNullOrWhiteSpace() == false)
+                    {
+                        //try decrypting it
+                        try
+                        {
+                            var decrypted = token.DecryptWithMachineKey();
+                            //now check if it matches
+                            if (decrypted == BasePage.umbracoUserContextID)
+                            {
+                                isValid = true;
+                                AuthenticatedUser = usr;
+                            }
+                        }
+                        catch
+                        {
+                           //couldn't decrypt, so it's invalid
+                        }
+                        
+                    }
                 }
             }
 

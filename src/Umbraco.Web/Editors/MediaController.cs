@@ -96,6 +96,8 @@ namespace Umbraco.Web.Editors
             if (foundContent == null)
             {
                 HandleContentNotFound(id);
+                //HandleContentNotFound will throw an exception
+                return null;
             }
             return Mapper.Map<IMedia, MediaItemDisplay>(foundContent);
         }
@@ -429,6 +431,10 @@ namespace Umbraco.Web.Editors
                     }
 
                     mediaService.Save(f);
+                }
+                else
+                {
+                    LogHelper.Warn<MediaController>("Cannot upload file " + file + ", it is not an approved file type");
                 }
 
                 //now we can remove the temp file

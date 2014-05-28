@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
 using Umbraco.Core.Auditing;
+using Umbraco.Core.Configuration;
 using Umbraco.Core.Events;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Rdbms;
@@ -26,6 +27,8 @@ namespace Umbraco.Core.Services
         //Support recursive locks because some of the methods that require locking call other methods that require locking. 
         //for example, the Move method needs to be locked but this calls the Save method which also needs to be locked.
         private static readonly ReaderWriterLockSlim Locker = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+        private readonly EntityXmlSerializer _entitySerializer = new EntityXmlSerializer();
+        private readonly IDataTypeService _dataTypeService;
 
         public MediaService(RepositoryFactory repositoryFactory)
             : this(new PetaPocoUnitOfWorkProvider(), repositoryFactory)
@@ -36,6 +39,14 @@ namespace Umbraco.Core.Services
         {
             _uowProvider = provider;
             _repositoryFactory = repositoryFactory;
+            _dataTypeService = new DataTypeService(provider, repositoryFactory);
+        }
+
+        public MediaService(IDatabaseUnitOfWorkProvider provider, RepositoryFactory repositoryFactory, IDataTypeService dataTypeService)
+        {
+            _uowProvider = provider;
+            _repositoryFactory = repositoryFactory;
+            _dataTypeService = dataTypeService;
         }
 
         /// <summary>
@@ -146,10 +157,15 @@ namespace Umbraco.Core.Services
                 {
                     media.CreatorId = userId;
                     repository.AddOrUpdate(media);
-                    uow.Commit();
 
-                    var xml = media.ToXml();
-                    CreateAndSaveMediaXml(xml, media.Id, uow.Database);
+                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    // generate preview for blame history?
+                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                    {
+                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    }
+
+                    uow.Commit();
                 }
             }
 
@@ -201,10 +217,14 @@ namespace Umbraco.Core.Services
                 {
                     media.CreatorId = userId;
                     repository.AddOrUpdate(media);
-                    uow.Commit();
+                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    // generate preview for blame history?
+                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                    {
+                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    }
 
-                    var xml = media.ToXml();
-                    CreateAndSaveMediaXml(xml, media.Id, uow.Database);
+                    uow.Commit();
                 }
             }
 
@@ -516,15 +536,29 @@ namespace Umbraco.Core.Services
                     return;
                 }
 
-                if (Moving.IsRaisedEventCancelled(new MoveEventArgs<IMedia>(media, parentId), this))
-                    return;
+                var originalPath = media.Path;
 
+                if (Moving.IsRaisedEventCancelled(
+                    new MoveEventArgs<IMedia>(
+                        new MoveEventInfo<IMedia>(media, originalPath, parentId)), this))
+                {
+                    return;
+                }
+                
                 media.ParentId = parentId;
                 if (media.Trashed)
                 {
                     media.ChangeTrashedState(false, parentId);
                 }
-                Save(media, userId);
+                Save(media, userId,
+                    //no events!
+                    false);
+
+                //used to track all the moved entities to be given to the event
+                var moveInfo = new List<MoveEventInfo<IMedia>>
+                {
+                    new MoveEventInfo<IMedia>(media, originalPath, parentId)
+                };
 
                 //Ensure that relevant properties are updated on children
                 var children = GetChildren(media.Id).ToArray();
@@ -533,11 +567,13 @@ namespace Umbraco.Core.Services
                     var parentPath = media.Path;
                     var parentLevel = media.Level;
                     var parentTrashed = media.Trashed;
-                    var updatedDescendants = UpdatePropertiesOnChildren(children, parentPath, parentLevel, parentTrashed);
-                    Save(updatedDescendants, userId);
+                    var updatedDescendants = UpdatePropertiesOnChildren(children, parentPath, parentLevel, parentTrashed, moveInfo);
+                    Save(updatedDescendants, userId,                         
+                        //no events!
+                        false);
                 }
 
-                Moved.RaiseEvent(new MoveEventArgs<IMedia>(media, false, parentId), this);
+                Moved.RaiseEvent(new MoveEventArgs<IMedia>(false, moveInfo.ToArray()), this);
 
                 Audit.Add(AuditTypes.Move, "Move Media performed by user", userId, media.Id);
             }
@@ -552,8 +588,19 @@ namespace Umbraco.Core.Services
         {
             if (media == null) throw new ArgumentNullException("media");
 
-            if (Trashing.IsRaisedEventCancelled(new MoveEventArgs<IMedia>(media, -21), this))
+            var originalPath = media.Path;
+
+            if (Trashing.IsRaisedEventCancelled(
+                    new MoveEventArgs<IMedia>(
+                        new MoveEventInfo<IMedia>(media, originalPath, Constants.System.RecycleBinMedia)), this))
+            {
                 return;
+            }
+
+            var moveInfo = new List<MoveEventInfo<IMedia>>
+            {
+                new MoveEventInfo<IMedia>(media, originalPath, Constants.System.RecycleBinMedia)
+            };
 
             //Find Descendants, which will be moved to the recycle bin along with the parent/grandparent.
             var descendants = GetDescendants(media).OrderBy(x => x.Level).ToList();
@@ -561,12 +608,14 @@ namespace Umbraco.Core.Services
             var uow = _uowProvider.GetUnitOfWork();
             using (var repository = _repositoryFactory.CreateMediaRepository(uow))
             {
+                //TODO: This should be part of the repo!
+
                 //Remove 'published' xml from the cmsContentXml table for the unpublished media
                 uow.Database.Delete<ContentXmlDto>("WHERE nodeId = @Id", new { Id = media.Id });
 
-                media.ChangeTrashedState(true, -21);
+                media.ChangeTrashedState(true, Constants.System.RecycleBinMedia);
                 repository.AddOrUpdate(media);
-
+                
                 //Loop through descendants to update their trash state, but ensuring structure by keeping the ParentId
                 foreach (var descendant in descendants)
                 {
@@ -575,12 +624,14 @@ namespace Umbraco.Core.Services
 
                     descendant.ChangeTrashedState(true, descendant.ParentId);
                     repository.AddOrUpdate(descendant);
+
+                    moveInfo.Add(new MoveEventInfo<IMedia>(descendant, descendant.Path, descendant.ParentId));
                 }
 
                 uow.Commit();
             }
 
-            Trashed.RaiseEvent(new MoveEventArgs<IMedia>(media, false, -21), this);
+            Trashed.RaiseEvent(new MoveEventArgs<IMedia>(false, moveInfo.ToArray()), this);
 
             Audit.Add(AuditTypes.Move, "Move Media to Recycle Bin performed by user", userId, media.Id);
         }
@@ -768,10 +819,14 @@ namespace Umbraco.Core.Services
                 {
                     media.CreatorId = userId;
                     repository.AddOrUpdate(media);
-                    uow.Commit();
+                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    // generate preview for blame history?
+                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                    {
+                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    }
 
-                    var xml = media.ToXml();
-                    CreateAndSaveMediaXml(xml, media.Id, uow.Database);
+                    uow.Commit();
                 }
             }
 
@@ -789,33 +844,37 @@ namespace Umbraco.Core.Services
         /// <param name="raiseEvents">Optional boolean indicating whether or not to raise events.</param>
         public void Save(IEnumerable<IMedia> medias, int userId = 0, bool raiseEvents = true)
         {
+            var asArray = medias.ToArray();
+
             if (raiseEvents)
             {
-                if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IMedia>(medias), this))
+                if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IMedia>(asArray), this))
                     return;
             }
+            
             using (new WriteLock(Locker))
             {
                 var uow = _uowProvider.GetUnitOfWork();
                 using (var repository = _repositoryFactory.CreateMediaRepository(uow))
                 {
-                    foreach (var media in medias)
+                    foreach (var media in asArray)
                     {
                         media.CreatorId = userId;
                         repository.AddOrUpdate(media);
+                        repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                        // generate preview for blame history?
+                        if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                        {
+                            repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                        }
                     }
 
                     //commit the whole lot in one go
                     uow.Commit();
-
-                    foreach (var media in medias)
-                    {
-                        CreateAndSaveMediaXml(media.ToXml(), media.Id, uow.Database);
-                    }
                 }
 
                 if (raiseEvents)
-                    Saved.RaiseEvent(new SaveEventArgs<IMedia>(medias, false), this);
+                    Saved.RaiseEvent(new SaveEventArgs<IMedia>(asArray, false), this);
 
                 Audit.Add(AuditTypes.Save, "Save Media items performed by user", userId, -1);
             }
@@ -831,13 +890,13 @@ namespace Umbraco.Core.Services
         /// <returns>True if sorting succeeded, otherwise False</returns>
         public bool Sort(IEnumerable<IMedia> items, int userId = 0, bool raiseEvents = true)
         {
+            var asArray = items.ToArray();
+
             if (raiseEvents)
             {
-                if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IMedia>(items), this))
+                if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IMedia>(asArray), this))
                     return false;
             }
-
-            var shouldBeCached = new List<IMedia>();
 
             using (new WriteLock(Locker))
             {
@@ -845,7 +904,7 @@ namespace Umbraco.Core.Services
                 using (var repository = _repositoryFactory.CreateMediaRepository(uow))
                 {
                     int i = 0;
-                    foreach (var media in items)
+                    foreach (var media in asArray)
                     {
                         //If the current sort order equals that of the media
                         //we don't need to update it, so just increment the sort order
@@ -860,28 +919,28 @@ namespace Umbraco.Core.Services
                         i++;
 
                         repository.AddOrUpdate(media);
-                        shouldBeCached.Add(media);
+                        repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                        // generate preview for blame history?
+                        if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                        {
+                            repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                        }
                     }
 
                     uow.Commit();
-
-                    foreach (var content in shouldBeCached)
-                    {
-                        //Create and Save ContentXml DTO
-                        var xml = content.ToXml();
-                        CreateAndSaveMediaXml(xml, content.Id, uow.Database);
-                    }
                 }
             }
 
             if (raiseEvents)
-                Saved.RaiseEvent(new SaveEventArgs<IMedia>(items, false), this);
+                Saved.RaiseEvent(new SaveEventArgs<IMedia>(asArray, false), this);
 
             Audit.Add(AuditTypes.Sort, "Sorting Media performed by user", userId, 0);
 
             return true;
         }
         
+        //TODO: This needs to be put into the MediaRepository, all CUD logic!
+
         /// <summary>
         /// Rebuilds all xml content in the cmsContentXml table for all media
         /// </summary>
@@ -919,7 +978,7 @@ namespace Umbraco.Core.Services
                 var xmlItems = new List<ContentXmlDto>();
                 foreach (var c in list)
                 {
-                    var xml = c.ToXml();
+                    var xml = _entitySerializer.Serialize(this, _dataTypeService, c);
                     xmlItems.Add(new ContentXmlDto { NodeId = c.Id, Xml = xml.ToString(SaveOptions.None) });
                 }
 
@@ -978,12 +1037,14 @@ namespace Umbraco.Core.Services
         /// <param name="parentPath">Path of the Parent media</param>
         /// <param name="parentLevel">Level of the Parent media</param>
         /// <param name="parentTrashed">Indicates whether the Parent is trashed or not</param>
+        /// <param name="eventInfo">Used to track the objects to be used in the move event</param>
         /// <returns>Collection of updated <see cref="IMedia"/> objects</returns>
-        private IEnumerable<IMedia> UpdatePropertiesOnChildren(IEnumerable<IMedia> children, string parentPath, int parentLevel, bool parentTrashed)
+        private IEnumerable<IMedia> UpdatePropertiesOnChildren(IEnumerable<IMedia> children, string parentPath, int parentLevel, bool parentTrashed, ICollection<MoveEventInfo<IMedia>> eventInfo)
         {
             var list = new List<IMedia>();
             foreach (var child in children)
             {
+                var originalPath = child.Path;
                 child.Path = string.Concat(parentPath, ",", child.Id);
                 child.Level = parentLevel + 1;
                 if (parentTrashed != child.Trashed)
@@ -991,23 +1052,24 @@ namespace Umbraco.Core.Services
                     child.ChangeTrashedState(parentTrashed, child.ParentId);
                 }
 
+                eventInfo.Add(new MoveEventInfo<IMedia>(child, originalPath, child.ParentId));
                 list.Add(child);
 
                 var grandkids = GetChildren(child.Id).ToArray();
                 if (grandkids.Any())
                 {
-                    list.AddRange(UpdatePropertiesOnChildren(grandkids, child.Path, child.Level, child.Trashed));
+                    list.AddRange(UpdatePropertiesOnChildren(grandkids, child.Path, child.Level, child.Trashed, eventInfo));
                 }
             }
             return list;
         }
 
-        private void CreateAndSaveMediaXml(XElement xml, int id, UmbracoDatabase db)
-        {
-            var poco = new ContentXmlDto { NodeId = id, Xml = xml.ToString(SaveOptions.None) };
-            var exists = db.FirstOrDefault<ContentXmlDto>("WHERE nodeId = @Id", new { Id = id }) != null;
-            int result = exists ? db.Update(poco) : Convert.ToInt32(db.Insert(poco));
-        }
+        //private void CreateAndSaveMediaXml(XElement xml, int id, UmbracoDatabase db)
+        //{
+        //    var poco = new ContentXmlDto { NodeId = id, Xml = xml.ToString(SaveOptions.None) };
+        //    var exists = db.FirstOrDefault<ContentXmlDto>("WHERE nodeId = @Id", new { Id = id }) != null;
+        //    int result = exists ? db.Update(poco) : Convert.ToInt32(db.Insert(poco));
+        //}
 
         private IMediaType FindMediaTypeByAlias(string mediaTypeAlias)
         {

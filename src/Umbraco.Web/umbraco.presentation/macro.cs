@@ -216,8 +216,17 @@ namespace umbraco
 
             if (CacheByPersonalization)
             {
-                var currentMember = Member.GetCurrentMember();
-                id.AppendFormat("m{0}-", currentMember == null ? 0 : currentMember.Id);
+                object memberId = 0;
+                if (HttpContext.Current.User.Identity.IsAuthenticated)
+                {
+                    var provider = Umbraco.Core.Security.MembershipProviderExtensions.GetMembersMembershipProvider();
+                    var member = Umbraco.Core.Security.MembershipProviderExtensions.GetCurrentUser(provider);
+                    if (member != null)
+                    {
+                        memberId = member.ProviderUserKey ?? 0;
+                    }
+                }
+                id.AppendFormat("m{0}-", memberId);
             }
 
             foreach (var prop in model.Properties)
@@ -333,6 +342,9 @@ namespace umbraco
                                 }
                                 catch (Exception e)
                                 {
+                                    LogHelper.WarnWithException<macro>(
+                                        "Error loading partial view macro (View: " + Model.ScriptName + ")", true, e);
+
                                     renderFailed = true;
                                     Exceptions.Add(e);
                                     macroControl = handleError(e);
@@ -525,7 +537,7 @@ namespace umbraco
             if (Model.CacheDuration > 0)
             {
                 // do not add to cache if there's no member and it should cache by personalization
-                if (!Model.CacheByMember || (Model.CacheByMember && Member.GetCurrentMember() != null))
+                if (!Model.CacheByMember || (Model.CacheByMember && Member.IsLoggedOn()))
                 {
                     if (macroControl != null)
                     {
@@ -794,9 +806,9 @@ namespace umbraco
         {
             foreach (MacroPropertyModel mp in Model.Properties)
             {
-                if (attributes.ContainsKey(mp.Key.ToLower()))
+                if (attributes.ContainsKey(mp.Key.ToLowerInvariant()))
                 {
-                    var item = attributes[mp.Key.ToLower()];
+                    var item = attributes[mp.Key.ToLowerInvariant()];
 
                     mp.Value = item == null ? string.Empty : item.ToString();
                 }
@@ -1657,6 +1669,12 @@ namespace umbraco
 
         public static string MacroContentByHttp(int PageID, Guid PageVersion, Hashtable attributes)
         {
+
+            if (SystemUtilities.GetCurrentTrustLevel() != AspNetHostingPermissionLevel.Unrestricted)
+            {
+                return "<span style='color: red'>Cannot render macro content in the rich text editor when the application is running in a Partial Trust environment</span>";
+            }
+            
             string tempAlias = (attributes["macroalias"] != null)
                                    ? attributes["macroalias"].ToString()
                                    : attributes["macroAlias"].ToString();

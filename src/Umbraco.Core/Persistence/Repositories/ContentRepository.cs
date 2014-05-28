@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Linq;
+using System.Xml.Linq;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Core.Models;
@@ -12,6 +14,7 @@ using Umbraco.Core.Persistence.Caching;
 using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 using Umbraco.Core.Persistence.Factories;
 using Umbraco.Core.Persistence.Querying;
+using Umbraco.Core.Persistence.SqlSyntax;
 using Umbraco.Core.Persistence.UnitOfWork;
 
 namespace Umbraco.Core.Persistence.Repositories
@@ -25,6 +28,8 @@ namespace Umbraco.Core.Persistence.Repositories
         private readonly ITemplateRepository _templateRepository;
         private readonly ITagsRepository _tagRepository;
         private readonly CacheHelper _cacheHelper;
+        private readonly ContentPreviewRepository<IContent> _contentPreviewRepository;
+        private readonly ContentXmlRepository<IContent> _contentXmlRepository;
 
         public ContentRepository(IDatabaseUnitOfWork work, IContentTypeRepository contentTypeRepository, ITemplateRepository templateRepository, ITagsRepository tagRepository, CacheHelper cacheHelper)
             : base(work)
@@ -36,6 +41,8 @@ namespace Umbraco.Core.Persistence.Repositories
             _templateRepository = templateRepository;
 		    _tagRepository = tagRepository;
             _cacheHelper = cacheHelper;
+            _contentPreviewRepository = new ContentPreviewRepository<IContent>(work, NullCacheProvider.Current);
+            _contentXmlRepository = new ContentXmlRepository<IContent>(work, NullCacheProvider.Current);
 
 		    EnsureUniqueNaming = true;
         }
@@ -50,6 +57,8 @@ namespace Umbraco.Core.Persistence.Repositories
             _templateRepository = templateRepository;
             _tagRepository = tagRepository;
             _cacheHelper = cacheHelper;
+            _contentPreviewRepository = new ContentPreviewRepository<IContent>(work, NullCacheProvider.Current);
+            _contentXmlRepository = new ContentXmlRepository<IContent>(work, NullCacheProvider.Current);
 
             EnsureUniqueNaming = true;
         }
@@ -149,12 +158,12 @@ namespace Umbraco.Core.Persistence.Repositories
                                "DELETE FROM umbracoRelation WHERE childId = @Id",
                                "DELETE FROM cmsTagRelationship WHERE nodeId = @Id",
                                "DELETE FROM umbracoDomains WHERE domainRootStructureID = @Id",
-                               "DELETE FROM cmsDocument WHERE NodeId = @Id",
+                               "DELETE FROM cmsDocument WHERE nodeId = @Id",
                                "DELETE FROM cmsPropertyData WHERE contentNodeId = @Id",
                                "DELETE FROM cmsPreviewXml WHERE nodeId = @Id",
                                "DELETE FROM cmsContentVersion WHERE ContentId = @Id",
-                               "DELETE FROM cmsContentXml WHERE nodeID = @Id",
-                               "DELETE FROM cmsContent WHERE NodeId = @Id",
+                               "DELETE FROM cmsContentXml WHERE nodeId = @Id",
+                               "DELETE FROM cmsContent WHERE nodeId = @Id",
                                "DELETE FROM umbracoNode WHERE id = @Id"
                            };
             return list;
@@ -516,11 +525,16 @@ namespace Umbraco.Core.Persistence.Repositories
 
         public IEnumerable<IContent> GetByPublishedVersion(IQuery<IContent> query)
         {
+            // we WANT to return contents in top-down order, ie parents should come before children
+            // ideal would be pure xml "document order" which can be achieved with:
+            // ORDER BY substring(path, 1, len(path) - charindex(',', reverse(path))), sortOrder
+            // but that's probably an overkill - sorting by level,sortOrder should be enough
+
             var sqlClause = GetBaseQuery(false);
             var translator = new SqlTranslator<IContent>(sqlClause, query);
             var sql = translator.Translate()
                                 .Where<DocumentDto>(x => x.Published)
-                                .OrderByDescending<ContentVersionDto>(x => x.VersionDate)
+                                .OrderBy<NodeDto>(x => x.Level)
                                 .OrderBy<NodeDto>(x => x.SortOrder);
 
             //NOTE: This doesn't allow properties to be part of the query
@@ -577,6 +591,41 @@ namespace Umbraco.Core.Persistence.Repositories
             return repo.GetPermissionsForEntity(entityId);
         }
 
+        /// <summary>
+        /// Adds/updates content/published xml
+        /// </summary>
+        /// <param name="content"></param>
+        /// <param name="xml"></param>
+        public void AddOrUpdateContentXml(IContent content, Func<IContent, XElement> xml)
+        {
+            var contentExists = Database.ExecuteScalar<int>("SELECT COUNT(nodeId) FROM cmsContentXml WHERE nodeId = @Id", new { Id = content.Id }) != 0;
+
+            _contentXmlRepository.AddOrUpdate(new ContentXmlEntity<IContent>(contentExists, content, xml));
+        }
+
+        /// <summary>
+        /// Used to remove the content xml for a content item
+        /// </summary>
+        /// <param name="content"></param>
+        public void DeleteContentXml(IContent content)
+        {
+            _contentXmlRepository.Delete(new ContentXmlEntity<IContent>(content));
+        }
+
+        /// <summary>
+        /// Adds/updates preview xml
+        /// </summary>
+        /// <param name="content"></param>
+        /// <param name="xml"></param>
+        public void AddOrUpdatePreviewXml(IContent content, Func<IContent, XElement> xml)
+        {
+            var previewExists =
+                    Database.ExecuteScalar<int>("SELECT COUNT(nodeId) FROM cmsPreviewXml WHERE nodeId = @Id AND versionId = @Version",
+                                                    new { Id = content.Id, Version = content.Version }) != 0;
+
+            _contentPreviewRepository.AddOrUpdate(new ContentPreviewEntity<IContent>(previewExists, content, xml));
+        }
+        
         #endregion
         
         /// <summary>
@@ -637,5 +686,6 @@ namespace Umbraco.Core.Persistence.Repositories
 
             return currentName;
         }
+
     }
 }

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
-using System.Xml;
 using System.Xml.Linq;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Events;
@@ -17,7 +16,6 @@ using Umbraco.Core.Packaging.Models;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.UnitOfWork;
-using Umbraco.Core.Strings;
 
 namespace Umbraco.Core.Services
 {
@@ -73,90 +71,22 @@ namespace Umbraco.Core.Services
         /// <returns><see cref="XElement"/> containing the xml representation of the Content object</returns>
         public XElement Export(IContent content, bool deep = false, bool raiseEvents = true)
         {
-            //nodeName should match Casing.SafeAliasWithForcingCheck(content.ContentType.Alias);
             var nodeName = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "node" : content.ContentType.Alias.ToSafeAliasWithForcingCheck();
+            var exporter = new EntityXmlSerializer();
+            var xml = exporter.Serialize(_contentService, _dataTypeService, content, deep);
 
             if (raiseEvents)
             {
                 if (ExportingContent.IsRaisedEventCancelled(new ExportEventArgs<IContent>(content, nodeName), this))
                     return new XElement(nodeName);
             }
-
-            var xml = Export(content, nodeName);
-            xml.Add(new XAttribute("nodeType", content.ContentType.Id));
-            xml.Add(new XAttribute("creatorName", content.GetCreatorProfile().Name));
-            xml.Add(new XAttribute("writerName", content.GetWriterProfile().Name));
-            xml.Add(new XAttribute("writerID", content.WriterId));
-            xml.Add(new XAttribute("template", content.Template == null ? "0" : content.Template.Id.ToString(CultureInfo.InvariantCulture)));
-            xml.Add(new XAttribute("nodeTypeAlias", content.ContentType.Alias));
-
-            if (deep)
-            {
-                var descendants = content.Descendants().ToArray();
-                var currentChildren = descendants.Where(x => x.ParentId == content.Id);
-                AddChildXml(descendants, currentChildren, xml);
-            }
-
             if(raiseEvents)
                 ExportedContent.RaiseEvent(new ExportEventArgs<IContent>(content, xml, false), this);
 
             return xml;
         }
 
-        /// <summary>
-        /// Part of the export of IContent and IMedia and IMember which is shared
-        /// </summary>
-        /// <param name="contentBase">Base Content or Media to export</param>
-        /// <param name="nodeName">Name of the node</param>
-        /// <returns><see cref="XElement"/></returns>
-        private XElement Export(IContentBase contentBase, string nodeName)
-        {
-            //NOTE: that one will take care of umbracoUrlName
-            var url = contentBase.GetUrlSegment();
-
-            var xml = new XElement(nodeName,
-                                   new XAttribute("id", contentBase.Id),
-                                   new XAttribute("key", contentBase.Key.ToString("D")),
-                                   new XAttribute("parentID", contentBase.Level > 1 ? contentBase.ParentId : -1),
-                                   new XAttribute("level", contentBase.Level),
-                                   new XAttribute("creatorID", contentBase.CreatorId),
-                                   new XAttribute("sortOrder", contentBase.SortOrder),
-                                   new XAttribute("createDate", contentBase.CreateDate.ToString("s")),
-                                   new XAttribute("updateDate", contentBase.UpdateDate.ToString("s")),
-                                   new XAttribute("nodeName", contentBase.Name),
-                                   new XAttribute("urlName", url),
-                                   new XAttribute("path", contentBase.Path),
-                                   new XAttribute("isDoc", ""));
-
-            foreach (var property in contentBase.Properties.Where(p => p != null && p.Value != null && p.Value.ToString().IsNullOrWhiteSpace() == false))
-            {
-                xml.Add(property.ToXml());
-            }
-
-            return xml;
-        }
-
-        /// <summary>
-        /// Used by Content Export to recursively add children
-        /// </summary>
-        /// <param name="originalDescendants"></param>
-        /// <param name="currentChildren"></param>
-        /// <param name="currentXml"></param>
-        private void AddChildXml(IContent[] originalDescendants, IEnumerable<IContent> currentChildren, XElement currentXml)
-        {
-            foreach (var child in currentChildren)
-            {
-                //add the child's xml
-                var childXml = Export(child);
-                currentXml.Add(childXml);
-                //copy local (out of closure)
-                var c = child;
-                //get this item's children                
-                var children = originalDescendants.Where(x => x.ParentId == c.Id);
-                //recurse and add it's children to the child xml element
-                AddChildXml(originalDescendants, children, childXml);
-            }
-        }
+        
 
         /// <summary>
         /// Imports and saves package xml as <see cref="IContent"/>
@@ -922,11 +852,13 @@ namespace Umbraco.Core.Services
                                                         .Select(x => x.Attribute("Value").Value);
 
                 var valuesWithKeys = prevaluesElement.Elements("PreValue")
-                                                     .Where(x => ((string) x.Attribute("Alias")).IsNullOrWhiteSpace() == false)
-                                                     .ToDictionary(key => (string) key.Attribute("Alias"), val => new PreValue((string) val.Attribute("Value")));
+                    .Where(x => ((string) x.Attribute("Alias")).IsNullOrWhiteSpace() == false)
+                    .ToDictionary(
+                        key => (string) key.Attribute("Alias"),
+                        val => new PreValue((string) val.Attribute("Value")));
                 
                 //save the values with keys
-                _dataTypeService.SavePreValues(dataTypeDefinition.Id, valuesWithKeys);
+                _dataTypeService.SavePreValues(dataTypeDefinition, valuesWithKeys);
 
                 //save the values without keys (this is legacy)
                 _dataTypeService.SavePreValues(dataTypeDefinition.Id, valuesWithoutKeys);
@@ -1011,11 +943,12 @@ namespace Umbraco.Core.Services
             return ImportDictionaryItems(dictionaryItemElementList, languages, raiseEvents);
         }
 
-        private IEnumerable<IDictionaryItem> ImportDictionaryItems(XElement dictionaryItemElementList, List<ILanguage> languages, bool raiseEvents)
+        private IEnumerable<IDictionaryItem> ImportDictionaryItems(XElement dictionaryItemElementList, List<ILanguage> languages, bool raiseEvents, Guid? parentId = null)
         {
             var items = new List<IDictionaryItem>();
             foreach (var dictionaryItemElement in dictionaryItemElementList.Elements("DictionaryItem"))
-                items.AddRange(ImportDictionaryItem(dictionaryItemElement, languages, raiseEvents));
+                items.AddRange(ImportDictionaryItem(dictionaryItemElement, languages, raiseEvents, parentId));
+
 
             if (raiseEvents)
                 ImportedDictionaryItem.RaiseEvent(new ImportEventArgs<IDictionaryItem>(items, dictionaryItemElementList, false), this);
@@ -1023,7 +956,7 @@ namespace Umbraco.Core.Services
             return items;
         }
 
-        private IEnumerable<IDictionaryItem> ImportDictionaryItem(XElement dictionaryItemElement, List<ILanguage> languages, bool raiseEvents)
+        private IEnumerable<IDictionaryItem> ImportDictionaryItem(XElement dictionaryItemElement, List<ILanguage> languages, bool raiseEvents, Guid? parentId)
         {
             var items = new List<IDictionaryItem>();
 
@@ -1032,10 +965,11 @@ namespace Umbraco.Core.Services
             if (_localizationService.DictionaryItemExists(key))
                 dictionaryItem = GetAndUpdateDictionaryItem(key, dictionaryItemElement, languages);
             else
-                dictionaryItem = CreateNewDictionaryItem(key, dictionaryItemElement, languages);
+                dictionaryItem = CreateNewDictionaryItem(key, dictionaryItemElement, languages, parentId);
             _localizationService.Save(dictionaryItem);
             items.Add(dictionaryItem);
-            items.AddRange(ImportDictionaryItems(dictionaryItemElement, languages, raiseEvents));
+
+            items.AddRange(ImportDictionaryItems(dictionaryItemElement, languages, raiseEvents, dictionaryItem.Key));
             return items;
         }
 
@@ -1049,9 +983,9 @@ namespace Umbraco.Core.Services
             return dictionaryItem;
         }
 
-        private static DictionaryItem CreateNewDictionaryItem(string key, XElement dictionaryItemElement, List<ILanguage> languages)
+        private static DictionaryItem CreateNewDictionaryItem(string key, XElement dictionaryItemElement, List<ILanguage> languages, Guid? parentId)
         {
-            var dictionaryItem = new DictionaryItem(key);
+            var dictionaryItem = parentId.HasValue ? new DictionaryItem(parentId.Value, key) : new DictionaryItem(key);
             var translations = new List<IDictionaryTranslation>();
 
             foreach (var valueElement in dictionaryItemElement.Elements("Value"))
@@ -1196,6 +1130,10 @@ namespace Umbraco.Core.Services
 
             foreach (var macro in macros)
             {
+                var existing = _macroService.GetByAlias(macro.Alias);
+                if (existing != null)
+                    macro.Id = existing.Id;
+
                 _macroService.Save(macro, userId);
             }
 
@@ -1342,19 +1280,10 @@ namespace Umbraco.Core.Services
         /// </summary>
         /// <param name="member">Member to export</param>
         /// <returns><see cref="XElement"/> containing the xml representation of the Member object</returns>
-        internal XElement Export(IMember member)
+        public XElement Export(IMember member)
         {
-            //nodeName should match Casing.SafeAliasWithForcingCheck(content.ContentType.Alias);
-            var nodeName = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "node" : member.ContentType.Alias.ToSafeAliasWithForcingCheck();
-
-            var xml = Export(member, nodeName);
-            xml.Add(new XAttribute("nodeType", member.ContentType.Id));
-            xml.Add(new XAttribute("nodeTypeAlias", member.ContentType.Alias));
-
-            xml.Add(new XAttribute("loginName", member.Username));
-            xml.Add(new XAttribute("email", member.Email));
-
-            return xml;
+            var exporter = new EntityXmlSerializer();
+            return exporter.Serialize(_dataTypeService, member);
         }
 
         #endregion
@@ -1370,57 +1299,21 @@ namespace Umbraco.Core.Services
         /// <returns><see cref="XElement"/> containing the xml representation of the Media object</returns>
         public XElement Export(IMedia media, bool deep = false, bool raiseEvents = true)
         {
-            //nodeName should match Casing.SafeAliasWithForcingCheck(content.ContentType.Alias);
             var nodeName = UmbracoConfig.For.UmbracoSettings().Content.UseLegacyXmlSchema ? "node" : media.ContentType.Alias.ToSafeAliasWithForcingCheck();
+            var exporter = new EntityXmlSerializer();
+            var xml = exporter.Serialize(_mediaService, _dataTypeService, media, deep);
 
             if (raiseEvents)
             {
                 if (ExportingMedia.IsRaisedEventCancelled(new ExportEventArgs<IMedia>(media, nodeName), this))
                     return new XElement(nodeName);
             }
-
-            var xml = Export(media, nodeName);
-            xml.Add(new XAttribute("nodeType", media.ContentType.Id));
-            xml.Add(new XAttribute("writerName", media.GetCreatorProfile().Name));
-            xml.Add(new XAttribute("writerID", media.CreatorId));
-            xml.Add(new XAttribute("version", media.Version));
-            xml.Add(new XAttribute("template", 0));
-            xml.Add(new XAttribute("nodeTypeAlias", media.ContentType.Alias));
-
-            if (deep)
-            {
-                var descendants = media.Descendants().ToArray();
-                var currentChildren = descendants.Where(x => x.ParentId == media.Id);
-                AddChildXml(descendants, currentChildren, xml);
-            }
-
             if(raiseEvents)
                 ExportedMedia.RaiseEvent(new ExportEventArgs<IMedia>(media, xml, false), this);
 
             return xml;
         }
 
-        /// <summary>
-        /// Used by Media Export to recursively add children
-        /// </summary>
-        /// <param name="originalDescendants"></param>
-        /// <param name="currentChildren"></param>
-        /// <param name="currentXml"></param>
-        private void AddChildXml(IMedia[] originalDescendants, IEnumerable<IMedia> currentChildren, XElement currentXml)
-        {
-            foreach (var child in currentChildren)
-            {
-                //add the child's xml
-                var childXml = Export(child);
-                currentXml.Add(childXml);
-                //copy local (out of closure)
-                var c = child;
-                //get this item's children                
-                var children = originalDescendants.Where(x => x.ParentId == c.Id);
-                //recurse and add it's children to the child xml element
-                AddChildXml(originalDescendants, children, childXml);
-            }
-        }
 
         #endregion
 

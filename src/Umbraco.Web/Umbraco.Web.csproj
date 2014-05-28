@@ -308,6 +308,7 @@
     <Compile Include="Editors\ImagesController.cs" />
     <Compile Include="Models\ContentEditing\ContentBaseItemSave.cs" />
     <Compile Include="Models\ContentEditing\MediaItemSave.cs" />
+    <Compile Include="Models\DetachedContent.cs" />
     <Compile Include="Models\ImageCropAnchor.cs" />
     <Compile Include="Models\ImageCropCoordinates.cs" />
     <Compile Include="Models\ImageCropDataSet.cs" />
@@ -350,14 +351,15 @@
     <Compile Include="Models\ContentEditing\ListViewAwareContentItemDisplayBase.cs" />
     <Compile Include="Models\ContentEditing\PropertyTypeValidation.cs" />
     <Compile Include="Models\ImageCropData.cs" />
+    <Compile Include="Models\ImageCropRatioMode.cs" />
     <Compile Include="Models\IRenderModel.cs" />
+    <Compile Include="Models\PartialViewMacroModelExtensions.cs" />
     <Compile Include="Models\PostRedirectModel.cs" />
     <Compile Include="Models\PublishedProperty.cs" />
     <Compile Include="Mvc\RedirectToUmbracoUrlResult.cs" />
+    <Compile Include="PropertyEditors\TagsDataController.cs" />
     <Compile Include="PublishedCache\MemberPublishedContent.cs" />
     <Compile Include="PublishedCache\RawValueProperty.cs" />
-    <Compile Include="PublishedCache\XmlPublishedCache\PublishedFragment.cs" />
-    <Compile Include="PublishedCache\XmlPublishedCache\PublishedFragmentProperty.cs" />
     <Compile Include="Models\RenderModelOfTContent.cs" />
     <Compile Include="Mvc\JsonNetResult.cs" />
     <Compile Include="Mvc\MinifyJavaScriptResultAttribute.cs" />
@@ -509,6 +511,7 @@
     <Compile Include="WebApi\Filters\ClearAngularAntiForgeryTokenAttribute.cs" />
     <Compile Include="WebApi\Filters\DisableBrowserCacheAttribute.cs" />
     <Compile Include="WebApi\Filters\FilterGrouping.cs" />
+    <Compile Include="WebApi\Filters\OutgoingNoHyphenGuidFormatAttribute.cs" />
     <Compile Include="WebApi\Filters\SetAngularAntiForgeryTokensAttribute.cs" />
     <Compile Include="WebApi\Filters\UmbracoBackOfficeLogoutAttribute.cs" />
     <Compile Include="WebApi\Filters\ValidateAngularAntiForgeryTokenAttribute.cs" />
@@ -1840,7 +1843,6 @@
     <EmbeddedResource Include="UI\JavaScript\Main.js" />
     <EmbeddedResource Include="UI\JavaScript\JsInitialize.js" />
     <EmbeddedResource Include="UI\JavaScript\ServerVariables.js" />
-    <EmbeddedResource Include="UI\JavaScript\JsNoCache.js" />
     <Content Include="umbraco.presentation\umbraco\controls\Tree\CustomTreeService.asmx" />
     <Content Include="umbraco.presentation\umbraco\developer\RelationTypes\EditRelationType.aspx" />
     <Content Include="umbraco.presentation\umbraco\developer\RelationTypes\NewRelationType.aspx" />

@@ -44,10 +44,14 @@ namespace Umbraco.Core.Services
         /// <param name="packagingService"></param>
         /// <param name="entityService"></param>
         /// <param name="relationService"></param>
+        /// <param name="memberGroupService"></param>
+        /// <param name="memberTypeService"></param>
+        /// <param name="memberService"></param>
+        /// <param name="userService"></param>
         /// <param name="sectionService"></param>
         /// <param name="treeService"></param>
         /// <param name="tagService"></param>
-        /// <param name="memberGroupService"></param>
+        /// <param name="notificationService"></param>
         public ServiceContext(
             IContentService contentService, 
             IMediaService mediaService, 
@@ -59,9 +63,13 @@ namespace Umbraco.Core.Services
             IEntityService entityService,
             IRelationService relationService,
             IMemberGroupService memberGroupService,
+            IMemberTypeService memberTypeService,
+            IMemberService memberService,
+            IUserService userService,
             ISectionService sectionService,
             IApplicationTreeService treeService,
-            ITagService tagService)
+            ITagService tagService,
+            INotificationService notificationService)
         {
             _tagService = new Lazy<ITagService>(() => tagService);     
             _contentService = new Lazy<IContentService>(() => contentService);        
@@ -75,7 +83,12 @@ namespace Umbraco.Core.Services
             _relationService = new Lazy<IRelationService>(() => relationService);
             _sectionService = new Lazy<ISectionService>(() => sectionService);
             _memberGroupService = new Lazy<IMemberGroupService>(() => memberGroupService);
+            _memberTypeService = new Lazy<IMemberTypeService>(() => memberTypeService);
             _treeService = new Lazy<IApplicationTreeService>(() => treeService);
+            _memberService = new Lazy<IMemberService>(() => memberService);
+            _userService = new Lazy<IUserService>(() => userService);
+            _notificationService = new Lazy<INotificationService>(() => notificationService);
+
         }
 
         /// <summary>
@@ -116,13 +129,13 @@ namespace Umbraco.Core.Services
                 _userService = new Lazy<IUserService>(() => new UserService(provider, repositoryFactory.Value));
 
             if (_memberService == null)
-                _memberService = new Lazy<IMemberService>(() => new MemberService(provider, repositoryFactory.Value, _memberGroupService.Value));
+                _memberService = new Lazy<IMemberService>(() => new MemberService(provider, repositoryFactory.Value, _memberGroupService.Value, _dataTypeService.Value));
 
             if (_contentService == null)
-                _contentService = new Lazy<IContentService>(() => new ContentService(provider, repositoryFactory.Value, publishingStrategy));
+                _contentService = new Lazy<IContentService>(() => new ContentService(provider, repositoryFactory.Value, publishingStrategy, _dataTypeService.Value));
 
             if (_mediaService == null)
-                _mediaService = new Lazy<IMediaService>(() => new MediaService(provider, repositoryFactory.Value));
+                _mediaService = new Lazy<IMediaService>(() => new MediaService(provider, repositoryFactory.Value, _dataTypeService.Value));
 
             if (_contentTypeService == null)
                 _contentTypeService = new Lazy<IContentTypeService>(() => new ContentTypeService(provider, repositoryFactory.Value, _contentService.Value, _mediaService.Value));
@@ -167,7 +180,7 @@ namespace Umbraco.Core.Services
         /// <summary>
         /// Gets the <see cref="INotificationService"/>
         /// </summary>
-        internal INotificationService NotificationService
+        public INotificationService NotificationService
         {
             get { return _notificationService.Value; }
         }

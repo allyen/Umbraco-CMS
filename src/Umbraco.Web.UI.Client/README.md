@@ -1,12 +1,12 @@
 #Belle
 
-Umbraco 7 UI, codename "Belle" Built on AngularJS, RequireJS and Twitter Bootstrap
+Umbraco 7 UI, codename "Belle" Built on AngularJS, bower, Lazyload.js and Twitter Bootstrap
 
 
 ##Introduction
 Slides from the initial demonstration of Belle done at the Umbraco DK Fest can be found here: 
 
-http://rawgithub.com/umbraco/Belle/master/Presentation/index.html
+http://rawgithub.com/umbraco/Umbraco.Web.Ui.Client/build/master/Presentation/index.html
   
 
 ##Running the site with mocked data
@@ -22,7 +22,7 @@ We need node to run tests and automated less compiling and other automated tasks
 
 
 ###Install dependencies
-Next we need to install all the required packages. This is done with the package tool, included with node.js, open /Umbraco.Belle.Client in cmd.exe or osx terminal and run the command:
+Next we need to install all the required packages. This is done with the package tool, included with node.js, open /src/Umbraco.Web.UI.Client in cmd.exe or osx terminal and run the command:
 
 	npm install
 
@@ -42,7 +42,7 @@ So run the command:
 	
 	sudo npm install grunt-cli -g
 
-Now that you have node and grunt installed, you can open `/Umbraco.Belle.Client` in either `cmd.exe` or terminal and run: 
+Now that you have node and grunt installed, you can open `/src/Umbraco.Web.UI.Client` in either `cmd.exe` or terminal and run: 
 
 	grunt dev
 
@@ -56,30 +56,30 @@ The current prototype simply uses in-memory storage, so no database dependencies
 
 ##Project Structure
 
-All project files are located in /umbraco.belle.client/src which only contains client-side files, everything 
-related to asp.net are in umbraco.bell
+All project files are located in /src/Umbraco.Web.UI.Client which only contains client-side files, everything 
+related to asp.net are in /src/Umbraco.Web.UI
 
 after building Belle files are located in /build/belle, with all files following AngularJs 
 conventions:
 
 ###Folders
-- */belle/lib:* Dependencies
-- */belle/js:* Application javascript files
-- */belle/views/common/:* Main application views
-- */belle/views/[sectioname]/pagename Editors html
-- */belle/views/propertyeditors:* Property Editors html
+- */Umbraco.Web.Ui.Client/build/lib:* Dependencies
+- */Umbraco.Web.Ui.Client/build/js:* Application javascript files
+- */Umbraco.Web.Ui.Client/build/views/common/:* Main application views
+- */Umbraco.Web.Ui.Client/build/views/[sectioname]/pagename Editors html
+- */Umbraco.Web.Ui.Client/build/views/propertyeditors:* Property Editors html
 
 
 ###Files
-- */belle/js/app.js:* Main umbraco application / modules
-- */belle/js/loader.js:* yepnope configuration for dependencies
-- */belle/js/routes.js:* Application routes
-- */belle/js/umbraco.controllers.js:* Application controllers
-- */belle/js/umbraco.services.js:* Application services
-- */belle/js/umbraco.filters.js:* Application filters
-- */belle/js/umbraco.directives.js:* Application directives
-- */belle/js/umbraco.resources.js:* Application resources, like content, media, users, members etc
-- */belle/js/umbraco.mocks.js:* Fake Application resources, for running the app without a server
+- */Umbraco.Web.Ui.Client/build/js/app.js:* Main umbraco application / modules
+- */Umbraco.Web.Ui.Client/build/js/loader.js:* lazyload configuration for dependencies
+- */Umbraco.Web.Ui.Client/build/js/routes.js:* Application routes
+- */Umbraco.Web.Ui.Client/build/js/umbraco.controllers.js:* Application controllers
+- */Umbraco.Web.Ui.Client/build/js/umbraco.services.js:* Application services
+- */Umbraco.Web.Ui.Client/build/js/umbraco.filters.js:* Application filters
+- */Umbraco.Web.Ui.Client/build/js/umbraco.directives.js:* Application directives
+- */Umbraco.Web.Ui.Client/build/js/umbraco.resources.js:* Application resources, like content, media, users, members etc
+- */Umbraco.Web.Ui.Client/build/js/umbraco.mocks.js:* Fake Application resources, for running the app without a server
  
 ##Getting started
 The current app is built, following conventions from angularJs and bootstrap. To get started with the applicaton you will need to atleast know the basics of these frameworks 

@@ -1,4 +1,5 @@
 @ECHO OFF
+SET release=%1
 ECHO Installing Npm NuGet Package
 
 SET nuGetFolder=%CD%\..\src\packages\
@@ -15,6 +16,8 @@ SET oldPath=%PATH%
 
 path=%npmPath%;%nodePath%;%PATH%
 
+ECHO %path%
+
 SET buildFolder=%CD%
 
 ECHO Change directory to %CD%\..\src\Umbraco.Web.UI.Client\
@@ -23,7 +26,8 @@ CD %CD%\..\src\Umbraco.Web.UI.Client\
 ECHO Do npm install and the grunt build of Belle
 call npm install
 call npm install -g grunt-cli
-call grunt build
+call npm install -g bower
+call grunt build --buildversion=%release%
 
 ECHO Reset path to what it was before
 path=%oldPath%

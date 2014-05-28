@@ -18,11 +18,14 @@ namespace Umbraco.Web.WebServices
     public class CoreStringsController : UmbracoAuthorizedController
     {
         [HttpGet]
+        [ValidateInput(false)]
         public JsonResult ToSafeAlias(string value, bool camelCase = true)
         {
+            // always return a proper camel-cased alias
+            // when checking... javascript does a case-unsensitive comparison
             return value == null 
                 ? Json(new {error = "no value."}, JsonRequestBehavior.AllowGet)
-                : Json(new { alias = value.ToSafeAlias(camelCase) }, JsonRequestBehavior.AllowGet);
+                : Json(new { alias = value.ToCleanString(CleanStringType.Alias | CleanStringType.CamelCase) }, JsonRequestBehavior.AllowGet);
         }
 
         [HttpGet]

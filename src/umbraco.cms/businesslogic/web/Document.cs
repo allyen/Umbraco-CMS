@@ -748,7 +748,7 @@ namespace umbraco.cms.businesslogic.web
         #region Public Methods
 
         /// <summary>
-        /// Executes handlers and events for the Send To Publication action.
+        /// Saves and executes handlers and events for the Send To Publication action.
         /// </summary>
         /// <param name="u">The User</param>
         public bool SendToPublication(User u)
@@ -1022,10 +1022,10 @@ namespace umbraco.cms.businesslogic.web
                     return result;
                 }
 
-                return Attempt<PublishStatus>.Fail();
+                return new Attempt<PublishStatus>(false, new PublishStatus(Content, PublishStatusType.FailedCancelledByEvent));
             }
 
-            return Attempt<PublishStatus>.Fail();
+            return new Attempt<PublishStatus>(false, new PublishStatus(Content, PublishStatusType.FailedCancelledByEvent));
         }
 
         /// <summary>

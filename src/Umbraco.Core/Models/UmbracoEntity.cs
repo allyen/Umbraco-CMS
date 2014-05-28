@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Umbraco.Core.Models.EntityBase;
 
 namespace Umbraco.Core.Models
@@ -283,15 +285,59 @@ namespace Umbraco.Core.Models
             }
         }
 
-        /// <summary>
-        /// Some entities may expose additional data that other's might not, this custom data will be available in this collection
-        /// </summary>
-        public IList<UmbracoProperty> UmbracoProperties { get; set; }
+        public override object DeepClone()
+        {
+            var clone = (UmbracoEntity) base.DeepClone();
 
-        internal class UmbracoProperty
+            //This ensures that any value in the dictionary that is deep cloneable is cloned too
+            foreach (var key in clone.AdditionalData.Keys.ToArray())
+            {
+                var deepCloneable = clone.AdditionalData[key] as IDeepCloneable;
+                if (deepCloneable != null)
+                {
+                    clone.AdditionalData[key] = deepCloneable.DeepClone();
+                }
+            }
+
+            return clone;
+        }
+
+        /// <summary>
+        /// A struction that can be contained in the additional data of an UmbracoEntity representing 
+        /// a user defined property
+        /// </summary>
+        public class EntityProperty : IDeepCloneable
         {
             public string PropertyEditorAlias { get; set; }
-            public string Value { get; set; }
+            public object Value { get; set; }
+            public object DeepClone()
+            {
+                //Memberwise clone on Entity will work since it doesn't have any deep elements
+                // for any sub class this will work for standard properties as well that aren't complex object's themselves.
+                var clone = MemberwiseClone();
+                return clone;
+            }
+
+            protected bool Equals(EntityProperty other)
+            {
+                return PropertyEditorAlias.Equals(other.PropertyEditorAlias) && string.Equals(Value, other.Value);
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((EntityProperty) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                unchecked
+                {
+                    return (PropertyEditorAlias.GetHashCode() * 397) ^ (Value != null ? Value.GetHashCode() : 0);
+                }
+            }
         }
     }
 }

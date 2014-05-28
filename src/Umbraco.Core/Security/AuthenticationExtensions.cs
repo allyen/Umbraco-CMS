@@ -13,7 +13,7 @@ namespace Umbraco.Core.Security
     /// <summary>
     /// Extensions to create and renew and remove authentication tickets for the Umbraco back office
     /// </summary>
-    internal static class AuthenticationExtensions
+    public static class AuthenticationExtensions
     {
         /// <summary>
         /// This will check the ticket to see if it is valid, if it is it will set the current thread's user and culture
@@ -86,6 +86,7 @@ namespace Umbraco.Core.Security
         public static UmbracoBackOfficeIdentity GetCurrentIdentity(this HttpContextBase http, bool authenticateRequestIfNotFound)
         {
             if (http == null) throw new ArgumentNullException("http");
+            if (http.User == null) return null; //there's no user at all so no identity
             var identity = http.User.Identity as UmbracoBackOfficeIdentity;
             if (identity != null) return identity;
             if (authenticateRequestIfNotFound == false) return null;
@@ -130,10 +131,10 @@ namespace Umbraco.Core.Security
         }
 
         /// <summary>
-        /// This clears the forms authentication cookie
+        /// This clears the forms authentication cookie for webapi since cookies are handled differently
         /// </summary>
         /// <param name="response"></param>
-        public static void UmbracoLogout(this HttpResponseMessage response)
+        public static void UmbracoLogoutWebApi(this HttpResponseMessage response)
         {
             if (response == null) throw new ArgumentNullException("response");
             //remove the cookie

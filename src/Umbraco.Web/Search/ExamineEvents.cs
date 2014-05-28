@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Security;
@@ -60,6 +60,7 @@ namespace Umbraco.Web.Search
             CacheRefresherBase<PageCacheRefresher>.CacheUpdated += PublishedPageCacheRefresherCacheUpdated;
             CacheRefresherBase<MediaCacheRefresher>.CacheUpdated += MediaCacheRefresherCacheUpdated;
             CacheRefresherBase<MemberCacheRefresher>.CacheUpdated += MemberCacheRefresherCacheUpdated;
+            CacheRefresherBase<ContentTypeCacheRefresher>.CacheUpdated += ContentTypeCacheRefresherCacheUpdated;
             
 			var contentIndexer = ExamineManager.Instance.IndexProviderCollection["InternalIndexer"] as UmbracoContentIndexer;
 			if (contentIndexer != null)
@@ -72,6 +73,24 @@ namespace Umbraco.Web.Search
 				memberIndexer.DocumentWriting += IndexerDocumentWriting;
 			}
 		}
+
+        /// <summary>
+        /// This is used to refresh content indexers IndexData based on the DataService whenever a content type is changed since
+        /// properties may have been added/removed
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// <remarks>
+        /// See: http://issues.umbraco.org/issue/U4-4798
+        /// </remarks>
+	    static void ContentTypeCacheRefresherCacheUpdated(ContentTypeCacheRefresher sender, CacheRefresherEventArgs e)
+        {
+            var indexersToUpdated = ExamineManager.Instance.IndexProviderCollection.OfType<UmbracoContentIndexer>();
+            foreach (var provider in indexersToUpdated)
+            {
+                provider.RefreshIndexerDataFromDataService();
+            }
+        }
 
 	    static void MemberCacheRefresherCacheUpdated(MemberCacheRefresher sender, CacheRefresherEventArgs e)
 	    {
@@ -155,19 +174,33 @@ namespace Umbraco.Web.Search
                             switch (payload.Operation)
                             {
                                 case MediaCacheRefresher.OperationType.Saved:
-                                    var media = ApplicationContext.Current.Services.MediaService.GetById(payload.Id);
-                                    if (media != null)
+                                    var media1 = ApplicationContext.Current.Services.MediaService.GetById(payload.Id);
+                                    if (media1 != null)
                                     {
-                                        ReIndexForMedia(media, media.Trashed == false);
+                                        ReIndexForMedia(media1, media1.Trashed == false);
                                     }                                    
                                     break;
                                 case MediaCacheRefresher.OperationType.Trashed:
+                                    
                                     //keep if trashed for indexes supporting unpublished
+                                    //(delete the index from all indexes not supporting unpublished content)
+                                    
                                     DeleteIndexForEntity(payload.Id, true);
+
+                                    //We then need to re-index this item for all indexes supporting unpublished content
+                                    var media2 = ApplicationContext.Current.Services.MediaService.GetById(payload.Id);
+                                    if (media2 != null)
+                                    {
+                                        ReIndexForMedia(media2, false);
+                                    }
+
                                     break;
                                 case MediaCacheRefresher.OperationType.Deleted:
+
                                     //permanently remove from all indexes
+                                    
                                     DeleteIndexForEntity(payload.Id, false);
+
                                     break;
                                 default:
                                     throw new ArgumentOutOfRangeException();
@@ -292,9 +325,32 @@ namespace Umbraco.Web.Search
                     {
                         DeleteIndexForEntity(c4.Id, false);
                     }
-                    break;
-                case MessageType.RefreshAll:                
+                    break;                
                 case MessageType.RefreshByJson:
+
+                    var jsonPayloads = UnpublishedPageCacheRefresher.DeserializeFromJsonPayload((string)e.MessageObject);
+                    if (jsonPayloads.Any())
+                    {
+                        foreach (var payload in jsonPayloads)
+                        {
+                            switch (payload.Operation)
+                            {
+                                case UnpublishedPageCacheRefresher.OperationType.Deleted:                                   
+
+                                    //permanently remove from all indexes
+                                    
+                                    DeleteIndexForEntity(payload.Id, false);
+
+                                    break;
+                                default:
+                                    throw new ArgumentOutOfRangeException();
+                            }                            
+                        }                        
+                    }
+
+                    break;
+
+                case MessageType.RefreshAll:                
                 default:
                     //We don't support these, these message types will not fire for unpublished content
                     break;

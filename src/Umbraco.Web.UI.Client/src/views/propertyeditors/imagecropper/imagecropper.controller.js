@@ -88,6 +88,13 @@ angular.module('umbraco')
             }
         });
 
+
+        //here we declare a special method which will be called whenever the value has changed from the server
+        $scope.model.onValueChanged = function (newVal, oldVal) {
+            //clear current uploaded files
+            fileManager.setFiles($scope.model.alias, []);
+        };
+
         var unsubscribe = $scope.$on("formSubmitting", function () {
             $scope.done();
         });
@@ -98,11 +105,14 @@ angular.module('umbraco')
     })
     .run(function (mediaHelper, umbRequestHelper) {
         if (mediaHelper && mediaHelper.registerFileResolver) {
+
+            //NOTE: The 'entity' can be either a normal media entity or an "entity" returned from the entityResource
+            // they contain different data structures so if we need to query against it we need to be aware of this.
             mediaHelper.registerFileResolver("Umbraco.ImageCropper", function (property, entity, thumbnail) {
                 if (property.value.src) {
 
                     if (thumbnail === true) {
-                        return property.value.src + "?width=600&mode=max";
+                        return property.value.src + "?width=500&mode=max";
                     }
                     else {
                         return property.value.src;
@@ -114,6 +124,7 @@ angular.module('umbraco')
                     if (thumbnail) {
 
                         if (mediaHelper.detectIfImageByExtension(property.value)) {
+
                             var thumbnailUrl = umbRequestHelper.getApiUrl(
                                 "imagesApiBaseUrl",
                                 "GetBigThumbnail",

@@ -175,6 +175,12 @@ namespace Umbraco.Core.Strings
                     : (char.IsLetterOrDigit(c) || c == '_'), // letter, digit or underscore
                 StringType = CleanStringType.Ascii | CleanStringType.UmbracoCase,
                 BreakTermsOnUpper = false
+            }).WithConfig(CleanStringType.UnderscoreAlias, new Config
+            {
+                PreFilter = ApplyUrlReplaceCharacters,
+                IsTerm = (c, leading) => char.IsLetterOrDigit(c) || c == '_', // letter, digit or underscore
+                StringType = CleanStringType.Ascii | CleanStringType.UmbracoCase,
+                BreakTermsOnUpper = false
             }).WithConfig(CleanStringType.ConvertCase, new Config
             {
                 PreFilter = null,
@@ -287,7 +293,7 @@ namespace Umbraco.Core.Strings
 var UMBRACO_FORCE_SAFE_ALIAS = {0};
 var UMBRACO_FORCE_SAFE_ALIAS_URL = '{1}';
 var UMBRACO_FORCE_SAFE_ALIAS_TIMEOUT = 666;
-var UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS = {{ }};
+var UMBRACO_FORCE_SAFE_ALIAS_TMKEY = 'safe-alias-tmout';
 
 function getSafeAliasFromServer(value, callback) {{
     $.getJSON(UMBRACO_FORCE_SAFE_ALIAS_URL + 'ToSafeAlias?value=' + encodeURIComponent(value), function(json) {{
@@ -295,28 +301,30 @@ function getSafeAliasFromServer(value, callback) {{
     }});
 }}
 
-function getSafeAlias(id, value, immediate, callback) {{
+function getSafeAlias(input, value, immediate, callback) {{
     if (!UMBRACO_FORCE_SAFE_ALIAS) {{
         callback(value);
         return;
     }}
-    if (UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id]) clearTimeout(UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id]);
-    UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id] = setTimeout(function() {{
-        UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id] = null;
+    var timeout = input.data(UMBRACO_FORCE_SAFE_ALIAS_TMKEY);
+    if (timeout) clearTimeout(timeout);
+    input.data(UMBRACO_FORCE_SAFE_ALIAS_TMKEY, setTimeout(function() {{
+        input.removeData(UMBRACO_FORCE_SAFE_ALIAS_TMKEY);
         getSafeAliasFromServer(value, function(alias) {{ callback(alias); }});
-    }}, UMBRACO_FORCE_SAFE_ALIAS_TIMEOUT);
+    }}, UMBRACO_FORCE_SAFE_ALIAS_TIMEOUT));
 }}
 
-function validateSafeAlias(id, value, immediate, callback) {{
+function validateSafeAlias(input, value, immediate, callback) {{
     if (!UMBRACO_FORCE_SAFE_ALIAS) {{
         callback(true);
         return;
     }}
-    if (UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id]) clearTimeout(UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id]);
-    UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id] = setTimeout(function() {{
-        UMBRACO_FORCE_SAFE_ALIAS_TIMEOUTS[id] = null;
+    var timeout = input.data(UMBRACO_FORCE_SAFE_ALIAS_TMKEY);
+    if (timeout) clearTimeout(timeout);
+    input.data(UMBRACO_FORCE_SAFE_ALIAS_TMKEY, setTimeout(function() {{
+        input.removeData(UMBRACO_FORCE_SAFE_ALIAS_TMKEY);
         getSafeAliasFromServer(value, function(alias) {{ callback(value.toLowerCase() == alias.toLowerCase()); }});
-    }}, UMBRACO_FORCE_SAFE_ALIAS_TIMEOUT);
+    }}, UMBRACO_FORCE_SAFE_ALIAS_TIMEOUT));
 }}
 ";
 

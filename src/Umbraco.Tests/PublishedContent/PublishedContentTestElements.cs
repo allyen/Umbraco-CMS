@@ -32,7 +32,7 @@ namespace Umbraco.Tests.PublishedContent
 
         public void Add(SolidPublishedContent content)
         {
-            _content[content.Id] = PublishedContentModelFactory.CreateModel(content);
+            _content[content.Id] = content.CreateModel();
         }
 
         public void Clear()
@@ -100,8 +100,7 @@ namespace Umbraco.Tests.PublishedContent
             return _content.Count > 0;
         }
 
-        public IPublishedContent CreateFragment(string contentTypeAlias, IDictionary<string, object> dataValues,
-            bool isPreviewing, bool managed)
+        public IPublishedProperty CreateDetachedProperty(PublishedPropertyType propertyType, object value, bool isPreviewing)
         {
             throw new NotImplementedException();
         }

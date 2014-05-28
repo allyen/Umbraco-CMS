@@ -1,5 +1,6 @@
 module.exports = function (grunt) {
 
+
   // Default task.
   grunt.registerTask('default', ['jshint:dev','build','karma:unit']);
   grunt.registerTask('dev', ['jshint:dev', 'build', 'webserver', 'open:dev', 'watch']);
@@ -25,9 +26,32 @@ module.exports = function (grunt) {
     grunt.log.subhead(Date());
   });
 
+    // Custom task to run the bower dependency installer
+    // tried, a few other things but this seems to work the best.
+    // https://coderwall.com/p/xnkdqw
+  grunt.registerTask('bower', 'Get js packages listed in bower.json',
+      function () {
+          var bower = require('bower');
+          var done = this.async();
+
+          bower.commands.install(undefined, { }, { interactive: false })
+              .on('log', function (data) {
+                  grunt.log.write(data.message + "\n");
+              })
+              .on('error', function (data) {
+                  grunt.log.write(data.message + "\n");
+                  done(false);
+              })
+              .on('end', function (data) {
+                  done();
+              });
+      }
+    );
+
 
   // Project configuration.
   grunt.initConfig({
+    buildVersion: grunt.option('buildversion') || '7',
     connect: {
              devserver: {
                options: {
@@ -56,10 +80,11 @@ module.exports = function (grunt) {
     },
 
     distdir: 'build/belle',
-    vsdir: '../Umbraco.Web.Ui/umbraco',
+    bowerfiles: 'bower_components',
+    vsdir: '../Umbraco.Web.UI/umbraco',
     pkg: grunt.file.readJSON('package.json'),
     banner:
-    '/*! <%= pkg.title || pkg.name %> - v<%= pkg.version %> - <%= grunt.template.today("yyyy-mm-dd") %>\n' +
+    '/*! <%= pkg.title || pkg.name %> - v<%= buildVersion %> - <%= grunt.template.today("yyyy-mm-dd") %>\n' +
     '<%= pkg.homepage ? " * " + pkg.homepage + "\\n" : "" %>' +
     ' * Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author %>;\n' +
     ' * Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>\n */\n',
@@ -84,6 +109,15 @@ module.exports = function (grunt) {
     clean: ['<%= distdir %>/*'],
 
     copy: {
+
+      /* Copies over the files downloaded by bower
+      bower: {
+          files: [
+              { dest: '<%= distdir %>/lib/typeahead/typeahead.bundle.min.js', src: '<%= bowerfiles %>/typeahead.js/dist/typeahead.bundle.min.js' }
+          ]
+      },
+      */
+
       assets: {
         files: [{ dest: '<%= distdir %>/assets', src : '**', expand: true, cwd: 'src/assets/' }]
       },

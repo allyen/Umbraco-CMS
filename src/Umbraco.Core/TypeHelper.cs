@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,20 +51,21 @@ namespace Umbraco.Core
             //contain sub type's of the one we're currently looking for
             return assemblies
                 .Where(assembly =>
-                       assembly == assignTypeFrom.Assembly || HasReferenceToAssemblyWithName(assembly, assignTypeFrom.Assembly.GetName().Name))
+                       assembly == assignTypeFrom.Assembly 
+                        || HasReferenceToAssemblyWithName(assembly, assignTypeFrom.Assembly.GetName().Name))
                 .ToArray();
         }
 
-        /// <summary>
-        /// checks if the assembly has a reference with the same name as the expected assembly name.
-        /// </summary>
-        /// <param name="assembly"></param>
-        /// <param name="expectedAssemblyName"></param>
-        /// <returns></returns>
+	    /// <summary>
+	    /// checks if the assembly has a reference with the same name as the expected assembly name.
+	    /// </summary>
+	    /// <param name="assembly"></param>
+	    /// <param name="expectedAssemblyName"></param>
+	    /// <returns></returns>
         private static bool HasReferenceToAssemblyWithName(Assembly assembly, string expectedAssemblyName)
-        {
+        {           
             return assembly
-                .GetReferencedAssemblies()
+                .GetReferencedAssemblies()                
                 .Select(a => a.Name)
                 .Contains(expectedAssemblyName, StringComparer.Ordinal);
         }

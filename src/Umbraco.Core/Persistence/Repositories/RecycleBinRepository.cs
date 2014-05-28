@@ -86,12 +86,12 @@ namespace Umbraco.Core.Persistence.Repositories
                               FormatDeleteStatement("umbracoRelation", "childId"),
                               FormatDeleteStatement("cmsTagRelationship", "nodeId"),
                               FormatDeleteStatement("umbracoDomains", "domainRootStructureID"),
-                              FormatDeleteStatement("cmsDocument", "NodeId"),
+                              FormatDeleteStatement("cmsDocument", "nodeId"),
                               FormatDeleteStatement("cmsPropertyData", "contentNodeId"),
                               FormatDeleteStatement("cmsPreviewXml", "nodeId"),
                               FormatDeleteStatement("cmsContentVersion", "ContentId"),
-                              FormatDeleteStatement("cmsContentXml", "nodeID"),
-                              FormatDeleteStatement("cmsContent", "NodeId"),
+                              FormatDeleteStatement("cmsContentXml", "nodeId"),
+                              FormatDeleteStatement("cmsContent", "nodeId"),
                               "UPDATE umbracoNode SET parentID = '-20' WHERE trashed = '1' AND nodeObjectType = @NodeObjectType",
                               "DELETE FROM umbracoNode WHERE trashed = '1' AND nodeObjectType = @NodeObjectType"
                           };
@@ -131,18 +131,19 @@ namespace Umbraco.Core.Persistence.Repositories
             {
                 var fs = FileSystemProviderManager.Current.GetFileSystemProvider<MediaFileSystem>();
                 Parallel.ForEach(files, file =>
-                                        {
-                                            if (UmbracoConfig.For.UmbracoSettings().Content.UploadAllowDirectories)
-                                            {
-                                                var relativeFilePath = fs.GetRelativePath(file);
-                                                var parentDirectory = System.IO.Path.GetDirectoryName(relativeFilePath);
-                                                fs.DeleteDirectory(parentDirectory, true);
-                                            }
-                                            else
-                                            {
-                                                fs.DeleteFile(file, true);
-                                            }
-                                        });
+                {
+                    if (file.IsNullOrWhiteSpace()) return;
+                    if (UmbracoConfig.For.UmbracoSettings().Content.UploadAllowDirectories)
+                    {
+                        var relativeFilePath = fs.GetRelativePath(file);
+                        var parentDirectory = System.IO.Path.GetDirectoryName(relativeFilePath);
+                        fs.DeleteDirectory(parentDirectory, true);
+                    }
+                    else
+                    {
+                        fs.DeleteFile(file, true);
+                    }
+                });
 
                 return true;
             }
