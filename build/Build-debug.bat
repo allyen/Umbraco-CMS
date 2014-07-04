@@ -1,5 +1,5 @@
 @ECHO OFF
-SET release=7.1.1
+SET /p release=<UmbracoVersion.txt
 SET comment=
 SET version=%release%
 
