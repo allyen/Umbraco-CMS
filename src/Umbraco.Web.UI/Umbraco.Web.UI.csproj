@@ -2075,6 +2075,8 @@
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="Views\Partials\Grid\bootstrap3.cshtml" />
+    <None Include="Web.Debug.config.transformed" />
     <None Include="web.Template.Debug.config">
       <DependentUpon>Web.Template.config</DependentUpon>
       <SubType>Designer</SubType>
@@ -2504,11 +2506,11 @@
     <Folder Include="Media\" />
     <Folder Include="Scripts\" />
     <Folder Include="Umbraco\PartialViews\Templates\" />
+    <Folder Include="Umbraco\preview\" />
     <Folder Include="Umbraco_Client\FolderBrowser\Images\" />
     <Folder Include="Umbraco_Client\Tags\images\" />
     <Folder Include="UserControls\" />
     <Folder Include="Views\MacroPartials\" />
-    <Folder Include="Views\Partials\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -2529,9 +2531,9 @@ xcopy "$(ProjectDir)"..\packages\SqlServerCE.4.0.0.0\x86\*.* "$(TargetDir)x86\" 
         <WebProjectProperties>
           <UseIIS>True</UseIIS>
           <AutoAssignPort>True</AutoAssignPort>
-          <DevelopmentServerPort>7140</DevelopmentServerPort>
+          <DevelopmentServerPort>7200</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>http://localhost:7140</IISUrl>
+          <IISUrl>http://localhost:7200</IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
           <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>

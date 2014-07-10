@@ -9,7 +9,6 @@ using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Routing;
 using ClientDependency.Core.Config;
-using StackExchange.Profiling.MVCHelpers;
 using Umbraco.Core;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Dictionary;
@@ -95,8 +94,8 @@ namespace Umbraco.Web
             //set model binder
             ModelBinders.Binders.Add(new KeyValuePair<Type, IModelBinder>(typeof(RenderModel), new RenderModelBinder()));
 
-            //add the profiling action filter
-            GlobalFilters.Filters.Add(new ProfilingActionFilter());
+            ////add the profiling action filter
+            //GlobalFilters.Filters.Add(new ProfilingActionFilter());
 
             //Register a custom renderer - used to process property editor dependencies
             var renderer = new DependencyPathRenderer();
@@ -298,7 +297,8 @@ namespace Umbraco.Web
             DefaultRenderMvcControllerResolver.Current = new DefaultRenderMvcControllerResolver(typeof(RenderMvcController));
 
             //Override the ServerMessengerResolver to set a username/password for the distributed calls
-            ServerMessengerResolver.Current.SetServerMessenger(new DefaultServerMessenger(() =>
+            //ServerMessengerResolver.Current.SetServerMessenger(new DefaultServerMessenger(() =>
+            ServerMessengerResolver.Current.SetServerMessenger(new BatchedServerMessenger(() =>
             {
                 //we should not proceed to change this if the app/database is not configured since there will 
                 // be no user, plus we don't need to have server messages sent if this is the case.
