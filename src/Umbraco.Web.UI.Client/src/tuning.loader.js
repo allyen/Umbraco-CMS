@@ -8,10 +8,9 @@ LazyLoad.js([
       '/Umbraco/js/umbraco.services.js',
       '/Umbraco/js/umbraco.security.js',
       '/Umbraco/ServerVariables',
-      '/Umbraco/lib/angular-bootstrap/ui-bootstrap-tpls-0.10.0.min.js',
       '/Umbraco/lib/spectrum/spectrum.js',
       'http://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js',
-      '/umbraco/js/tuning.panel.js'
+      '/umbraco/js/tuning.panel.js',
 ], function () {
     jQuery(document).ready(function () {
         angular.bootstrap(document, ['umbraco.tuning']);

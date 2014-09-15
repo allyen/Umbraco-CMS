@@ -133,6 +133,18 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <returns></returns>
         public IEnumerable<TEntity> GetAll(params TId[] ids)
         {
+            if (ids.Length > 2000)
+            {
+                throw new InvalidOperationException("Cannot perform a query with more than 2000 parameters");
+            }
+
+            //ensure they are de-duplicated, easy win if people don't do this as this can cause many excess queries
+            ids = ids.Distinct()
+                //don't query by anything that is a default of T (like a zero)
+                //TODO: I think we should enabled this in case accidental calls are made to get all with invalid ids
+                //.Where(x => Equals(x, default(TId)) == false)
+                .ToArray();
+
             if (ids.Any())
             {
                 var entities = _cache.GetByIds(
@@ -161,6 +173,12 @@ namespace Umbraco.Core.Persistence.Repositories
                 //ensure we don't include any null refs in the returned collection!
                 .WhereNotNull()
                 .ToArray();
+
+            //We need to put a threshold here! IF there's an insane amount of items
+            // coming back here we don't want to chuck it all into memory, this added cache here
+            // is more for convenience when paging stuff temporarily
+
+            if (entityCollection.Length > 100) return entityCollection;
 
             foreach (var entity in entityCollection)
             {

@@ -10,7 +10,9 @@ using Umbraco.Core.Events;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Rdbms;
 using Umbraco.Core.Persistence;
+using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 using Umbraco.Core.Persistence.Querying;
+using Umbraco.Core.Persistence.Repositories;
 using Umbraco.Core.Persistence.SqlSyntax;
 using Umbraco.Core.Persistence.UnitOfWork;
 using Umbraco.Core.Publishing;
@@ -24,9 +26,11 @@ namespace Umbraco.Core.Services
     {
         private readonly IDatabaseUnitOfWorkProvider _uowProvider;
         private readonly RepositoryFactory _repositoryFactory;
+
         //Support recursive locks because some of the methods that require locking call other methods that require locking. 
         //for example, the Move method needs to be locked but this calls the Save method which also needs to be locked.
         private static readonly ReaderWriterLockSlim Locker = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+
         private readonly EntityXmlSerializer _entitySerializer = new EntityXmlSerializer();
         private readonly IDataTypeService _dataTypeService;
 
@@ -148,25 +152,20 @@ namespace Umbraco.Core.Services
                 return media;
             }
 
-            //TODO: Once we fix up the transaction logic, these write locks should be replaced with 
-            // an outter transaction instead.
-            using (new WriteLock(Locker))
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
             {
-                var uow = _uowProvider.GetUnitOfWork();
-                using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+                media.CreatorId = userId;
+                repository.AddOrUpdate(media);
+
+                repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                // generate preview for blame history?
+                if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
                 {
-                    media.CreatorId = userId;
-                    repository.AddOrUpdate(media);
-
-                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                    // generate preview for blame history?
-                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
-                    {
-                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                    }
-
-                    uow.Commit();
+                    repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
                 }
+
+                uow.Commit();
             }
 
             Saved.RaiseEvent(new SaveEventArgs<IMedia>(media, false), this);
@@ -210,22 +209,19 @@ namespace Umbraco.Core.Services
                 return media;
             }
 
-            using (new WriteLock(Locker))
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
             {
-                var uow = _uowProvider.GetUnitOfWork();
-                using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+                media.CreatorId = userId;
+                repository.AddOrUpdate(media);
+                repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                // generate preview for blame history?
+                if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
                 {
-                    media.CreatorId = userId;
-                    repository.AddOrUpdate(media);
-                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                    // generate preview for blame history?
-                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
-                    {
-                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                    }
-
-                    uow.Commit();
+                    repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
                 }
+
+                uow.Commit();
             }
 
             Saved.RaiseEvent(new SaveEventArgs<IMedia>(media, false), this);
@@ -248,6 +244,33 @@ namespace Umbraco.Core.Services
             using (var repository = _repositoryFactory.CreateMediaRepository(uow))
             {
                 return repository.Get(id);
+            }
+        }
+
+        public int Count(string contentTypeAlias = null)
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+            {
+                return repository.Count(contentTypeAlias);
+            }
+        }
+
+        public int CountChildren(int parentId, string contentTypeAlias = null)
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+            {
+                return repository.CountChildren(parentId, contentTypeAlias);
+            }
+        }
+
+        public int CountDescendants(int parentId, string contentTypeAlias = null)
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+            {
+                return repository.CountDescendants(parentId, contentTypeAlias);
             }
         }
 
@@ -362,6 +385,31 @@ namespace Umbraco.Core.Services
             {
                 var query = Query<IMedia>.Builder.Where(x => x.ParentId == id);
                 var medias = repository.GetByQuery(query);
+
+                return medias;
+            }
+        }
+
+        /// <summary>
+        /// Gets a collection of <see cref="IMedia"/> objects by Parent Id
+        /// </summary>
+        /// <param name="id">Id of the Parent to retrieve Children from</param>
+        /// <param name="pageNumber">Page number</param>
+        /// <param name="pageSize">Page size</param>
+        /// <param name="totalRecords">Total records query would return without paging</param>
+        /// <param name="orderBy">Field to order by</param>
+        /// <param name="orderDirections">Direction to order by</param>
+        /// <param name="filter">Search text filter</param>
+        /// <returns>An Enumerable list of <see cref="IContent"/> objects</returns>
+        public IEnumerable<IMedia> GetPagedChildren(int id, int pageNumber, int pageSize, out int totalChildren,
+            string orderBy, Direction orderDirection, string filter = "")
+        {
+            Mandate.ParameterCondition(pageNumber > 0, "pageSize");
+            Mandate.ParameterCondition(pageSize > 0, "pageSize");
+            using (var repository = _repositoryFactory.CreateMediaRepository(_uowProvider.GetUnitOfWork()))
+            {
+                var query = Query<IMedia>.Builder.Where(x => x.ParentId == id);
+                var medias = repository.GetPagedResultsByQuery(query, pageNumber, pageSize, out totalChildren, orderBy, orderDirection, filter);
 
                 return medias;
             }
@@ -525,6 +573,8 @@ namespace Umbraco.Core.Services
         /// <param name="userId">Id of the User moving the Media</param>
         public void Move(IMedia media, int parentId, int userId = 0)
         {
+            //TODO: This all needs to be on the repo layer in one transaction!
+
             if (media == null) throw new ArgumentNullException("media");
 
             using (new WriteLock(Locker))
@@ -643,25 +693,32 @@ namespace Umbraco.Core.Services
         {
             using (new WriteLock(Locker))
             {
-                List<int> ids;
+                Dictionary<int, IEnumerable<Property>> entities;
                 List<string> files;
                 bool success;
                 var nodeObjectType = new Guid(Constants.ObjectTypes.Media);
 
-                using (var repository = _repositoryFactory.CreateRecycleBinRepository(_uowProvider.GetUnitOfWork()))
+                var uow = _uowProvider.GetUnitOfWork();
+                using (var repository = _repositoryFactory.CreateMediaRepository(uow))
                 {
-                    ids = repository.GetIdsOfItemsInRecycleBin(nodeObjectType);
-                    files = repository.GetFilesInRecycleBin(nodeObjectType);
+                    //Create a dictionary of ids -> dictionary of property aliases + values
+                    entities = repository.GetEntitiesInRecycleBin()
+                        .ToDictionary(
+                            key => key.Id,
+                            val => (IEnumerable<Property>)val.Properties);
 
-                    if (EmptyingRecycleBin.IsRaisedEventCancelled(new RecycleBinEventArgs(nodeObjectType, ids, files), this))
+                    files = ((MediaRepository)repository).GetFilesInRecycleBinForUploadField();
+
+                    if (EmptyingRecycleBin.IsRaisedEventCancelled(new RecycleBinEventArgs(nodeObjectType, entities, files), this))
                         return;
 
-                    success = repository.EmptyRecycleBin(nodeObjectType);
+                    success = repository.EmptyRecycleBin();
+
+                    EmptiedRecycleBin.RaiseEvent(new RecycleBinEventArgs(nodeObjectType, entities, files, success), this);
+
                     if (success)
                         repository.DeleteFiles(files);
                 }
-
-                EmptiedRecycleBin.RaiseEvent(new RecycleBinEventArgs(nodeObjectType, ids, files, success), this);
             }
             Audit.Add(AuditTypes.Delete, "Empty Media Recycle Bin performed by user", 0, -21);
         }
@@ -674,6 +731,8 @@ namespace Umbraco.Core.Services
         /// <param name="userId">Optional id of the user deleting the media</param>
         public void DeleteMediaOfType(int mediaTypeId, int userId = 0)
         {
+            //TODO: This all needs to be done on the repo level in one trans
+
             using (new WriteLock(Locker))
             {
                 var uow = _uowProvider.GetUnitOfWork();
@@ -701,7 +760,7 @@ namespace Umbraco.Core.Services
                                 MoveToRecycleBin(child, userId);
                         }
 
-                        //Permantly delete the content
+                        //Permanently delete the content
                         Delete(content, userId);
                     }
                 }
@@ -721,6 +780,8 @@ namespace Umbraco.Core.Services
         /// <param name="userId">Id of the User deleting the Media</param>
         public void Delete(IMedia media, int userId = 0)
         {
+            //TODO: IT would be much nicer to mass delete all in one trans in the repo level!
+
             if (Deleting.IsRaisedEventCancelled(new DeleteEventArgs<IMedia>(media), this))
                 return;
 
@@ -736,9 +797,13 @@ namespace Umbraco.Core.Services
             {
                 repository.Delete(media);
                 uow.Commit();
-            }
 
-            Deleted.RaiseEvent(new DeleteEventArgs<IMedia>(media, false), this);
+                var args = new DeleteEventArgs<IMedia>(media, false);
+                Deleted.RaiseEvent(args, this);
+
+                //remove any flagged media files
+                repository.DeleteFiles(args.MediaFilesToDelete);
+            }
 
             Audit.Add(AuditTypes.Delete, "Delete Media performed by user", userId, media.Id);
         }
@@ -812,22 +877,19 @@ namespace Umbraco.Core.Services
                     return;
             }
 
-            using (new WriteLock(Locker))
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
             {
-                var uow = _uowProvider.GetUnitOfWork();
-                using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+                media.CreatorId = userId;
+                repository.AddOrUpdate(media);
+                repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                // generate preview for blame history?
+                if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
                 {
-                    media.CreatorId = userId;
-                    repository.AddOrUpdate(media);
-                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                    // generate preview for blame history?
-                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
-                    {
-                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                    }
-
-                    uow.Commit();
+                    repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
                 }
+
+                uow.Commit();
             }
 
             if (raiseEvents)
@@ -851,33 +913,30 @@ namespace Umbraco.Core.Services
                 if (Saving.IsRaisedEventCancelled(new SaveEventArgs<IMedia>(asArray), this))
                     return;
             }
-            
-            using (new WriteLock(Locker))
-            {
-                var uow = _uowProvider.GetUnitOfWork();
-                using (var repository = _repositoryFactory.CreateMediaRepository(uow))
-                {
-                    foreach (var media in asArray)
-                    {
-                        media.CreatorId = userId;
-                        repository.AddOrUpdate(media);
-                        repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                        // generate preview for blame history?
-                        if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
-                        {
-                            repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                        }
-                    }
 
-                    //commit the whole lot in one go
-                    uow.Commit();
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+            {
+                foreach (var media in asArray)
+                {
+                    media.CreatorId = userId;
+                    repository.AddOrUpdate(media);
+                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    // generate preview for blame history?
+                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                    {
+                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    }
                 }
 
-                if (raiseEvents)
-                    Saved.RaiseEvent(new SaveEventArgs<IMedia>(asArray, false), this);
-
-                Audit.Add(AuditTypes.Save, "Save Media items performed by user", userId, -1);
+                //commit the whole lot in one go
+                uow.Commit();
             }
+
+            if (raiseEvents)
+                Saved.RaiseEvent(new SaveEventArgs<IMedia>(asArray, false), this);
+
+            Audit.Add(AuditTypes.Save, "Save Media items performed by user", userId, -1);
         }
 
         /// <summary>
@@ -898,37 +957,34 @@ namespace Umbraco.Core.Services
                     return false;
             }
 
-            using (new WriteLock(Locker))
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMediaRepository(uow))
             {
-                var uow = _uowProvider.GetUnitOfWork();
-                using (var repository = _repositoryFactory.CreateMediaRepository(uow))
+                int i = 0;
+                foreach (var media in asArray)
                 {
-                    int i = 0;
-                    foreach (var media in asArray)
+                    //If the current sort order equals that of the media
+                    //we don't need to update it, so just increment the sort order
+                    //and continue.
+                    if (media.SortOrder == i)
                     {
-                        //If the current sort order equals that of the media
-                        //we don't need to update it, so just increment the sort order
-                        //and continue.
-                        if (media.SortOrder == i)
-                        {
-                            i++;
-                            continue;
-                        }
-
-                        media.SortOrder = i;
                         i++;
-
-                        repository.AddOrUpdate(media);
-                        repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                        // generate preview for blame history?
-                        if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
-                        {
-                            repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
-                        }
+                        continue;
                     }
 
-                    uow.Commit();
+                    media.SortOrder = i;
+                    i++;
+
+                    repository.AddOrUpdate(media);
+                    repository.AddOrUpdateContentXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    // generate preview for blame history?
+                    if (UmbracoConfig.For.UmbracoSettings().Content.GlobalPreviewStorageEnabled)
+                    {
+                        repository.AddOrUpdatePreviewXml(media, m => _entitySerializer.Serialize(this, _dataTypeService, m));
+                    }
                 }
+
+                uow.Commit();
             }
 
             if (raiseEvents)

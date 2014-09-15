@@ -3,10 +3,13 @@ module.exports = function (grunt) {
 
   // Default task.
   grunt.registerTask('default', ['jshint:dev','build','karma:unit']);
-  grunt.registerTask('dev', ['jshint:dev', 'build', 'webserver', 'open:dev', 'watch']);
+    grunt.registerTask('dev', ['jshint:dev', 'build-dev', 'webserver', 'open:dev', 'watch']);
+    grunt.registerTask('docserve', ['docs:api', 'connect:docserver', 'open:docs', 'watch:docs']);
+    grunt.registerTask('vs', ['jshint:dev', 'build-dev', 'watch']);
 
+    //TODO: Too much watching, this brings windows to it's knees when in dev mode
   //run by the watch task
-  grunt.registerTask('watch-js', ['jshint:dev','concat','copy:app','copy:mocks','copy:packages','copy:tuning','copy:vs']);
+  grunt.registerTask('watch-js', ['jshint:dev','concat','copy:app','copy:mocks','copy:packages','copy:tuning','copy:vs', 'karma:unit']);
   grunt.registerTask('watch-less', ['recess:build', 'recess:installer', 'recess:tuning','copy:tuning', 'copy:assets', 'copy:vs']);
   grunt.registerTask('watch-html', ['copy:views', 'copy:vs']);
   grunt.registerTask('watch-packages', ['copy:packages']);
@@ -16,6 +19,8 @@ module.exports = function (grunt) {
 
   //triggered from grunt dev or grunt
   grunt.registerTask('build', ['clean', 'concat', 'recess:min', 'recess:installer', 'recess:tuning', 'bower', 'copy']);
+    //build-dev doesn't min - we are trying to speed this up and we don't want minified stuff when we are in dev mode
+    grunt.registerTask('build-dev', ['clean', 'concat', 'recess:build', 'recess:installer', 'copy']);
 
   //utillity tasks
   grunt.registerTask('docs', ['ngdocs']);
@@ -71,12 +76,31 @@ module.exports = function (grunt) {
                  }
                }
              },
-             testserver: {}
+             testserver: {},
+             docserver: {
+               options: {
+                 port: 8880,
+                 hostname: '0.0.0.0',
+                 base: './docs/api',
+                 middleware: function(connect, options){
+                   return [
+                     //uncomment to enable CSP
+                     // util.csp(),
+                     //util.rewrite(),
+                     connect.static(options.base),
+                     connect.directory(options.base)
+                   ];
+                 }
+               }
+             },
            },
 
     open : {
       dev : {
           path: 'http://localhost:9990/belle/'
+      },
+      docs : {
+          path: 'http://localhost:8880/index.html'
       }
     },
 
@@ -165,15 +189,11 @@ module.exports = function (grunt) {
               //then we need to figure out how to not copy all the test stuff either!?
               { dest: '<%= vsdir %>/assets', src: '**', expand: true, cwd: '<%= distdir %>/assets' },
               { dest: '<%= vsdir %>/js', src: '**', expand: true, cwd: '<%= distdir %>/js' },
+              { dest: '<%= vsdir %>/lib', src: '**', expand: true, cwd: '<%= distdir %>/lib' },
               { dest: '<%= vsdir %>/views', src: '**', expand: true, cwd: '<%= distdir %>/views' },
               { dest: '<%= vsdir %>/preview', src: '**', expand: true, cwd: '<%= distdir %>/preview' }
           ]
-      },
-      vsLibs: {
-          files: [
-              { dest: '<%= vsdir %>/lib', src: '**', expand: true, cwd: '<%= distdir %>/lib' }
-          ]
-      },
+      },      
       packages: {
         files: [{ dest: '<%= vsdir %>/../App_Plugins', src : '**', expand: true, cwd: 'src/packages/' }]
       }
@@ -210,7 +230,7 @@ module.exports = function (grunt) {
           }
         },
         tuningJs: {
-            src: ['src/tuning/tuning.global.js', 'src/tuning/tuning.controller.js', 'src/tuning/editors/*.js', 'src/tuning/lib/slider.directive.js', 'src/tuning/lib/spectrum.directive.js'],
+            src: ['src/tuning/tuning.global.js', 'src/tuning/tuning.controller.js', 'src/tuning/editors/*.js', 'src/tuning/lib/*.js'],
             dest: '<%= distdir %>/js/tuning.panel.js'
         },
         controllers: {
@@ -322,7 +342,7 @@ module.exports = function (grunt) {
 
     watch:{
       css: {
-          files: '**/*.less',
+          files: 'src/**/*.less',
           tasks: ['watch-less', 'timestamp'],
           options: {
             livereload: true,
@@ -349,10 +369,17 @@ module.exports = function (grunt) {
         tasks:['watch-html','timestamp']
       },
 
-      packages: {
-          files: 'src/packages/**/*.*',
-          tasks: ['watch-packages', 'timestamp'],
-      }
+        //SD: Removing package watching, we don't even use these anymore and they should be removed, the more watching we do the slower this gets
+      //packages: {
+      //    files: 'src/packages/**/*.*',
+      //    tasks: ['watch-packages', 'timestamp'],
+      //}
+
+        //SD: Removing watch docs, this gets run with the normal watching which we do not want
+      //docs: {
+      //    files: ['src/**/*.js', 'src/*.js'],
+      //    tasks: ['docs:api'],
+      //}
     },
 
 

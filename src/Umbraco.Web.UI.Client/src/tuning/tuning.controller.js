@@ -3,23 +3,20 @@
 /* tuning panel app and controller */
 /*********************************************************************************************************/
 
-angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.slider', 'umbraco.resources', 'umbraco.services'])
+var app = angular.module("umbraco.tuning", ['spectrumcolorpicker', 'ui.slider', 'umbraco.resources', 'umbraco.services'])
 
-.controller("Umbraco.tuningController", function ($scope, $modal, $http, $window, $timeout, $location) {
+.controller("Umbraco.tuningController", function ($scope, $http, $window, $timeout, $location, dialogService) {
 
     $scope.isOpen = false;
     $scope.frameLoaded = false;
     $scope.enableTuning = 0;
     $scope.schemaFocus = "body";
     $scope.settingIsOpen = 'previewDevice';
-    $scope.BackgroundPositions = ['center', 'left', 'right', 'bottom center', 'bottom left', 'bottom right', 'top center', 'top left', 'top right'];
-    $scope.BackgroundRepeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
-    $scope.BackgroundAttachments = ['scroll', 'fixed'];
-    $scope.Layouts = ['boxed', 'wide', 'full'];
-    $scope.displays = ['float-left', 'float-right', 'block-left', 'block-right', 'none'];
-    $scope.optionHomes = ['icon', 'text', 'none'];
+    $scope.propertyCategories = [];
     $scope.googleFontFamilies = {};
-    $scope.pageId = "../dialogs/Preview.aspx?id=" + $location.search().id;
+    $scope.pageId = $location.search().id;
+    $scope.pageUrl = "../dialogs/Preview.aspx?id=" + $location.search().id;
+    $scope.valueAreLoaded = false;
     $scope.devices = [
         { name: "desktop", css: "desktop", icon: "icon-display" },
         { name: "laptop - 1366px", css: "laptop border", icon: "icon-laptop" },
@@ -50,22 +47,19 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
         $.each($scope.tuningModel.configs, function (indexConfig, config) {
             $.each(config.editors, function (indexItem, item) {
 
+                /* try to get value */
                 try {
 
                     if (item.values) {
                         angular.forEach(Object.keys(item.values), function (key, indexKey) {
-
                             if (key != "''") {
                                 var propertyAlias = key.toLowerCase() + item.alias.toLowerCase();
                                 var newValue = eval("data." + propertyAlias.replace("@", ""));
-
                                 if (newValue == "''") {
                                     newValue = "";
                                 }
-
                                 item.values[key] = newValue;
                             }
-
                         })
                     }
 
@@ -90,20 +84,21 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
             loadGoogleFontInFront(font);
         });
 
+        $scope.valueAreLoaded = true;
+
     }
 
     // Load parameters from GetLessParameters and init data of the tuning config
     $scope.initTuning = function () {
 
-        $http.get('/Umbraco/Api/tuning/Load', { params: { pageId: $location.search().id } })
+        $http.get('/Umbraco/Api/tuning/Load', { params: { pageId: $scope.pageId } })
             .success(function (data) {
 
                 updateConfigValue(data);
-                $scope.frameLoaded = true;
-
-                if ($scope.settingIsOpen == "setting") {
-                    openIntelTuning();
-                }
+                
+                $timeout(function () {
+                    $scope.frameLoaded = true;
+                }, 200);
 
             });
 
@@ -111,13 +106,21 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
 
     // Refresh all less parameters for every changes watching tuningModel 
     var refreshtuning = function () {
+
         var parameters = [];
 
         if ($scope.tuningModel) {
 
-
             angular.forEach($scope.tuningModel.configs, function (config, indexConfig) {
+
+                // Get currrent selected element
+                if ($scope.schemaFocus && angular.lowercase($scope.schemaFocus) == angular.lowercase(config.name)) {
+                    $scope.currentSelected = config.selector ? config.selector : config.schema;
+                }
+
                 angular.forEach(config.editors, function (item, indexItem) {
+
+                    // Add new style
                     if (item.values) {
                         angular.forEach(Object.keys(item.values), function (key, indexKey) {
                             var propertyAlias = key.toLowerCase() + item.alias.toLowerCase();
@@ -130,6 +133,11 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
 
             // Refrech page style
             refreshFrontStyles(parameters);
+
+            // Refrech layout of selected element
+            if ($scope.currentSelected) {
+                setSelectedSchema();
+            }
             
         }
     }
@@ -157,7 +165,7 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
                     })
 
                     // TODO: special init for font family picker
-                    if (item.type == "googlefontpicker") {
+                    if (item.type == "googlefontpicker" && item.values.fontFamily) {
                         var variant = item.values.fontWeight != "" || item.values.fontStyle != "" ? ":" + item.values.fontWeight + item.values.fontStyle : "";
                         var gimport = "@import url('http://fonts.googleapis.com/css?family=" + item.values.fontFamily + variant + "');";
                         if ($.inArray(gimport, parameters) < 0) {
@@ -170,7 +178,7 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
             })
         });
 
-        var resultParameters = { parameters: parameters.join(""), pageId: $location.search().id, inherited: inherited };
+        var resultParameters = { parameters: parameters.join(""), pageId: $scope.pageId, inherited: inherited };
         var transform = function (result) {
             return $.param(result);
         }
@@ -191,13 +199,14 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
     // Delete current page tuning
     $scope.deleteTuning = function () {
         $('.btn-default-delete').attr("disabled", true);
-        $http.get('/Umbraco/Api/tuning/Delete', { params: { pageId: $location.search().id } })
+        $http.get('/Umbraco/Api/tuning/Delete', { params: { pageId: $scope.pageId } })
         .success(function (data) {
             $scope.enableTuning++;
-            $scope.pageId = $scope.pageId + "&n=123456";
+            $scope.pageUrl = $scope.pageUrl + "&n=123456";
             $('.btn-default-delete').attr("disabled", false);
         })
     }
+
 
     /*****************************************************************************/
     /* Preset design */
@@ -205,7 +214,7 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
 
     // Refresh with selected tuning palette
     $scope.refreshtuningByPalette = function (palette) {
-        updateConfigValue(palette.colors);
+        updateConfigValue(palette.data);
         refreshtuning();
     }
 
@@ -213,35 +222,20 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
     $scope.makePreset = function () {
 
         var parameters = [];
-        $.each($scope.tuningModel.categories, function (indexCategory, category) {
-            $.each(category.sections, function (indexSection, section) {
-                $.each(section.subSections, function (indexSubSection, subSection) {
-                    $.each(subSection.fields, function (indexField, field) {
-
-                        if (!subSection.schema || subSection.schema.indexOf("gridrow_") < 0) {
-
-                            // value
-                            var value = (field.value != 0 && (field.value == undefined || field.value == "")) ? "''" : field.value;
-                            parameters.splice(parameters.length + 1, 0, "\"" + field.alias + "\":" + " \"" + value + "\"");
-
-                            // special init for font family picker
-                            if (field.type == "fontFamilyPicker") {
-                                var fontWeight = (field.fontWeight != 0 && (field.fontWeight == undefined || field.fontWeight == "")) ? "''" : field.fontWeight;
-                                var fontStyle = (field.fontStyle != 0 && (field.fontStyle == undefined || field.fontStyle == "")) ? "''" : field.fontStyle;
-                                var fontType = (field.fontType != 0 && (field.fontType == undefined || field.fontType == "")) ? "''" : field.fontType;
-                                parameters.splice(parameters.length + 1, 0, "\"" + field.alias + "_weight" + "\":" + " \"" + fontWeight + "\"");
-                                parameters.splice(parameters.length + 1, 0, "\"" + field.alias + "_style" + "\":" + " \"" + fontStyle + "\"");
-                                parameters.splice(parameters.length + 1, 0, "\"" + field.alias + "_type" + "\":" + " \"" + fontType + "\"");
-                            }
-
-                        }
-
+        $.each($scope.tuningModel.configs, function (indexConfig, config) {
+            $.each(config.editors, function (indexItem, item) {
+                if (item.values) {
+                    angular.forEach(Object.keys(item.values), function (key, indexKey) {
+                        var propertyAlias = key.toLowerCase() + item.alias.toLowerCase();
+                        var value = eval("item.values." + key);
+                        var value = (value != 0 && (value == undefined || value == "")) ? "''" : value;
+                        parameters.splice(parameters.length + 1, 0, "\"" + propertyAlias + "\":" + " \"" + value + "\"");
                     })
-                })
+                }
             })
         });
 
-        $("body").append("<textarea>{name:\"\", mainColor:\"\", colors:{" + parameters.join(",") + "}}</textarea>");
+        $(".btn-group").append("<textarea>{name:\"\", color1:\"\", color2:\"\", color3:\"\", color4:\"\", color5:\"\", data:{" + parameters.join(",") + "}}</textarea>");
 
     }
 
@@ -249,30 +243,28 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
     /* Panel managment */
     /*****************************************************************************/
 
-    // Toggle panel
-    $scope.togglePanel = function () {
-        if ($scope.isOpen) {
-            $scope.isOpen = false;
-            closeIntelTuning();
-        }
-        else {
-            $scope.isOpen = true;
-            $scope.settingOpen($scope.settingIsOpen);
+    $scope.openPreviewDevice = function () {
+        $scope.showDevicesPreview = true;
+        $scope.closeIntelTuning()
+    }
+
+    $scope.closePreviewDevice = function(){
+        $scope.showDevicesPreview = false;
+        if ($scope.showStyleEditor) {
+            $scope.openIntelTuning();
         }
     }
 
-    // Toggle setting
-    $scope.settingOpen = function (a) {
+    $scope.openPalettePicker = function () {
+        $scope.showPalettePicker = true;
+        $scope.showStyleEditor = false;
+        $scope.closeIntelTuning()
+    }
 
-        if ($scope.settingIsOpen == "setting" && a != "setting") {
-            closeIntelTuning();
-        }
-
-        if (a == "setting") {
-            openIntelTuning();
-        }
-
-        $scope.settingIsOpen = a;
+    $scope.openStyleEditor = function () {
+        $scope.showStyleEditor = true;
+        $scope.showPalettePicker = false;
+        $scope.openIntelTuning()
     }
 
     // Remove value from field
@@ -280,45 +272,75 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
         field.value = "";
     }
 
-    // Accordion open event
-    $scope.accordionOpened = function (schema) {
-        $scope.schemaFocus = schema;
+    // Check if category existe
+    $scope.hasEditor = function (editors, category) {
+        var result = false;
+        angular.forEach(editors, function (item, index) {        
+            if (item.category == category) {
+                result = true;
+            }
+        });
+        return result;
     }
 
-    // Focus schema in front
-    $scope.accordionWillBeOpened = function (editor) {
-        var selector = editor.selector ? editor.selector : editor.schema
-        setSelectedSchema(selector);
+    $scope.closeFloatPanels = function () {
+
+        /* hack to hide color picker */
+        $(".spectrumcolorpicker input").spectrum("hide");
+
+        dialogService.close();
+        $scope.showPalettePicker = false;
+        $scope.$apply();
     }
 
     /*****************************************************************************/
     /* Call function into the front-end   */
     /*****************************************************************************/
 
-    var openIntelTuning = function () {
-        if (document.getElementById("resultFrame").contentWindow.initIntelTuning)
-            document.getElementById("resultFrame").contentWindow.initIntelTuning($scope.tuningModel);
-    }
-
-    var closeIntelTuning = function () {
-        if (document.getElementById("resultFrame").contentWindow.closeIntelTuning)
-            document.getElementById("resultFrame").contentWindow.closeIntelTuning($scope.tuningModel);
-    }
-
     var loadGoogleFontInFront = function (font) {
         if (document.getElementById("resultFrame").contentWindow.getFont)
             document.getElementById("resultFrame").contentWindow.getFont(font);
     }
 
-    var setSelectedSchema = function (schema) {
-        if (document.getElementById("resultFrame").contentWindow.setSelectedSchema)
-            document.getElementById("resultFrame").contentWindow.setSelectedSchema(schema);
+    var setSelectedSchema = function () {
+        if (document.getElementById("resultFrame").contentWindow.outlineSelected)
+            document.getElementById("resultFrame").contentWindow.outlineSelected();
     }
 
     var refreshFrontStyles = function (parameters) {
         if (document.getElementById("resultFrame").contentWindow.refrechLayout)
             document.getElementById("resultFrame").contentWindow.refrechLayout(parameters);
     }
+
+    var hideUmbracoPreviewBadge = function () {
+        var iframe = (document.getElementById("resultFrame").contentWindow || document.getElementById("resultFrame").contentDocument);
+        iframe.document.getElementById("umbracoPreviewBadge").style.display = "none";
+    }
+
+    $scope.openIntelTuning = function () {
+        if (document.getElementById("resultFrame").contentWindow.initIntelTuning)
+            document.getElementById("resultFrame").contentWindow.initIntelTuning($scope.tuningModel);
+
+        // Refrech layout of selected element
+        if ($scope.currentSelected) {
+            setSelectedSchema();
+        }
+
+    }
+
+    $scope.closeIntelTuning = function () {
+        if (document.getElementById("resultFrame").contentWindow.closeIntelTuning)
+            document.getElementById("resultFrame").contentWindow.closeIntelTuning($scope.tuningModel);
+        $scope.outlineSelectedHide();
+    }
+
+    $scope.outlineSelectedHide = function () {
+        if (document.getElementById("resultFrame").contentWindow.outlineSelectedHide)
+            document.getElementById("resultFrame").contentWindow.outlineSelectedHide();
+        $scope.schemaFocus = "body";
+    }
+
+
 
     /*****************************************************************************/
     /* Google font loader, TODO: put together from directive, front and back */
@@ -343,13 +365,13 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
                     families: [font]
                 },
                 loading: function () {
-                    console.log('loading font' + font + ' in UI designer');
+                    //console.log('loading font' + font + ' in UI designer');
                 },
                 active: function () {
-                    console.log('loaded font ' + font + ' in UI designer');
+                    //console.log('loaded font ' + font + ' in UI designer');
                 },
                 inactive: function () {
-                    console.log('error loading font ' + font + ' in UI designer');
+                    //console.log('error loading font ' + font + ' in UI designer');
                 }
             });
         }
@@ -368,12 +390,63 @@ angular.module("umbraco.tuning", ['ui.bootstrap', 'spectrumcolorpicker', 'ui.sli
     $scope.$watch("enableTuning", function () {
         $timeout(function () {
             if ($scope.enableTuning > 0) {
-                $scope.initTuning();
+                
+                $.each($scope.tuningModel.configs, function (indexConfig, config) {
+                    $.each(config.editors, function (indexItem, item) {
+
+                        /* get distinct dategoryies */
+                        if (item.category) {
+                            if ($.inArray(item.category, $scope.propertyCategories) < 0) {
+                                $scope.propertyCategories.splice($scope.propertyCategories.length + 1, 0, item.category);
+                            }
+                        }
+
+                    })
+                });
+
+                $scope.$watch('ngRepeatFinished', function (ngRepeatFinishedEvent) {
+                    $timeout(function () {
+                        $scope.initTuning();
+                    }, 200); 
+                });
+
                 $scope.$watch('tuningModel', function () {
                     refreshtuning();
                 }, true);
+
             }
-        }, 200);
+        }, 100);
     }, true)
 
 })
+
+.directive('onFinishRenderFilters', function ($timeout) {
+    return {
+        restrict: 'A',
+        link: function (scope, element, attr) {
+            if (scope.$last === true) {
+                $timeout(function () {
+                    scope.$emit('ngRepeatFinished');
+                });
+            }
+        }
+    }
+})
+
+.directive('iframeIsLoaded', function ($timeout) {
+    return {
+        restrict: 'A',
+        link: function (scope, element, attr) {
+            element.load(function () {
+                var iframe = (element.context.contentWindow || element.context.contentDocument);
+                iframe.document.getElementById("umbracoPreviewBadge").style.display = "none";
+                if (!document.getElementById("resultFrame").contentWindow.refrechLayout) {
+                    scope.frameLoaded = true;
+                    scope.$apply();
+                }
+            });
+        }
+    }
+});
+
+

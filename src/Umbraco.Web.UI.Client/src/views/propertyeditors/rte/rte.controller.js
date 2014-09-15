@@ -4,6 +4,22 @@ angular.module("umbraco")
 
         $scope.isLoading = true;
 
+        var alreadyDirty = false;
+        function syncContent(editor){
+            editor.save();
+            angularHelper.safeApply($scope, function () {
+                $scope.model.value = editor.getContent();
+            });
+
+            if (!alreadyDirty) {
+                //make the form dirty manually so that the track changes works, setting our model doesn't trigger
+                // the angular bits because tinymce replaces the textarea.
+                var currForm = angularHelper.getCurrentForm($scope);
+                currForm.$setDirty();
+                alreadyDirty = true;
+            }
+        }
+
         tinyMceService.configuration().then(function (tinyMceConfig) {
 
             //config value from general tinymce.config file
@@ -30,6 +46,9 @@ angular.module("umbraco")
             var stylesheets = [];
             var styleFormats = [];
             var await = [];
+            if (!editorConfig.maxImageSize && editorConfig.maxImageSize != 0) {
+                editorConfig.maxImageSize = tinyMceService.defaultPrevalues().maxImageSize;
+            }
 
             //queue file loading
             if (typeof tinymce === "undefined") { // Don't reload tinymce if already loaded
@@ -80,6 +99,7 @@ angular.module("umbraco")
                     statusbar: false,
                     height: editorConfig.dimensions.height,
                     width: editorConfig.dimensions.width,
+                    maxImageSize: editorConfig.maxImageSize,
                     toolbar: toolbar,
                     content_css: stylesheets.join(','),
                     relative_urls: false,
@@ -143,27 +163,18 @@ angular.module("umbraco")
 
                     //when buttons modify content
                     editor.on('ExecCommand', function (e) {
-                        editor.save();
-                        angularHelper.safeApply($scope, function () {
-                            $scope.model.value = editor.getContent();
-                        });
+                        syncContent(editor);
                     });
 
                     // Update model on keypress
                     editor.on('KeyUp', function (e) {
-                        editor.save();
-                        angularHelper.safeApply($scope, function () {
-                            $scope.model.value = editor.getContent();
-                        });
+                        syncContent(editor);
                     });
 
                     // Update model on change, i.e. copy/pasted text, plugins altering content
                     editor.on('SetContent', function (e) {
                         if (!e.initial) {
-                            editor.save();
-                            angularHelper.safeApply($scope, function () {
-                                $scope.model.value = editor.getContent();
-                            });
+                            syncContent(editor);
                         }
                     });
 
@@ -173,6 +184,8 @@ angular.module("umbraco")
                         var srcAttr = $(e.target).attr("src");
                         var path = srcAttr.split("?")[0];
                         $(e.target).attr("data-mce-src", path + qs);
+
+                        syncContent(editor);
                     });
 
 

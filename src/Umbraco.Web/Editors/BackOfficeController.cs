@@ -217,6 +217,10 @@ namespace Umbraco.Web.Editors
                                 {
                                     "tagsDataBaseUrl", Url.GetUmbracoApiServiceBaseUrl<TagsDataController>(
                                         controller => controller.GetTags(""))
+                                },
+                                {
+                                    "examineMgmtBaseUrl", Url.GetUmbracoApiServiceBaseUrl<ExamineManagementApiController>(
+                                        controller => controller.GetIndexerDetails())
                                 }
                             }
                     },
@@ -237,6 +241,13 @@ namespace Umbraco.Web.Editors
                         "umbracoPlugins", new Dictionary<string, object>
                             {
                                 {"trees", GetTreePluginsMetaData()}
+                            }
+                    },
+                    {
+                        "security", new Dictionary<string, object>
+                            {
+                                {"startContentId", Security.CurrentUser.StartContentId},
+                                {"startMediaId", Security.CurrentUser.StartMediaId}
                             }
                     },
                     {"isDebuggingEnabled", HttpContext.IsDebuggingEnabled},

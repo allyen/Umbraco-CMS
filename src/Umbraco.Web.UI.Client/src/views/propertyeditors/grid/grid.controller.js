@@ -2,15 +2,15 @@ angular.module("umbraco")
     .controller("Umbraco.PropertyEditors.GridController",
     function ($scope, $http, assetsService, $rootScope, dialogService, gridService, mediaResource, imageHelper, $timeout) {
 
-        // Grid status variables 
+        // Grid status variables   
         $scope.currentRow = null;
-        $scope.currentCell = null;
+        $scope.currentCell = null; 
         $scope.currentToolsControl = null;
         $scope.currentControl = null;
-        $scope.openRTEToolbarId = null;
+        $scope.openRTEToolbarId = null;   
 
         
-        // *********************************************
+        // *********************************************   
         // Sortable options
         // *********************************************
 
@@ -19,17 +19,133 @@ angular.module("umbraco")
             cursor: "move",
             placeholder: 'ui-sortable-placeholder',
             handle: '.cell-tools-move',
+
             start: function (e, ui) {
                 ui.item.find('.mceNoEditor').each(function () {
                     tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'));
-
                 });
             },
+
             stop: function (e, ui) {
-                ui.item.find('.mceNoEditor').each(function () {
+                ui.item.parents(".usky-column").find('.mceNoEditor').each(function () {
+                    tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'));
                     tinyMCE.execCommand('mceAddEditor', false, $(this).attr('id'));
                 });
             }
+
+        };
+
+        var cancelMove = false;
+        $scope.sortableOptionsCell = {
+
+            distance: 10,
+            cursor: "move",
+            placeholder: "ui-sortable-placeholder",
+            handle: '.cell-tools-move',
+            connectWith: ".usky-cell",
+            forcePlaceholderSize: true,
+
+            over: function (event, ui) {
+
+                allowedEditors = $(event.target).scope().area.allowed;
+
+                console.info(allowedEditors)
+
+                if ($.inArray(ui.item.scope().control.editor.alias, allowedEditors) < 0 && allowedEditors) {
+                    ui.placeholder.hide();
+                    cancelMove = true;
+                }
+                else {
+                    ui.placeholder.show();
+                    cancelMove = false;
+                }
+
+            },
+
+            update: function (event, ui) {
+                if (!ui.sender) {
+                    if (cancelMove) {
+                        ui.item.sortable.cancel();
+                    }
+                    ui.item.parents(".usky-cell").find('.mceNoEditor').each(function () {
+                        tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'));
+                        tinyMCE.execCommand('mceAddEditor', false, $(this).attr('id'));
+                    });
+                }
+                else {
+
+                    console.info("sender");
+
+                    var notIncludedRte = [];
+
+                    ui.item.find('.mceNoEditor').each(function () {
+                        notIncludedRte.splice(0, 0, $(this).attr('id'));
+                    });
+
+                    $(event.target).find('.mceNoEditor').each(function () {
+                        if ($.inArray($(this).attr('id'), notIncludedRte) < 0) {
+                            tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'));
+                            tinyMCE.execCommand('mceAddEditor', false, $(this).attr('id'));
+                        }
+                    });
+
+                }
+
+            },
+
+            start: function (e, ui) {
+                ui.item.find('.mceNoEditor').each(function () {
+                    tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'))
+                });
+            },
+
+            stop: function (e, ui) {
+                ui.item.parents(".usky-cell").find('.mceNoEditor').each(function () {
+                    var id = $(this).attr('id')
+                    tinyMCE.execCommand('mceRemoveEditor', false, id);
+                    $timeout(function () {
+                        tinyMCE.execCommand('mceAddEditor', false, id);                  
+                    }, 200, false); 
+                });
+            }
+
+        }
+
+        // *********************************************
+        // Add items overlay menu
+        // *********************************************
+        $scope.overlayMenu = {
+            show: false,
+            style: {},
+            area: undefined,
+            key: undefined
+        };
+
+        $scope.addItemOverlay = function(event, area, index, key){
+            $scope.overlayMenu.area = area;
+            $scope.overlayMenu.index = index;
+            $scope.overlayMenu.style = {};
+            $scope.overlayMenu.key = key;
+
+            //todo calculate position...
+            var offset = $(event.target).offset();
+            var height = $(window).height();
+            var width = $(window).width();
+
+            if((height-offset.top) < 250){
+                $scope.overlayMenu.style.bottom = 0;
+                $scope.overlayMenu.style.top = "initial";
+            }else if(offset.top < 300){
+                $scope.overlayMenu.style.top = 190;
+            }
+
+            $scope.overlayMenu.show = true;
+        };
+
+        $scope.closeItemOverlay = function(){
+            $scope.currentControl = undefined;
+            $scope.overlayMenu.show = false;
+            $scope.overlayMenu.key = undefined;
         };
 
         // *********************************************
@@ -58,6 +174,13 @@ angular.module("umbraco")
             $scope.currentRow = null;
         };
 
+        $scope.setCurrentMovedRow = function (Row) {
+            $scope.currentMovedRow = Row;
+        };
+
+        $scope.disableCurrentMovedRow = function (Row) {
+            $scope.currentMovedRow = null;
+        };
         
         $scope.getAllowedLayouts = function(column){
             var layouts = $scope.model.config.items.layouts;
@@ -71,12 +194,14 @@ angular.module("umbraco")
             } 
         };
 
-        $scope.addRow = function (column, layout) {
+        $scope.addRow = function (section, layout) {
             //copy the selected layout into the rows collection
             var row = angular.copy(layout);
-            $scope.initRow(row);
+            row = $scope.initRow(row);
             
-            column.rows.push(row);
+            if(row){
+               section.rows.push(row);
+            }
         };
 
         $scope.removeRow = function (section, $index) {
@@ -88,7 +213,7 @@ angular.module("umbraco")
             }
         };
 
-
+         
         // *********************************************
         // Cell management functions
         // *********************************************
@@ -140,12 +265,12 @@ angular.module("umbraco")
             $scope.currentRemoveControl = null;
         };
 
-        $scope.setCurrentMoveControl = function (Control) {
-            $scope.currentMoveControl = Control;
+        $scope.setCurrentMovedControl = function (Control) {
+            $scope.currentMovedControl = Control;
         };
 
-        $scope.disableCurrentMoveControl = function (Control) {
-            $scope.currentMoveControl = null;
+        $scope.disableCurrentMovedControl = function (Control) {
+            $scope.currentMovedControl = null;
         };
 
         $scope.setUniqueId = function (cell, index) {
@@ -165,6 +290,8 @@ angular.module("umbraco")
         })();
 
         $scope.addControl = function (editor, cell, index){
+            $scope.closeItemOverlay();
+
             var newControl = {
                 value: null,
                 editor: editor
@@ -252,8 +379,16 @@ angular.module("umbraco")
             if(!section.rows){
                 section.rows = [];
             }else{
-                _.forEach(section.rows, function(row){
-                    $scope.initRow(row);
+                _.forEach(section.rows, function(row, index){
+                    if(!row.$initialized){
+                        var initd = $scope.initRow(row);
+                        //if init fails, remove
+                        if(!initd){
+                            section.rows.splic(index, 1);
+                        }else{
+                            section.rows[index] = initd;
+                        }
+                    }
                 });    
             }
         };
@@ -264,38 +399,56 @@ angular.module("umbraco")
         // *********************************************                
         $scope.initRow = function(row){
             
-            if(!row.areas){
-                row.areas = [];
-            }
+            //merge the layout data with the original config data
+            //if there are no config info on this, splice it out
+            var original = _.find($scope.model.config.items.layouts, function(o){ return o.name === row.name; });           
+            if(!original){
+                return null;
+            }else{
+                //make a copy to not touch the original config
+                original = angular.copy(original);
 
-            //set a disposable unique ID
-            row.$uniqueId = $scope.setUniqueId();
-            
-            //populate with data
-            _.forEach(row.areas, function(area){
-                if(!area.controls){
-                    area.controls = [];
-                }else{
-                    _.forEach(area.controls, function(control, index){
-                        $scope.initControl(control, index);
-                    });
-                }
-                
-                area.$percentage = $scope.percentage(area.grid);
+                //sync area configuration
+                _.each(original.areas, function(area, areaIndex){
+                    //copy over existing controls into the new areas
+                    if(row.areas.length > areaIndex && row.areas[areaIndex].controls){
+                        area.controls = row.areas[areaIndex].controls;
 
-                if(!area.allowed){
-                    area.$allowedEditors = $scope.availableEditors;
-                    area.$allowsRTE = true;
-                }else{
-                    area.$allowedEditors = _.filter($scope.availableEditors, function(editor){
-                        return _.indexOf(area.allowed, editor.alias) >= 0;
-                    });
+                        _.forEach(area.controls, function(control, controlIndex){
+                            $scope.initControl(control, controlIndex);
+                        });
 
-                    if(_.indexOf(area.allowed,"rte")>=0){
-                        area.$allowsRTE = true;
+                    }else{
+                        area.controls = [];
                     }
-                }
-            });
+
+                    //set width
+                    area.$percentage = $scope.percentage(area.grid);
+                    area.$uniqueId = $scope.setUniqueId();
+
+                    //set editor permissions
+                    if(!area.allowed || area.allowAll === true){
+                        area.$allowedEditors = $scope.availableEditors;
+                        area.$allowsRTE = true;
+                    }else{
+                        area.$allowedEditors = _.filter($scope.availableEditors, function(editor){
+                            return _.indexOf(area.allowed, editor.alias) >= 0;
+                        });
+
+                        if(_.indexOf(area.allowed,"rte")>=0){
+                            area.$allowsRTE = true;
+                        }
+                    }
+                });
+    
+                //replace the old row
+                original.$initialized = true;
+
+                //set a disposable unique ID
+                original.$uniqueId = $scope.setUniqueId();
+                return original;
+            }
+            
         };
 
 

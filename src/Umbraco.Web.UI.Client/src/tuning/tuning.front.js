@@ -2,6 +2,8 @@
 /* Global function and variable for panel/page com */
 /*********************************************************************************************************/
 
+var currentTarget = undefined;
+
 var refrechLayout = function (parameters) {
 
     // hide preview badget
@@ -33,35 +35,41 @@ var getFont = function (font) {
                 families: [font]
             },
             loading: function () {
-                console.log('loading font' + font + ' in iframe');
+                //console.log('loading font' + font + ' in iframe');
             },
             active: function () {
-                console.log('loaded font ' + font + ' in iframe');
+                //console.log('loaded font ' + font + ' in iframe');
             },
             inactive: function () {
-                console.log('error loading font ' + font + ' in iframe');
+                //console.log('error loading font ' + font + ' in iframe');
             }
         });
     }
-}
-
-var setSelectedSchema = function (schema) {
-    outlinePosition($(schema));
 }
 
 var closeIntelTuning = function (tuningModel) {
 
     if (tuningModel) {
 
-        $("[tuning-over]").css('outline', 'none');
         $.each(tuningModel.configs, function (indexConfig, config) {
             if (config.schema) {
                 $(config.schema).unbind();
                 $(config.schema).removeAttr("tuning-over");
             }
         });
+
+        initBodyClickEvent();
+
     }
 
+}
+
+var initBodyClickEvent = function () {
+    $("body").on("click", function () {
+        if (parent.iframeBodyClick) {
+            parent.iframeBodyClick();
+        }
+    });
 }
 
 var initIntelTuning = function (tuningModel) {
@@ -73,6 +81,7 @@ var initIntelTuning = function (tuningModel) {
             var schema = config.selector ? config.selector : config.schema;
             if (schema) {
                 $(schema).attr("tuning-over", config.name);
+                $(schema).css("cursor", "default");
             }
         });
 
@@ -88,19 +97,21 @@ var initIntelTuning = function (tuningModel) {
 
             if (target.attr('tuning-over') != undefined && target.attr('tuning-over') != '') {
                 target.unbind();
-
                 outlinePosition(target);
-
                 target.click(function (e) {
                     e.stopPropagation();
                     e.preventDefault();
-                    console.info(target.attr('tuning-over'));
-                    parent.refrechIntelTuning(target.attr('tuning-over'));
+                    //console.info(target.attr('tuning-over'));
+                    
+                    currentTarget = target;
+                    outlineSelected();
+
+                    parent.refrechIntelTuning(target.attr('tuning-over'), target);
                     return false;
                 });
             }
             else {
-                outlineHide();
+                outlinePositionHide();
             }
         });
 
@@ -116,99 +127,76 @@ var outlinePosition = function (target) {
         var height = $(target).outerHeight();
         var width = $(target).outerWidth();
         var position = $(target).offset();
-        var posY = position.top - $(window).scrollTop();
-        var posX = position.left - $(window).scrollLeft();
+        var posY = position.top ;
+        //$(window).scrollTop();
+        var posX = position.left;
+        //+ $(window).scrollLeft();
 
-        console.info("element select " + localname);
+        $(".tuning-overlay").css('display', 'block');
+        $(".tuning-overlay").css('left', posX);
+        $(".tuning-overlay").css('top', posY);
+        $(".tuning-overlay").css('width', width + "px");
+        $(".tuning-overlay").css('height', height + "px");
 
-        $("#outline-data").html(target.attr('tuning-over'));
-        $("#outline-data").css('position', 'fixed');
-        $("#outline-data").css('top', posY);
-        $("#outline-data").css('left', posX);
-        $("#outline-data").css('display', 'block');
-        $("#outline-data").css('position', 'fixed');
-        $("#outline-data").css('background-color', 'rgb(164, 198, 253)');
-        $("#outline-data").css('color', '#000000');
-        $("#outline-data").css('padding', '0px 5px 0px 5px');
-        $("#outline-data").css('font-size', '11px');
-        $("#outline-data").css('transition', 'all .05s ease-in-out');
-        $("#outline-data").css('-moz-transition', 'all .05s ease-in-out');
-        $("#outline-data").css('-webkit-transition', 'all .05s ease-in-out');
-        $("#outline-data").css('z-index', '9999999999999999999999999');
-
-        $("#outline-sup").css('display', "block");
-        $("#outline-sup").css('height', "2px");
-        $("#outline-sup").css('width', width + "px");
-        $("#outline-sup").css('position', 'fixed');
-        $("#outline-sup").css('top', posY);
-        $("#outline-sup").css('left', posX);
-        $("#outline-sup").css('background-color', '#a4c6fd');
-        $("#outline-sup").css('transition', 'all .05s ease-in-out');
-        $("#outline-sup").css('-moz-transition', 'all .05s ease-in-out');
-        $("#outline-sup").css('-webkit-transition', 'all .05s ease-in-out');
-        $("#outline-sup").css('z-index', '9999999999999999999999999');
-
-        $("#outline-inf").css('display', "block");
-        $("#outline-inf").css('height', "2px");
-        $("#outline-inf").css('width', Number(width + 2) + "px");
-        $("#outline-inf").css('position', 'fixed');
-        $("#outline-inf").css('top', posY + height);
-        $("#outline-inf").css('left', posX);
-        $("#outline-inf").css('background-color', '#a4c6fd');
-        $("#outline-inf").css('transition', 'all .05s ease-in-out');
-        $("#outline-inf").css('-moz-transition', 'all .05s ease-in-out');
-        $("#outline-inf").css('-webkit-transition', 'all .05s ease-in-out');
-        $("#outline-inf").css('z-index', '9999999999999999999999999');
-
-        $("#outline-left").css('display', "block");
-        $("#outline-left").css('height', height + "px");
-        $("#outline-left").css('width', "2px");
-        $("#outline-left").css('position', 'fixed');
-        $("#outline-left").css('top', posY);
-        $("#outline-left").css('left', posX);
-        $("#outline-left").css('background-color', '#a4c6fd');
-        $("#outline-left").css('transition', 'all .05s ease-in-out');
-        $("#outline-left").css('-moz-transition', 'all .05s ease-in-out');
-        $("#outline-left").css('-webkit-transition', 'all .05s ease-in-out');
-        $("#outline-left").css('z-index', '9999999999999999999999999');
-
-        $("#outline-right").css('display', "block");
-        $("#outline-right").css('height', height + "px");
-        $("#outline-right").css('width', "2px");
-        $("#outline-right").css('position', 'fixed');
-        $("#outline-right").css('top', posY);
-        $("#outline-right").css('left', posX + width);
-        $("#outline-right").css('background-color', '#a4c6fd');
-        $("#outline-right").css('transition', 'all .05s ease-in-out');
-        $("#outline-right").css('-moz-transition', 'all .05s ease-in-out');
-        $("#outline-right").css('-webkit-transition', 'all .05s ease-in-out');
-        $("#outline-right").css('z-index', '9999999999999999999999999');
+        //console.info("element select " + localname);
+        $(".tuning-overlay span").html(target.attr('tuning-over'));
 
     }
     else {
-        outlineHide();
-        console.info("element not found select");
+        outlinePositionHide();
+        //console.info("element not found select");
     }
 }
 
-var outlineHide = function () {
+var outlineSelected = function () {
 
-    $("#outline-data").css('display', "none");
-    $("#outline-sup").css('display', "none");
-    $("#outline-inf").css('display', "none");
-    $("#outline-right").css('display', "none");
-    $("#outline-left").css('display', "none");
+    var target = currentTarget;
 
+    if (target && target.length > 0 && target.attr('tuning-over') != undefined && target.attr('tuning-over') != '') {
+
+        var localname = target[0].localName;
+        var height = $(target).outerHeight();
+        var width = $(target).outerWidth();
+        var position = $(target).offset();
+        var posY = position.top;
+        //$(window).scrollTop();
+        var posX = position.left;
+        //+ $(window).scrollLeft();
+
+        $(".tuning-overlay-selected").css('display', 'block');
+        $(".tuning-overlay-selected").css('left', posX);
+        $(".tuning-overlay-selected").css('top', posY);
+        $(".tuning-overlay-selected").css('width', width + "px");
+        $(".tuning-overlay-selected").css('height', height + "px");
+
+        //console.info("element select " + localname);
+        $(".tuning-overlay-selected span").html(target.attr('tuning-over'));
+
+    }
+    else {
+        outlinePositionHide();
+        //console.info("element not found select");
+    }
+
+}
+
+var outlinePositionHide = function () {
+    $(".tuning-overlay").css('display', "none");
+}
+
+var outlineSelectedHide = function () {
+    currentTarget = undefined;
+    $(".tuning-overlay-selected").css('display', "none");
 }
 
 var initTuningPanel = function () {
 
     // First load the tuning config from file
     if (tuningConfig) {
-        console.info("Tuning config from file is loaded");
+        //console.info("Tuning config from file is loaded");
     }
     else {
-        console.info("tuning config not found");
+        //console.info("tuning config not found");
     }
 
     // Add tuning from HTML 5 data tags
@@ -225,7 +213,7 @@ var initTuningPanel = function () {
             editors: tagEditors
         });
     });
-    console.info("HTML5 tags");
+    //console.info("HTML5 tags");
 
     // For each editor config create a composite alias
     $.each(tuningConfig.configs, function (configIndex, config) {
@@ -235,7 +223,7 @@ var initTuningPanel = function () {
             editor.alias = clearSchema + clearEditor;
         });
     });
-    console.info("Alias tags");
+    //console.info("Alias tags");
 
     // Create or update the less file
     $.ajax({
@@ -259,7 +247,7 @@ var initTuningPanel = function () {
                 type: "text/css",
                 href: data
             });
-            console.info("Less styles are loaded");
+            //console.info("Less styles are loaded");
 
             // Init Less.js
             $.getScript("/Umbraco/lib/Less/less-1.7.0.min.js", function (data, textStatus, jqxhr) {
@@ -278,8 +266,12 @@ $(function () {
 
     if (parent.setFrameIsLoaded) {
 
-        // Init ouline layer
-        $("body").append("<div id=\"outline-data\"></div><div id=\"outline-sup\"></div><div id=\"outline-inf\"></div><div id=\"outline-left\"></div><div id=\"outline-right\"></div>");
+        // Overlay background-color: rgba(28, 203, 255, 0.05); 
+        $("body").append("<div class=\"tuning-overlay\" style=\"display:none; pointer-events: none; position: absolute; z-index: 9999; border: 1px solid #2ebdff; border-radius: 3px; \"><span style=\"position:absolute;background: #2ebdff; font-family: Helvetica, Arial, sans-serif; color: #fff; padding: 0 5px; font-size: 10px; line-height: 16px; display: inline-block; border-radius: 0 0 3px 0;\"></span></div>");
+        $("body").append("<div class=\"tuning-overlay-selected\" style=\"display:none; pointer-events: none; position: absolute; z-index: 9998; border: 2px solid #2ebdff; border-radius: 3px;\"><span style=\"position:absolute;background: #2ebdff; font-family: Helvetica, Arial, sans-serif; color: #fff; padding: 0 5px; font-size: 10px; line-height: 16px; display: inline-block; border-radius: 0 0 3px 0;\"></span></div>");
+
+        // Set event for any body click
+        initBodyClickEvent()
 
         // Init tuning panel
         initTuningPanel();

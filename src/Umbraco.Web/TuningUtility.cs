@@ -139,6 +139,7 @@ namespace Umbraco.Web
                     var type = (editorItem.type != null && !string.IsNullOrEmpty(editorItem.type.ToString())) ? editorItem.type.ToString() : string.Empty;
                     var alias = (editorItem.alias != null && !string.IsNullOrEmpty(editorItem.alias.ToString())) ? editorItem.alias.ToString() : string.Empty;
                     var schema = (configuration.schema != null && !string.IsNullOrEmpty(configuration.schema.ToString())) ? configuration.schema.ToString() : alias;
+                    schema = (editorItem.schema != null && !string.IsNullOrEmpty(editorItem.schema.ToString())) ? editorItem.schema.ToString() : schema;
 
                     if (string.IsNullOrEmpty(GetStyleBlock(lessContent, "lessParam-" + alias)))
                     {
@@ -155,7 +156,7 @@ namespace Umbraco.Web
                         }
 
                         lessContent = lessContent + Environment.NewLine + lessModel
-                            .Replace("-ALIAS-", alias)
+                            .Replace("-ALIAS-", alias.ToLower())
                             .Replace("-SCHEMA-", schema);
 
                         foreach (var parameter in editorItem)

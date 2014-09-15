@@ -68,6 +68,27 @@ function contentTypeResource($q, $http, umbRequestHelper) {
                        "GetAllowedChildren",
                        [{ contentId: contentId }])),
                'Failed to retrieve data for content id ' + contentId);
+        },
+
+        /**
+         * @ngdoc method
+         * @name umbraco.resources.contentTypeResource#getAllPropertyTypeAliases
+         * @methodOf umbraco.resources.contentTypeResource
+         *
+         * @description
+         * Returns a list of defined property type aliases
+         *        
+         * @returns {Promise} resourcePromise object.
+         *
+         */
+        getAllPropertyTypeAliases: function () {
+
+            return umbRequestHelper.resourcePromise(
+               $http.get(
+                   umbRequestHelper.getApiUrl(
+                       "contentTypeApiBaseUrl",
+                       "GetAllPropertyTypeAliases")),
+               'Failed to retrieve property type aliases');
         }
 
     };

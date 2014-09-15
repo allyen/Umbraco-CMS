@@ -11,6 +11,16 @@ namespace Umbraco.Core
 		/// </summary>
 		public static class Conventions
 		{
+		    public static class PropertyTypes
+		    {
+		        public const string ListViewPropertyAlias = Constants.PropertyEditors.InternalGenericPropertiesPrefix + "containerView";
+		    }
+
+		    public static class PropertyGroups
+		    {
+		        public const string ListViewGroupName = "umbContainerView";
+		    }
+
 			/// <summary>
 			/// Constants for Umbraco Content property aliases.
 			/// </summary>
@@ -279,6 +289,22 @@ namespace Umbraco.Core
 				/// </summary>
 				public const string AltTemplate = "altTemplate";
 			}
+            
+            /// <summary>
+            /// Defines the alias identifiers for Umbraco relation types.
+            /// </summary>
+            public static class RelationTypes
+            {
+                /// <summary>
+                /// ContentType name for default relation type "Relate Document On Copy".
+                /// </summary>
+                public const string RelateDocumentOnCopyName = "Relate Document On Copy";
+                
+                /// <summary>
+                /// ContentType alias for default relation type "Relate Document On Copy".
+                /// </summary>
+                public const string RelateDocumentOnCopyAlias = "relateDocumentOnCopy";
+            }
 		}
 	}
 }

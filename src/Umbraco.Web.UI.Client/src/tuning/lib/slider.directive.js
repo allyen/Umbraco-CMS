@@ -7,7 +7,7 @@ angular.module('ui.slider', []).value('uiSliderConfig', {}).directive('uiSlider'
     uiSliderConfig = uiSliderConfig || {};
     return {
         require: 'ngModel',
-        template: '<div><div class="slider" /><span class="slider-span">px</span><input class="slider-input" ng-model="value"></div>',
+        template: '<div><div class="slider" /><input class="slider-input" style="display:none" ng-model="value"></div>',
         replace: true,
         compile: function () {
             return function (scope, elm, attrs, ngModel) {
@@ -71,6 +71,7 @@ angular.module('ui.slider', []).value('uiSliderConfig', {}).directive('uiSlider'
                     init();
                     if (newVal != undefined) {
                         elm.find(".slider").slider('option', newVal);
+                        elm.find(".ui-slider-handle").html("<span>" + ui.value + "px</span>")
                     }
                 }, true);
 
@@ -86,6 +87,7 @@ angular.module('ui.slider', []).value('uiSliderConfig', {}).directive('uiSlider'
                 elm.bind('slide', function (event, ui) {
                     event.stopPropagation();
                     elm.find(".slider-input").val(ui.value);
+                    elm.find(".ui-slider-handle").html("<span>" + ui.value + "px</span>")
                 });
 
                 // Update slider from model value
@@ -94,6 +96,9 @@ angular.module('ui.slider', []).value('uiSliderConfig', {}).directive('uiSlider'
                     var method = options.range === true ? 'values' : 'value';
 
                     if (isNaN(ngModel.$viewValue) && !(ngModel.$viewValue instanceof Array))
+                        ngModel.$viewValue = 0;
+
+                    if (ngModel.$viewValue == '')
                         ngModel.$viewValue = 0;
 
                     scope.value = ngModel.$viewValue;
@@ -119,12 +124,15 @@ angular.module('ui.slider', []).value('uiSliderConfig', {}).directive('uiSlider'
                                 ngModel.$viewValue[1] = prevRangeValues.max;
                         }
 
+
+
                         // Store values for later user
                         prevRangeValues.min = ngModel.$viewValue[0];
                         prevRangeValues.max = ngModel.$viewValue[1];
 
                     }
                     elm.find(".slider").slider(method, ngModel.$viewValue);
+                    elm.find(".ui-slider-handle").html("<span>" + ngModel.$viewValue + "px</span>")
                 };
 
                 scope.$watch("value", function () {

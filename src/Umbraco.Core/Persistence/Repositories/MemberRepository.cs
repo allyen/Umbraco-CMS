@@ -24,12 +24,12 @@ namespace Umbraco.Core.Persistence.Repositories
     internal class MemberRepository : VersionableRepositoryBase<int, IMember>, IMemberRepository
     {
         private readonly IMemberTypeRepository _memberTypeRepository;
-        private readonly ITagsRepository _tagRepository;
+        private readonly ITagRepository _tagRepository;
         private readonly IMemberGroupRepository _memberGroupRepository;
         private readonly ContentXmlRepository<IMember> _contentXmlRepository;
         private readonly ContentPreviewRepository<IMember> _contentPreviewRepository;
 
-        public MemberRepository(IDatabaseUnitOfWork work, IMemberTypeRepository memberTypeRepository, IMemberGroupRepository memberGroupRepository, ITagsRepository tagRepository)
+        public MemberRepository(IDatabaseUnitOfWork work, IMemberTypeRepository memberTypeRepository, IMemberGroupRepository memberGroupRepository, ITagRepository tagRepository)
             : base(work)
         {
             if (memberTypeRepository == null) throw new ArgumentNullException("memberTypeRepository");
@@ -41,7 +41,7 @@ namespace Umbraco.Core.Persistence.Repositories
             _contentPreviewRepository = new ContentPreviewRepository<IMember>(work, NullCacheProvider.Current);
         }
 
-        public MemberRepository(IDatabaseUnitOfWork work, IRepositoryCacheProvider cache, IMemberTypeRepository memberTypeRepository, IMemberGroupRepository memberGroupRepository, ITagsRepository tagRepository)
+        public MemberRepository(IDatabaseUnitOfWork work, IRepositoryCacheProvider cache, IMemberTypeRepository memberTypeRepository, IMemberGroupRepository memberGroupRepository, ITagRepository tagRepository)
             : base(work, cache)
         {
             if (memberTypeRepository == null) throw new ArgumentNullException("memberTypeRepository");
@@ -65,7 +65,7 @@ namespace Umbraco.Core.Persistence.Repositories
                 Database.Fetch<MemberReadOnlyDto, PropertyDataReadOnlyDto, MemberReadOnlyDto>(
                     new PropertyDataRelator().Map, sql);
 
-            return BuildFromDto(dtos);
+            return BuildFromDto(dtos, sql);
         }
 
         protected override IEnumerable<IMember> PerformGetAll(params int[] ids)
@@ -82,7 +82,7 @@ namespace Umbraco.Core.Persistence.Repositories
                 Database.Fetch<MemberReadOnlyDto, PropertyDataReadOnlyDto, MemberReadOnlyDto>(
                     new PropertyDataRelator().Map, sql);
 
-            return BuildFromDtos(dtos);
+            return BuildFromDtos(dtos, sql);
         }
 
         protected override IEnumerable<IMember> PerformGetByQuery(IQuery<IMember> query)
@@ -99,7 +99,7 @@ namespace Umbraco.Core.Persistence.Repositories
                 Database.Fetch<MemberReadOnlyDto, PropertyDataReadOnlyDto, MemberReadOnlyDto>(
                     new PropertyDataRelator().Map, sql);
 
-            return BuildFromDtos(dtos);
+            return BuildFromDtos(dtos, sql);
         }
 
         #endregion
@@ -209,6 +209,9 @@ namespace Umbraco.Core.Persistence.Repositories
         {
             ((Member)entity).AddingEntity();
 
+            //Ensure that strings don't contain characters that are invalid in XML
+            entity.SanitizeEntityPropertiesForXmlStorage();
+
             var factory = new MemberFactory(NodeObjectTypeId, entity.Id);
             var dto = factory.BuildDto(entity);
 
@@ -283,6 +286,9 @@ namespace Umbraco.Core.Persistence.Repositories
         {
             //Updates Modified date
             ((Member)entity).UpdatingEntity();
+
+            //Ensure that strings don't contain characters that are invalid in XML
+            entity.SanitizeEntityPropertiesForXmlStorage();
 
             var dirtyEntity = (ICanBeDirty) entity;
 
@@ -398,7 +404,7 @@ namespace Umbraco.Core.Persistence.Repositories
             {
                 if (property.PropertyType.PropertyEditorAlias == uploadFieldAlias &&
                     string.IsNullOrEmpty(property.Value.ToString()) == false
-                    && fs.FileExists(IOHelper.MapPath(property.Value.ToString())))
+                    && fs.FileExists(fs.GetRelativePath(property.Value.ToString())))
                 {
                     var relativeFilePath = fs.GetRelativePath(property.Value.ToString());
                     var parentDirectory = System.IO.Path.GetDirectoryName(relativeFilePath);
@@ -433,7 +439,7 @@ namespace Umbraco.Core.Persistence.Repositories
                 Database.Fetch<MemberReadOnlyDto, PropertyDataReadOnlyDto, MemberReadOnlyDto>(
                     new PropertyDataRelator().Map, sql);
 
-            return BuildFromDto(dtos);
+            return BuildFromDto(dtos, sql);
         }
 
         protected override void PerformDeleteVersion(int id, Guid versionId)
@@ -517,7 +523,7 @@ namespace Umbraco.Core.Persistence.Repositories
                 Database.Fetch<MemberReadOnlyDto, PropertyDataReadOnlyDto, MemberReadOnlyDto>(
                     new PropertyDataRelator().Map, sql);
 
-            return BuildFromDtos(dtos);
+            return BuildFromDtos(dtos, sql);
         }
 
         public bool Exists(string username)
@@ -598,6 +604,14 @@ namespace Umbraco.Core.Persistence.Repositories
             Sql sql, int pageIndex, int pageSize, out int totalRecords,
             Func<IEnumerable<TDto>, int[]> resolveIds)
         {
+            //If a max size is passed in, just do a normal get all!
+            if (pageSize == int.MaxValue)
+            {
+                var result = GetAll().ToArray();
+                totalRecords = result.Count();
+                return result;
+            }
+
             var pagedResult = Database.Page<TDto>(pageIndex + 1, pageSize, sql);
 
             totalRecords = Convert.ToInt32(pagedResult.TotalItems);
@@ -626,7 +640,7 @@ namespace Umbraco.Core.Persistence.Repositories
             _contentPreviewRepository.AddOrUpdate(new ContentPreviewEntity<IMember>(previewExists, content, xml));
         }
 
-        private IMember BuildFromDto(List<MemberReadOnlyDto> dtos)
+        private IMember BuildFromDto(List<MemberReadOnlyDto> dtos, Sql docSql)
         {
             if (dtos == null || dtos.Any() == false)
                 return null;
@@ -643,18 +657,22 @@ namespace Umbraco.Core.Persistence.Repositories
             var factory = new MemberReadOnlyFactory(memberTypes);
             var member = factory.BuildEntity(dto);
 
-            member.Properties = GetPropertyCollection(dto.NodeId, dto.VersionId, member.ContentType, dto.CreateDate, dto.UpdateDate);
+            var properties = GetPropertyCollection(docSql, new DocumentDefinition(dto.NodeId, dto.VersionId, dto.UpdateDate, dto.CreateDate, member.ContentType));
+
+            member.Properties = properties[dto.NodeId];
 
             return member;
         }
 
-        private IEnumerable<IMember> BuildFromDtos(List<MemberReadOnlyDto> dtos)
+        private IEnumerable<IMember> BuildFromDtos(List<MemberReadOnlyDto> dtos, Sql docSql)
         {
             if (dtos == null || dtos.Any() == false)
                 return Enumerable.Empty<IMember>();
 
             //We assume that there won't exist a lot of MemberTypes, so the following should be fairly fast
             var memberTypes = new Dictionary<string, IMemberType>();
+            
+            //TODO: We should do an SQL 'IN' here
             var memberTypeList = _memberTypeRepository.GetAll();
             memberTypeList.ForEach(x => memberTypes.Add(x.Alias, x));
 
@@ -663,7 +681,11 @@ namespace Umbraco.Core.Persistence.Repositories
             foreach (var dto in dtos)
             {
                 var entity = factory.BuildEntity(dto);
-                entity.Properties = GetPropertyCollection(dto.NodeId, dto.VersionId, entity.ContentType, dto.CreateDate, dto.UpdateDate);
+
+                var properties = GetPropertyCollection(docSql,new DocumentDefinition(dto.NodeId, dto.VersionId, dto.UpdateDate, dto.CreateDate, entity.ContentType));
+
+                entity.Properties = properties[dto.NodeId];
+                
                 entities.Add(entity);
             }
             return entities;
