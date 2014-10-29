@@ -1,15 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
+using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Editors;
 using Umbraco.Core.Models.EntityBase;
 using Umbraco.Core.Models.Rdbms;
 using Umbraco.Core.Persistence.Caching;
+using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 using Umbraco.Core.Persistence.Factories;
+using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.UnitOfWork;
 using Umbraco.Core.PropertyEditors;
 using Umbraco.Core.Services;
+using Umbraco.Core.Dynamics;
 
 namespace Umbraco.Core.Persistence.Repositories
 {
@@ -218,12 +224,148 @@ namespace Umbraco.Core.Persistence.Repositories
                 }
             }
         }
-      
+
+        private Sql GetFilteredSqlForPagedResults(Sql sql, Func<Tuple<string, object[]>> defaultFilter = null)
+        {
+            //copy to var so that the original isn't changed
+            var filteredSql = new Sql(sql.SQL, sql.Arguments);
+            // Apply filter
+            if (defaultFilter != null)
+            {
+                var filterResult = defaultFilter();
+                filteredSql.Append(filterResult.Item1, filterResult.Item2);
+            }
+            return filteredSql;
+        }
+
+        private Sql GetSortedSqlForPagedResults(Sql sql, Direction orderDirection, string orderBy)
+        {
+            //copy to var so that the original isn't changed
+            var sortedSql = new Sql(sql.SQL, sql.Arguments);
+            // Apply order according to parameters
+            if (string.IsNullOrEmpty(orderBy) == false)
+            {
+                var orderByParams = new[] { GetDatabaseFieldNameForOrderBy(orderBy) };
+                if (orderDirection == Direction.Ascending)
+                {
+                    sortedSql.OrderBy(orderByParams);
+                }
+                else
+                {
+                    sortedSql.OrderByDescending(orderByParams);
+                }
+                return sortedSql;
+            }
+            return sortedSql;
+        }
+
+        /// <summary>
+        /// A helper method for inheritors to get the paged results by query in a way that minimizes queries
+        /// </summary>
+        /// <typeparam name="TDto">The type of the d.</typeparam>
+        /// <typeparam name="TContentBase">The 'true' entity type (i.e. Content, Member, etc...)</typeparam>
+        /// <param name="query">The query.</param>
+        /// <param name="pageIndex">Index of the page.</param>
+        /// <param name="pageSize">Size of the page.</param>
+        /// <param name="totalRecords">The total records.</param>
+        /// <param name="nodeIdSelect">The tablename + column name for the SELECT statement fragment to return the node id from the query</param>
+        /// <param name="defaultFilter">A callback to create the default filter to be applied if there is one</param>
+        /// <param name="processQuery">A callback to process the query result</param>
+        /// <param name="orderBy">The order by column</param>
+        /// <param name="orderDirection">The order direction.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">orderBy</exception>
+        protected IEnumerable<TEntity> GetPagedResultsByQuery<TDto,TContentBase>(IQuery<TEntity> query, int pageIndex, int pageSize, out int totalRecords,
+            Tuple<string, string> nodeIdSelect,
+            Func<Sql, IEnumerable<TEntity>> processQuery,
+            string orderBy, 
+            Direction orderDirection,
+            Func<Tuple<string, object[]>> defaultFilter = null)
+            where TContentBase : class, IAggregateRoot, TEntity
+        {
+            if (orderBy == null) throw new ArgumentNullException("orderBy");
+
+            // Get base query
+            var sqlBase = GetBaseQuery(false);
+
+            if (query == null) query = new Query<TEntity>();
+            var translator = new SqlTranslator<TEntity>(sqlBase, query);
+            var sqlQuery = translator.Translate();
+            
+            // Note we can't do multi-page for several DTOs like we can multi-fetch and are doing in PerformGetByQuery, 
+            // but actually given we are doing a Get on each one (again as in PerformGetByQuery), we only need the node Id.
+            // So we'll modify the SQL.
+            var sqlNodeIds = new Sql(
+                sqlQuery.SQL.Replace("SELECT *", string.Format("SELECT {0}.{1}",nodeIdSelect.Item1, nodeIdSelect.Item2)), 
+                sqlQuery.Arguments);
+            
+            //get sorted and filtered sql
+            var sqlNodeIdsWithSort = GetSortedSqlForPagedResults(
+                GetFilteredSqlForPagedResults(sqlNodeIds, defaultFilter),
+                orderDirection, orderBy);
+
+            // Get page of results and total count
+            IEnumerable<TEntity> result;
+            var pagedResult = Database.Page<TDto>(pageIndex + 1, pageSize, sqlNodeIdsWithSort);
+            totalRecords = Convert.ToInt32(pagedResult.TotalItems);
+            if (totalRecords > 0)
+            {
+                //Crete the inner paged query that was used above to get the paged result, we'll use that as the inner sub query
+                var args = sqlNodeIdsWithSort.Arguments;
+                string sqlStringCount, sqlStringPage;
+                Database.BuildPageQueries<TDto>(pageIndex * pageSize, pageSize, sqlNodeIdsWithSort.SQL, ref args, out sqlStringCount, out sqlStringPage);
+                
+                //if this is for sql server, the sqlPage will start with a SELECT * but we don't want that, we only want to return the nodeId                
+                sqlStringPage = sqlStringPage
+                    .Replace("SELECT *",
+                        //This ensures we only take the field name of the node id select and not the table name - since the resulting select
+                        // will ony work with the field name.
+                        "SELECT " + nodeIdSelect.Item2);
+
+                //We need to make this an inner join on the paged query
+                var splitQuery = sqlQuery.SQL.Split(new[] {"WHERE "}, StringSplitOptions.None);
+                var withInnerJoinSql = new Sql(splitQuery[0])
+                    .Append("INNER JOIN (")
+                    //join the paged query with the paged query arguments
+                    .Append(sqlStringPage, args)
+                    .Append(") temp ")
+                    .Append(string.Format("ON {0}.{1} = temp.{1}", nodeIdSelect.Item1, nodeIdSelect.Item2))
+                    //add the original where clause back with the original arguments
+                    .Where(splitQuery[1], sqlQuery.Arguments);
+
+                //get sorted and filtered sql
+                var fullQuery = GetSortedSqlForPagedResults(
+                    GetFilteredSqlForPagedResults(withInnerJoinSql, defaultFilter),                     
+                    orderDirection, orderBy);
+                
+                var content = processQuery(fullQuery)
+                    .Cast<TContentBase>()
+                    .AsQueryable();
+
+                // Now we need to ensure this result is also ordered by the same order by clause
+                var orderByProperty = GetEntityPropertyNameForOrderBy(orderBy);
+                if (orderDirection == Direction.Ascending)
+                {
+                    result = content.OrderBy(orderByProperty);
+                }
+                else
+                {
+                    result = content.OrderByDescending(orderByProperty);
+                }
+            }
+            else
+            {
+                result = Enumerable.Empty<TEntity>();
+            }
+
+            return result;
+        }
+
         protected IDictionary<int, PropertyCollection> GetPropertyCollection(
             Sql docSql,
-            params DocumentDefinition[] documentDefs)
+            IEnumerable<DocumentDefinition> documentDefs)
         {
-            if (documentDefs.Length <= 0) return new Dictionary<int, PropertyCollection>();
+            if (documentDefs.Any() == false) return new Dictionary<int, PropertyCollection>();
 
             //we need to parse the original SQL statement and reduce the columns to just cmsContent.nodeId, cmsContentVersion.VersionId so that we can use 
             // the statement to go get the property data for all of the items by using an inner join
@@ -231,7 +373,7 @@ namespace Umbraco.Core.Persistence.Repositories
             //now remove everything from an Orderby clause and beyond
             if (parsedOriginalSql.InvariantContains("ORDER BY "))
             {
-                parsedOriginalSql = parsedOriginalSql.Substring(0, parsedOriginalSql.IndexOf("ORDER BY ", System.StringComparison.Ordinal));
+                parsedOriginalSql = parsedOriginalSql.Substring(0, parsedOriginalSql.LastIndexOf("ORDER BY ", StringComparison.Ordinal));
             }
 
             var propSql = new Sql(@"SELECT cmsPropertyData.*
@@ -242,71 +384,94 @@ INNER JOIN
 	(" + string.Format(parsedOriginalSql, "cmsContent.nodeId, cmsContentVersion.VersionId") + @") as docData
 ON cmsPropertyData.versionId = docData.VersionId AND cmsPropertyData.contentNodeId = docData.nodeId
 LEFT OUTER JOIN cmsDataTypePreValues
-ON cmsPropertyType.dataTypeId = cmsDataTypePreValues.datatypeNodeId", docSql.Arguments);
+ON cmsPropertyType.dataTypeId = cmsDataTypePreValues.datatypeNodeId", docSql.Arguments); 
 
-            var allPropertyData = Database.Fetch<PropertyDataDto>(propSql);
+            var allPropertyData = Database.Fetch<PropertyDataDto>(propSql); 
 
             //This is a lazy access call to get all prevalue data for the data types that make up all of these properties which we use
             // below if any property requires tag support
             var allPreValues = new Lazy<IEnumerable<DataTypePreValueDto>>(() =>
             {
-                var preValsSql = new Sql(@"SELECT DISTINCT
-cmsDataTypePreValues.id as preValId, cmsDataTypePreValues.value, cmsDataTypePreValues.sortorder, cmsDataTypePreValues.alias, cmsDataTypePreValues.datatypeNodeId
-FROM cmsDataTypePreValues
-INNER JOIN cmsPropertyType
-ON cmsDataTypePreValues.datatypeNodeId = cmsPropertyType.dataTypeId
-INNER JOIN 
-	(" + string.Format(parsedOriginalSql, "cmsContent.contentType") + @") as docData
-ON cmsPropertyType.contentTypeId = docData.contentType", docSql.Arguments);
+                var preValsSql = new Sql(@"SELECT a.id as preValId, a.value, a.sortorder, a.alias, a.datatypeNodeId
+FROM cmsDataTypePreValues a
+WHERE EXISTS(
+    SELECT DISTINCT b.id as preValIdInner
+    FROM cmsDataTypePreValues b
+	INNER JOIN cmsPropertyType
+	ON b.datatypeNodeId = cmsPropertyType.dataTypeId
+    INNER JOIN 
+	    (" + string.Format(parsedOriginalSql, "DISTINCT cmsContent.contentType") + @") as docData
+    ON cmsPropertyType.contentTypeId = docData.contentType
+    WHERE a.id = b.id)", docSql.Arguments);
 
-                return Database.Fetch<DataTypePreValueDto>(preValsSql);
+                return Database.Fetch<DataTypePreValueDto>(preValsSql); 
             });
 
             var result = new Dictionary<int, PropertyCollection>();
 
-            foreach (var def in documentDefs)
+            var propertiesWithTagSupport = new Dictionary<string, SupportTagsAttribute>();
+
+            //iterate each definition grouped by it's content type - this will mean less property type iterations while building 
+            // up the property collections
+            foreach (var compositionGroup in documentDefs.GroupBy(x => x.Composition))
             {
-                var propertyDataDtos = allPropertyData.Where(x => x.NodeId == def.Id).Distinct();
+                var compositionProperties = compositionGroup.Key.CompositionPropertyTypes.ToArray();
 
-                var propertyFactory = new PropertyFactory(def.Composition, def.Version, def.Id, def.CreateDate, def.VersionDate);
-                var properties = propertyFactory.BuildEntity(propertyDataDtos).ToArray();
-
-                var newProperties = properties.Where(x => x.HasIdentity == false && x.PropertyType.HasIdentity);
-                foreach (var property in newProperties)
+                foreach (var def in compositionGroup)
                 {
-                    var propertyDataDto = new PropertyDataDto { NodeId = def.Id, PropertyTypeId = property.PropertyTypeId, VersionId = def.Version };
-                    int primaryKey = Convert.ToInt32(Database.Insert(propertyDataDto));
+                    var propertyDataDtos = allPropertyData.Where(x => x.NodeId == def.Id).Distinct();
 
-                    property.Version = def.Version;
-                    property.Id = primaryKey;
-                }
+                    var propertyFactory = new PropertyFactory(compositionProperties, def.Version, def.Id, def.CreateDate, def.VersionDate);
+                    var properties = propertyFactory.BuildEntity(propertyDataDtos.ToArray()).ToArray();                    
+                    
+                    var newProperties = properties.Where(x => x.HasIdentity == false && x.PropertyType.HasIdentity);
 
-                foreach (var property in properties)
-                {
-                    //NOTE: The benchmarks run with and without the following code show very little change so this is not a perf bottleneck
-                    var editor = PropertyEditorResolver.Current.GetByAlias(property.PropertyType.PropertyEditorAlias);
-                    var tagSupport = TagExtractor.GetAttribute(editor);
-
-                    if (tagSupport != null)
+                    foreach (var property in newProperties)
                     {
-                        //this property has tags, so we need to extract them and for that we need the prevals which we've already looked up
-                        var preValData = allPreValues.Value.Where(x => x.DataTypeNodeId == property.PropertyType.DataTypeDefinitionId)
-                            .Distinct()
-                            .ToArray();
-                            
-                        var asDictionary = preValData.ToDictionary(x => x.Alias, x => new PreValue(x.Id, x.Value, x.SortOrder));
+                        var propertyDataDto = new PropertyDataDto { NodeId = def.Id, PropertyTypeId = property.PropertyTypeId, VersionId = def.Version };
+                        int primaryKey = Convert.ToInt32(Database.Insert(propertyDataDto));
 
-                        var preVals = new PreValueCollection(asDictionary);
-
-                        var contentPropData = new ContentPropertyData(property.Value,
-                            preVals,
-                            new Dictionary<string, object>());
-
-                        TagExtractor.SetPropertyTags(property, contentPropData, property.Value, tagSupport);
+                        property.Version = def.Version;
+                        property.Id = primaryKey;
                     }
-                }
 
-                result.Add(def.Id, new PropertyCollection(properties));
+                    foreach (var property in properties)
+                    {
+                        //NOTE: The benchmarks run with and without the following code show very little change so this is not a perf bottleneck
+                        var editor = PropertyEditorResolver.Current.GetByAlias(property.PropertyType.PropertyEditorAlias);
+
+                        var tagSupport = propertiesWithTagSupport.ContainsKey(property.PropertyType.PropertyEditorAlias)
+                            ? propertiesWithTagSupport[property.PropertyType.PropertyEditorAlias]
+                            : TagExtractor.GetAttribute(editor);
+
+                        if (tagSupport != null)
+                        {
+                            //add to local cache so we don't need to reflect next time for this property editor alias
+                            propertiesWithTagSupport[property.PropertyType.PropertyEditorAlias] = tagSupport;
+
+                            //this property has tags, so we need to extract them and for that we need the prevals which we've already looked up
+                            var preValData = allPreValues.Value.Where(x => x.DataTypeNodeId == property.PropertyType.DataTypeDefinitionId)
+                                .Distinct()
+                                .ToArray();
+
+                            var asDictionary = preValData.ToDictionary(x => x.Alias, x => new PreValue(x.Id, x.Value, x.SortOrder));
+
+                            var preVals = new PreValueCollection(asDictionary);
+
+                            var contentPropData = new ContentPropertyData(property.Value,
+                                preVals,
+                                new Dictionary<string, object>());
+
+                            TagExtractor.SetPropertyTags(property, contentPropData, property.Value, tagSupport);
+                        }
+                    }
+
+                    if (result.ContainsKey(def.Id))
+                    {
+                        LogHelper.Warn<VersionableRepositoryBase<TId, TEntity>>("The query returned multiple property sets for document definition " + def.Id + ", " + def.Composition.Name);
+                    }
+                    result[def.Id] = new PropertyCollection(properties);
+                }                
             }
 
             return result;
@@ -340,7 +505,7 @@ ON cmsPropertyType.contentTypeId = docData.contentType", docSql.Arguments);
             switch (orderBy.ToUpperInvariant())
             {
                 case "NAME":
-                    return "cmsDocument.text";
+                    return "umbracoNode.text";
                 case "OWNER":
                     //TODO: This isn't going to work very nicely because it's going to order by ID, not by letter
                     return "umbracoNode.nodeUser";
@@ -361,6 +526,8 @@ ON cmsPropertyType.contentTypeId = docData.contentType", docSql.Arguments);
                 case "UPDATER":
                     //TODO: This isn't going to work very nicely because it's going to order by ID, not by letter
                     return "WriterId";
+                case "VERSIONDATE":
+                    return "UpdateDate";
                 default:
                     return orderBy;
             }

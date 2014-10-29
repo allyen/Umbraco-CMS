@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Web.Security;
 using System.Xml.Linq;
+using Umbraco.Core.Auditing;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Events;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Membership;
 using Umbraco.Core.Models.Rdbms;
 using Umbraco.Core.Persistence;
+using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.SqlSyntax;
 using Umbraco.Core.Persistence.UnitOfWork;
@@ -283,39 +285,30 @@ namespace Umbraco.Core.Services
             var uow = _uowProvider.GetUnitOfWork();
             using (var repository = _repositoryFactory.CreateMemberRepository(uow))
             {
-                var sql = new Sql()
-                    .Select("*")
-                    .From<NodeDto>()
-                    .Where<NodeDto>(dto => dto.NodeObjectType == new Guid(Constants.ObjectTypes.Member));
+                var query = new Query<IMember>();
                 
                 switch (matchType)
                 {
                     case StringPropertyMatchType.Exact:
-                        sql.Where<NodeDto>(dto => dto.Text.Equals(displayNameToMatch));
+                        query.Where(member => member.Name.Equals(displayNameToMatch));
                         break;
                     case StringPropertyMatchType.Contains:
-                        sql.Where<NodeDto>(dto => dto.Text.Contains(displayNameToMatch));                        
+                        query.Where(member => member.Name.Contains(displayNameToMatch));
                         break;
                     case StringPropertyMatchType.StartsWith:
-                        sql.Where<NodeDto>(dto => dto.Text.StartsWith(displayNameToMatch));
+                        query.Where(member => member.Name.StartsWith(displayNameToMatch));
                         break;
                     case StringPropertyMatchType.EndsWith:
-                        sql.Where<NodeDto>(dto => dto.Text.EndsWith(displayNameToMatch));
+                        query.Where(member => member.Name.EndsWith(displayNameToMatch));
                         break;
                     case StringPropertyMatchType.Wildcard:
-                        sql.Where<NodeDto>(dto => dto.Text.SqlWildcard(displayNameToMatch, TextColumnType.NVarchar));                        
+                        query.Where(member => member.Name.SqlWildcard(displayNameToMatch, TextColumnType.NVarchar));                      
                         break;
                     default:
                         throw new ArgumentOutOfRangeException("matchType");
                 }
 
-                sql.OrderBy<NodeDto>(dto => dto.Text);
-
-                var result = repository.GetPagedResultsByQuery<NodeDto>(sql, pageIndex, pageSize, out totalRecords,
-                    dtos => dtos.Select(x => x.NodeId).ToArray());
-
-                //ensure this result is sorted correct just in case
-                return result.OrderBy(x => x.Name);
+                return repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalRecords, "Name", Direction.Ascending);
             }
         }
 
@@ -356,7 +349,7 @@ namespace Umbraco.Core.Services
                         throw new ArgumentOutOfRangeException("matchType");
                 }
 
-                return repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalRecords, dto => dto.Email);
+                return repository.GetPagedResultsByQuery(query, pageIndex, pageSize,  out totalRecords, "Email", Direction.Ascending);
             }
         }
 
@@ -397,7 +390,7 @@ namespace Umbraco.Core.Services
                         throw new ArgumentOutOfRangeException("matchType");
                 }
 
-                return repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalRecords, dto => dto.Username);
+                return repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalRecords, "LoginName", Direction.Ascending);
             }
         }
 
@@ -477,35 +470,35 @@ namespace Umbraco.Core.Services
                             Query<IMember>.Builder.Where(
                                 x =>
                                 ((Member)x).PropertyTypeAlias == propertyTypeAlias &&
-                                ((Member)x).IntegerropertyValue == value);
+                                ((Member)x).IntegerPropertyValue == value);
                         break;
                     case ValuePropertyMatchType.GreaterThan:
                         query =
                             Query<IMember>.Builder.Where(
                                 x =>
                                 ((Member)x).PropertyTypeAlias == propertyTypeAlias &&
-                                ((Member)x).IntegerropertyValue > value);
+                                ((Member)x).IntegerPropertyValue > value);
                         break;
                     case ValuePropertyMatchType.LessThan:
                         query =
                             Query<IMember>.Builder.Where(
                                 x =>
                                 ((Member)x).PropertyTypeAlias == propertyTypeAlias &&
-                                ((Member)x).IntegerropertyValue < value);
+                                ((Member)x).IntegerPropertyValue < value);
                         break;
                     case ValuePropertyMatchType.GreaterThanOrEqualTo:
                         query =
                             Query<IMember>.Builder.Where(
                                 x =>
                                 ((Member)x).PropertyTypeAlias == propertyTypeAlias &&
-                                ((Member)x).IntegerropertyValue >= value);
+                                ((Member)x).IntegerPropertyValue >= value);
                         break;
                     case ValuePropertyMatchType.LessThanOrEqualTo:
                         query =
                             Query<IMember>.Builder.Where(
                                 x =>
                                 ((Member)x).PropertyTypeAlias == propertyTypeAlias &&
-                                ((Member)x).IntegerropertyValue <= value);
+                                ((Member)x).IntegerPropertyValue <= value);
                         break;
                     default:
                         throw new ArgumentOutOfRangeException("matchType");
@@ -591,9 +584,31 @@ namespace Umbraco.Core.Services
                         throw new ArgumentOutOfRangeException("matchType");
                 }
 
+                //TODO: Since this is by property value, we need a GetByPropertyQuery on the repo!
                 var members = repository.GetByQuery(query);
                 return members;
             }
+        }
+
+        /// <summary>
+        /// Rebuilds all xml content in the cmsContentXml table for all members
+        /// </summary>
+        /// <param name="memberTypeIds">
+        /// Only rebuild the xml structures for the content type ids passed in, if none then rebuilds the structures
+        /// for all members = USE WITH CARE!
+        /// </param>
+        /// <returns>True if publishing succeeded, otherwise False</returns>
+        public void RebuildXmlStructures(params int[] memberTypeIds)
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMemberRepository(uow))
+            {
+                repository.RebuildXmlStructures(
+                    member => _entitySerializer.Serialize(_dataTypeService, member),
+                    contentTypeIds: memberTypeIds.Length == 0 ? null : memberTypeIds);
+            }
+
+            Audit.Add(AuditTypes.Publish, "MemberService.RebuildXmlStructures completed, the xml has been regenerated in the database", 0, -1);
         }
 
         #endregion
@@ -662,7 +677,22 @@ namespace Umbraco.Core.Services
             var uow = _uowProvider.GetUnitOfWork();
             using (var repository = _repositoryFactory.CreateMemberRepository(uow))
             {
-                return repository.GetPagedResultsByQuery(null, pageIndex, pageSize, out totalRecords, member => member.Username);
+                return repository.GetPagedResultsByQuery(null, pageIndex, pageSize, out totalRecords, "LoginName", Direction.Ascending);
+            }
+        }
+
+        public IEnumerable<IMember> GetAll(int pageIndex, int pageSize, out int totalRecords,
+            string orderBy, Direction orderDirection, string memberTypeAlias = null, string filter = "")
+        {
+            var uow = _uowProvider.GetUnitOfWork();
+            using (var repository = _repositoryFactory.CreateMemberRepository(uow))
+            {
+                if (memberTypeAlias == null)
+                {
+                    return repository.GetPagedResultsByQuery(null, pageIndex, pageSize, out totalRecords, orderBy, orderDirection, filter);    
+                }
+                var query = new Query<IMember>().Where(x => x.ContentTypeAlias == memberTypeAlias);
+                return repository.GetPagedResultsByQuery(query, pageIndex, pageSize, out totalRecords, orderBy, orderDirection, filter);    
             }
         }
 
@@ -1143,88 +1173,6 @@ namespace Umbraco.Core.Services
                 return contentType;
             }
         }
-
-        /// <summary>
-        /// Rebuilds all xml content in the cmsContentXml table for all members
-        /// </summary>
-        /// <param name="memberTypeIds">
-        /// Only rebuild the xml structures for the content type ids passed in, if none then rebuilds the structures
-        /// for all members = USE WITH CARE!
-        /// </param>
-        /// <returns>True if publishing succeeded, otherwise False</returns>
-        internal void RebuildXmlStructures(params int[] memberTypeIds)
-        {
-            using (new WriteLock(Locker))
-            {
-                var list = new List<IMember>();
-
-                var uow = _uowProvider.GetUnitOfWork();
-
-                //First we're going to get the data that needs to be inserted before clearing anything, this 
-                //ensures that we don't accidentally leave the content xml table empty if something happens
-                //during the lookup process.
-
-                if (memberTypeIds.Any() == false)
-                {
-                    list.AddRange(GetAllMembers());
-                }
-                else
-                {
-                    list.AddRange(memberTypeIds.SelectMany(GetMembersByMemberType));
-                }
-
-                var xmlItems = new List<ContentXmlDto>();
-                foreach (var c in list)
-                {
-                    var xml = _entitySerializer.Serialize(_dataTypeService, c);
-                    xmlItems.Add(new ContentXmlDto { NodeId = c.Id, Xml = xml.ToString(SaveOptions.None) });
-                }
-
-                //Ok, now we need to remove the data and re-insert it, we'll do this all in one transaction too.
-                using (var tr = uow.Database.GetTransaction())
-                {
-                    if (memberTypeIds.Any() == false)
-                    {
-                        //Remove all member records from the cmsContentXml table (DO NOT REMOVE Content/Media!)
-                        var memberObjectType = Guid.Parse(Constants.ObjectTypes.Member);
-                        var subQuery = new Sql()
-                            .Select("DISTINCT cmsContentXml.nodeId")
-                            .From<ContentXmlDto>()
-                            .InnerJoin<NodeDto>()
-                            .On<ContentXmlDto, NodeDto>(left => left.NodeId, right => right.NodeId)
-                            .Where<NodeDto>(dto => dto.NodeObjectType == memberObjectType);
-
-                        var deleteSql = SqlSyntaxContext.SqlSyntaxProvider.GetDeleteSubquery("cmsContentXml", "nodeId", subQuery);
-                        uow.Database.Execute(deleteSql);
-                    }
-                    else
-                    {
-                        foreach (var id in memberTypeIds)
-                        {
-                            var id1 = id;
-                            var memberObjectType = Guid.Parse(Constants.ObjectTypes.Member);
-                            var subQuery = new Sql()
-                                .Select("DISTINCT cmsContentXml.nodeId")
-                                .From<ContentXmlDto>()
-                                .InnerJoin<NodeDto>()
-                                .On<ContentXmlDto, NodeDto>(left => left.NodeId, right => right.NodeId)
-                                .InnerJoin<ContentDto>()
-                                .On<ContentDto, NodeDto>(left => left.NodeId, right => right.NodeId)
-                                .Where<NodeDto>(dto => dto.NodeObjectType == memberObjectType)
-                                .Where<ContentDto>(dto => dto.ContentTypeId == id1);
-
-                            var deleteSql = SqlSyntaxContext.SqlSyntaxProvider.GetDeleteSubquery("cmsContentXml", "nodeId", subQuery);
-                            uow.Database.Execute(deleteSql);
-                        }
-                    }
-
-                    //bulk insert it into the database
-                    uow.Database.BulkInsertRecords(xmlItems, tr);
-
-                    tr.Complete();
-                }
-            }
-        }
         
         #region Event Handlers
 
@@ -1318,7 +1266,15 @@ namespace Umbraco.Core.Services
 
             memType.PropertyGroups.Add(propGroup);
 
-            return new Member(name, email, username, password, memType);
+            var member = new Member(name, email, username, password, memType);
+
+            //we've assigned ids to the property types and groups but we also need to assign fake ids to the properties themselves.
+            foreach (var property in member.Properties)
+            {
+                property.Id = --identity;
+            }
+
+            return member;
         }
     }
 }

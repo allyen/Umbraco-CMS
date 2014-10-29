@@ -1,18 +1,27 @@
 // Gridview
 // -------------------------
 
- 
+ .mceContentBody{
+         overflow-y:hidden!important;
+      }
+
+ IFRAME {overflow:hidden;}  
 
 
  // Sortabel
  // -------------------------
  .usky-grid .ui-sortable-helper  {
-     border: dashed 1px #000;
+     border: dashed 1px #000 !important;
      background: #ccc;
      opacity: 0.4;
-     height: 50px !important;
+     height: 80px !important;
+     width: 160px !important;
      overflow: hidden;
      padding: 5px;
+     border-radius:50px;
+     -webkit-box-shadow: 3px 3px 12px 0px rgba(50, 50, 50, 0.45);
+     -moz-box-shadow:    3px 3px 12px 0px rgba(50, 50, 50, 0.45);
+     box-shadow:         3px 3px 12px 0px rgba(50, 50, 50, 0.45);
  }
 
  .usky-grid .ui-sortable-helper *{
@@ -226,7 +235,7 @@
 
 .usky-grid  .usky-control-placeholder:hover{
     /*border: 1px solid rgba(182, 182, 182, 0);*/
-    border-bottom:1px solid rgba(182, 182, 182, 0.0) !important;
+    /*border-bottom:1px solid rgba(182, 182, 182, 0.0) !important;*/
 }
 
 .usky-grid .warnhighlight{

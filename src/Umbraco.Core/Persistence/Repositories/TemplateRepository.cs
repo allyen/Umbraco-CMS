@@ -199,7 +199,7 @@ namespace Umbraco.Core.Persistence.Repositories
             }
 
             //Look up parent to get and set the correct Path if ParentId has changed
-            if (((ICanBeDirty)entity).IsPropertyDirty("ParentId"))
+            if (entity.IsPropertyDirty("ParentId"))
             {
                 var parent = Database.First<NodeDto>("WHERE id = @ParentId", new { ParentId = ((Template)entity).ParentId });
                 entity.Path = string.Concat(parent.Path, ",", entity.Id);
@@ -222,7 +222,7 @@ namespace Umbraco.Core.Persistence.Repositories
             Database.Update(dto.NodeDto);
             Database.Update(dto);
 
-            ((ICanBeDirty)entity).ResetDirtyProperties();
+            entity.ResetDirtyProperties();
         }
 
         protected override void PersistDeletedItem(ITemplate entity)
@@ -291,8 +291,11 @@ namespace Umbraco.Core.Persistence.Repositories
             {
                 //TODO: Fix this n+1 query!
                 var masterTemplate = Get(dto.Master.Value);
-                template.MasterTemplateAlias = masterTemplate.Alias;
-                template.MasterTemplateId = new Lazy<int>(() => dto.Master.Value);
+                if (masterTemplate != null)
+                {
+                    template.MasterTemplateAlias = masterTemplate.Alias;
+                    template.MasterTemplateId = new Lazy<int>(() => dto.Master.Value);    
+                }
             }
 
             if (_viewsFileSystem.FileExists(csViewName))

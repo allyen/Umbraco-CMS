@@ -4,7 +4,7 @@ IF NOT EXIST UmbracoVersion.txt (
 	GOTO :showerror
 ) 
 SET /p release=<UmbracoVersion.txt
-SET comment=alpha
+SET comment=beta
 SET version=%release%
 
 IF [%comment%] EQU [] (SET version=%release%) ELSE (SET version=%release%-%comment%)
@@ -14,7 +14,7 @@ ReplaceIISExpressPortNumber.exe ..\src\Umbraco.Web.UI\Umbraco.Web.UI.csproj %rel
 
 ECHO Installing the Microsoft.Bcl.Build package before anything else, otherwise you'd have to run build.cmd twice
 SET nuGetFolder=%CD%\..\src\packages\
-..\src\.nuget\NuGet.exe sources Add -Name MyGetUmbracoCore -Source https://www.myget.org/F/umbracocore/api/v2/
+..\src\.nuget\NuGet.exe sources Add -Name MyGetUmbracoCore -Source https://www.myget.org/F/umbracocore/api/v2/ >NUL
 ..\src\.nuget\NuGet.exe install ..\src\Umbraco.Web.UI\packages.config -OutputDirectory %nuGetFolder%
 
 ECHO Removing the belle build folder to make sure everything is clean as a whistle
@@ -23,9 +23,12 @@ RD ..\src\Umbraco.Web.UI.Client\build /Q /S
 ECHO Removing existing built files to make sure everything is clean as a whistle
 RMDIR /Q /S _BuildOutput
 DEL /F /Q UmbracoCms.*.zip
+DEL /F /Q UmbracoExamine.*.zip
 DEL /F /Q UmbracoCms.*.nupkg
 DEL /F /Q webpihash.txt
 
+ECHO Making sure Git is in the path so that the build can succeed
+CALL InstallGit.cmd
 ECHO Performing MSBuild and producing Umbraco binaries zip files
 %windir%\Microsoft.NET\Framework\v4.0.30319\msbuild.exe "Build.proj" /p:BUILD_RELEASE=%release% /p:BUILD_COMMENT=%comment%
 
@@ -42,13 +45,13 @@ echo This file is only here so that the containing folder will be included in th
 echo This file is only here so that the containing folder will be included in the NuGet package, it is safe to delete. > .\_BuildOutput\WebApp\Views\MacroPartials\dummy.txt
 
 ECHO Adding Web.config transform files to the NuGet package
-ren .\_BuildOutput\WebApp\MacroScripts\Web.config Web.config.transform
 ren .\_BuildOutput\WebApp\Views\Web.config Web.config.transform
 ren .\_BuildOutput\WebApp\Xslt\Web.config Web.config.transform
 
 ECHO Packing the NuGet release files
 ..\src\.nuget\NuGet.exe Pack NuSpecs\UmbracoCms.Core.nuspec -Version %version%
 ..\src\.nuget\NuGet.exe Pack NuSpecs\UmbracoCms.nuspec -Version %version%
+..\src\.nuget\NuGet.exe Pack NuSpecs\UmbracoExamine.PDF.nuspec
                         
 IF ERRORLEVEL 1 GOTO :showerror
 

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
@@ -140,7 +141,7 @@ AND umbracoNode.nodeObjectType = @objectType",
             }
 
             var propertyFactory = new PropertyGroupFactory(nodeDto.NodeId);
-
+            
             //Insert Tabs
             foreach (var propertyGroup in entity.PropertyGroups)
             {
@@ -272,6 +273,7 @@ AND umbracoNode.id <> @id",
                                     });
             }
 
+
             if (((ICanBeDirty) entity).IsPropertyDirty("PropertyTypes") || entity.PropertyTypes.Any(x => x.IsDirty()))
             {
                 //Delete PropertyTypes by excepting entries from db with entries from collections
@@ -289,7 +291,7 @@ AND umbracoNode.id <> @id",
                 }
             }
 
-            if (((ICanBeDirty)entity).IsPropertyDirty("PropertyGroups") || 
+            if (entity.IsPropertyDirty("PropertyGroups") || 
                 entity.PropertyGroups.Any(x => x.IsDirty()))
             {
                 //Delete Tabs/Groups by excepting entries from db with entries from collections
@@ -353,7 +355,7 @@ AND umbracoNode.id <> @id",
             }
 
             //If a Composition is removed we need to update/reset references to the PropertyGroups on that ContentType
-            if (((ICanBeDirty)entity).IsPropertyDirty("ContentTypeComposition") &&
+            if (entity.IsPropertyDirty("ContentTypeComposition") &&
                 compositionBase != null &&
                 compositionBase.RemovedContentTypeKeyTracker != null &&
                 compositionBase.RemovedContentTypeKeyTracker.Any())
@@ -472,7 +474,7 @@ AND umbracoNode.id <> @id",
                                         throw exception;
                                     });
         }
-
+        
         /// <summary>
         /// Try to set the data type id based on its ControlId
         /// </summary>
@@ -665,8 +667,8 @@ AND umbracoNode.id <> @id",
 		                        cmsContentType.icon as ctIcon, cmsContentType.isContainer as ctIsContainer, cmsContentType.nodeId as ctId, cmsContentType.thumbnail as ctThumb,
                                 AllowedTypes.allowedId as ctaAllowedId, AllowedTypes.SortOrder as ctaSortOrder, AllowedTypes.alias as ctaAlias,		                        
                                 ParentTypes.parentContentTypeId as chtParentId,
-                                umbracoNode.createDate as nCreateDate, umbracoNode.[level] as nLevel, umbracoNode.nodeObjectType as nObjectType, umbracoNode.nodeUser as nUser,
-		                        umbracoNode.parentID as nParentId, umbracoNode.[path] as nPath, umbracoNode.sortOrder as nSortOrder, umbracoNode.[text] as nName, umbracoNode.trashed as nTrashed,
+                                umbracoNode.createDate as nCreateDate, umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("level") + @" as nLevel, umbracoNode.nodeObjectType as nObjectType, umbracoNode.nodeUser as nUser,
+		                        umbracoNode.parentID as nParentId, umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("path") + @" as nPath, umbracoNode.sortOrder as nSortOrder, umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("text") + @" as nName, umbracoNode.trashed as nTrashed,
 		                        umbracoNode.uniqueID as nUniqueId
                         FROM cmsContentType
                         INNER JOIN umbracoNode
@@ -763,7 +765,6 @@ AND umbracoNode.id <> @id",
                 out IDictionary<int, IEnumerable<AssociatedTemplate>> associatedTemplates,
                 out IDictionary<int, IEnumerable<int>> parentContentTypeIds)
             {
-                Mandate.That(contentTypeIds.Any(), () => new InvalidOperationException("must be at least one content type id specified"));
                 Mandate.ParameterNotNull(db, "db");
 
                 //ensure they are unique
@@ -774,8 +775,8 @@ AND umbracoNode.id <> @id",
 		                        cmsContentType.icon as ctIcon, cmsContentType.isContainer as ctIsContainer, cmsContentType.nodeId as ctId, cmsContentType.thumbnail as ctThumb,
                                 AllowedTypes.allowedId as ctaAllowedId, AllowedTypes.SortOrder as ctaSortOrder, AllowedTypes.alias as ctaAlias,		                        
                                 ParentTypes.parentContentTypeId as chtParentId,
-                                umbracoNode.createDate as nCreateDate, umbracoNode.[level] as nLevel, umbracoNode.nodeObjectType as nObjectType, umbracoNode.nodeUser as nUser,
-		                        umbracoNode.parentID as nParentId, umbracoNode.[path] as nPath, umbracoNode.sortOrder as nSortOrder, umbracoNode.[text] as nName, umbracoNode.trashed as nTrashed,
+                                umbracoNode.createDate as nCreateDate, umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("level") + @" as nLevel, umbracoNode.nodeObjectType as nObjectType, umbracoNode.nodeUser as nUser,
+		                        umbracoNode.parentID as nParentId, umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("path") + @" as nPath, umbracoNode.sortOrder as nSortOrder, umbracoNode." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("text") + @" as nName, umbracoNode.trashed as nTrashed,
 		                        umbracoNode.uniqueID as nUniqueId,                                
 		                        Template.alias as tAlias, Template.nodeId as tId,Template.text as tText
                         FROM cmsContentType
@@ -798,8 +799,9 @@ AND umbracoNode.id <> @id",
                         ON Template.nodeId = cmsDocumentType.templateNodeId
                         LEFT JOIN cmsContentType2ContentType as ParentTypes
                         ON ParentTypes.childContentTypeId = cmsContentType.nodeId	
-                        WHERE (umbracoNode.nodeObjectType = @nodeObjectType)
-                        AND (umbracoNode.id IN (@contentTypeIds))";
+                        WHERE (umbracoNode.nodeObjectType = @nodeObjectType)";
+                if(contentTypeIds.Any())                        
+                    sql = sql + " AND (umbracoNode.id IN (@contentTypeIds))";
 
                 //NOTE: we are going to assume there's not going to be more than 2100 content type ids since that is the max SQL param count!
                 if ((contentTypeIds.Length - 1) > 2000)
@@ -938,8 +940,9 @@ AND umbracoNode.id <> @id",
                 // first part Gets all property groups including property type data even when no property type exists on the group
                 // second part Gets all property types including ones that are not on a group
                 // therefore the union of the two contains all of the property type and property group information we need
+                // NOTE: MySQL requires a SELECT * FROM the inner union in order to be able to sort . lame.
 
-                var sql = @"SELECT PG.contenttypeNodeId as contentTypeId,
+                var sqlBuilder = new StringBuilder(@"SELECT PG.contenttypeNodeId as contentTypeId,
                             PT.ptId, PT.ptAlias, PT.ptDesc,PT.ptHelpText,PT.ptMandatory,PT.ptName,PT.ptSortOrder,PT.ptRegExp, 
                             PT.dtId,PT.dtDbType,PT.dtPropEdAlias,
                             PG.id as pgId, PG.parentGroupId as pgParentGroupId, PG.sortorder as pgSortOrder, PG." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("text") + @" as pgText
@@ -956,7 +959,7 @@ AND umbracoNode.id <> @id",
                         )  as  PT
                         ON PT.ptGroupId = PG.id
                         WHERE (PG.contenttypeNodeId in (@contentTypeIds))
-                        
+                
                         UNION
 
                         SELECT  PT.contentTypeId as contentTypeId,
@@ -966,19 +969,21 @@ AND umbracoNode.id <> @id",
                                 PG.id as pgId, PG.parentGroupId as pgParentGroupId, PG.sortorder as pgSortOrder, PG." + SqlSyntaxContext.SqlSyntaxProvider.GetQuotedColumnName("text") + @" as pgText
                         FROM cmsPropertyType as PT
                         INNER JOIN cmsDataType as DT
-                        ON PT.dataTypeId = DT.[nodeId]
+                        ON PT.dataTypeId = DT.nodeId
                         LEFT JOIN cmsPropertyTypeGroup as PG
-                        ON PG.[id] = PT.propertyTypeGroupId
-                        WHERE (PT.contentTypeId in (@contentTypeIds))
+                        ON PG.id = PT.propertyTypeGroupId");
 
-                        ORDER BY (PG.id)";
+                if(contentTypeIds.Any())                        
+                    sqlBuilder.AppendLine(" WHERE (PT.contentTypeId in (@contentTypeIds))");
+
+                sqlBuilder.AppendLine(" ORDER BY (pgId)");
 
                 //NOTE: we are going to assume there's not going to be more than 2100 content type ids since that is the max SQL param count!
                 // Since there are 2 groups of params, it will be half!
                 if (((contentTypeIds.Length / 2) - 1) > 2000)
                     throw new InvalidOperationException("Cannot perform this lookup, too many sql parameters");
 
-                var result = db.Fetch<dynamic>(sql, new { contentTypeIds = contentTypeIds });
+                var result = db.Fetch<dynamic>(sqlBuilder.ToString(), new { contentTypeIds = contentTypeIds });
 
                 allPropertyGroupCollection = new Dictionary<int, PropertyGroupCollection>();
                 allPropertyTypeCollection = new Dictionary<int, PropertyTypeCollection>();
@@ -1013,7 +1018,7 @@ AND umbracoNode.id <> @id",
                                     Description = row.ptDesc,
                                     DataTypeDefinitionId = row.dtId,
                                     Id = row.ptId,
-                                    Mandatory = row.ptMandatory,
+                                    Mandatory = Convert.ToBoolean(row.ptMandatory),
                                     Name = row.ptName,
                                     PropertyGroupId = new Lazy<int>(() => group.GroupId, false),
                                     SortOrder = row.ptSortOrder,
@@ -1042,7 +1047,7 @@ AND umbracoNode.id <> @id",
                             Description = row.ptDesc,
                             DataTypeDefinitionId = row.dtId,
                             Id = row.ptId,
-                            Mandatory = row.ptMandatory,
+                            Mandatory = Convert.ToBoolean(row.ptMandatory),
                             Name = row.ptName,
                             PropertyGroupId = null,
                             SortOrder = row.ptSortOrder,

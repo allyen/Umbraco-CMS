@@ -1,7 +1,7 @@
 angular.module("umbraco")
     .controller("Umbraco.PropertyEditors.Grid.EmbedController",
     function ($scope, $rootScope, $timeout, dialogService) {
-    	
+
     	$scope.setEmbed = function(){
     		dialogService.embedDialog({
                     callback: function (data) {
@@ -16,3 +16,4 @@ angular.module("umbraco")
     		}
     	}, 200);
 });
+

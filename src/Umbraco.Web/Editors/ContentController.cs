@@ -126,7 +126,7 @@ namespace Umbraco.Web.Editors
             var mapped = Mapper.Map<IContent, ContentItemDisplay>(emptyContent);
 
             //remove this tab if it exists: umbContainerView
-            var containerTab = mapped.Tabs.FirstOrDefault(x => x.Alias == "umbContainerView");
+            var containerTab = mapped.Tabs.FirstOrDefault(x => x.Alias == Constants.Conventions.PropertyGroups.ListViewGroupName);
             mapped.Tabs = mapped.Tabs.Except(new[] {containerTab});
             return mapped;
         }
@@ -161,7 +161,7 @@ namespace Umbraco.Web.Editors
             IContent[] children;
             if (pageNumber > 0 && pageSize > 0)
             {
-                children = Services.ContentService.GetPagedChildren(id, pageNumber, pageSize, out totalChildren, orderBy, orderDirection, filter).ToArray();
+                children = Services.ContentService.GetPagedChildren(id, (pageNumber - 1), pageSize, out totalChildren, orderBy, orderDirection, filter).ToArray();
             }
             else
             {

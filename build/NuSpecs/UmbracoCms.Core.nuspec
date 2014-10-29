@@ -15,7 +15,7 @@
         <language>en-US</language>
         <tags>umbraco</tags>
         <dependencies>
-            <dependency id="Microsoft.AspNet.Mvc" version="[4.0.30506.0,5.0.0)" />
+            <dependency id="Microsoft.AspNet.Mvc" version="[4.0.40804.0,5.0.0)" />
             <dependency id="Microsoft.AspNet.WebApi" version="[4.0.30506,5.0.0)" />
             <dependency id="Microsoft.AspNet.WebApi.WebHost" version="[4.0.30506, 5.0.0)" />
             <dependency id="Microsoft.AspNet.WebApi.Core" version="[4.0.30506, 5.0.0)" />
@@ -28,13 +28,13 @@
             <dependency id="SharpZipLib" version="[0.86.0, 1.0.0)" />
             <dependency id="MySql.Data" version="[6.6.5]" />
             <dependency id="xmlrpcnet" version="[2.5.0, 3.0.0)" />
-            <dependency id="ClientDependency" version="[1.7.1.2, 2.0.0)" />
-            <dependency id="ClientDependency-Mvc" version="[1.7.0.4, 2.0.0)" />
+            <dependency id="ClientDependency" version="[1.8.0, 2.0.0)" />
+            <dependency id="ClientDependency-Mvc" version="[1.8.0, 2.0.0)" />
             <dependency id="AutoMapper" version="[3.0.0, 4.0.0)" />
-            <dependency id="Newtonsoft.Json" version="[6.0.4, 7.0.0)" />
+			<dependency id="Newtonsoft.Json" version="[6.0.5, 7.0.0)" />
             <dependency id="Examine" version="[0.1.57, 1.0.0)" />
             <dependency id="ImageProcessor" version="[1.9.5, 2.0.0)" />
-            <dependency id="ImageProcessor.Web" version="[3.3.0, 4.0.0)" />
+            <dependency id="ImageProcessor.Web" version="[3.3.1, 4.0.0)" />
         </dependencies>
     </metadata>
     <files>
@@ -66,7 +66,6 @@
         <file src="..\_BuildOutput\WebApp\bin\umbraco.providers.dll" target="lib\umbraco.providers.dll" />
         <file src="..\_BuildOutput\WebApp\bin\umbraco.providers.xml" target="lib\umbraco.providers.xml" />
         <file src="..\_BuildOutput\WebApp\bin\Umbraco.Web.UI.dll" target="lib\Umbraco.Web.UI.dll" />
-        <file src="..\_BuildOutput\WebApp\bin\umbraco.XmlSerializers.dll" target="lib\umbraco.XmlSerializers.dll" />
         <file src="..\_BuildOutput\WebApp\bin\UmbracoExamine.dll" target="lib\UmbracoExamine.dll" />
         <file src="..\_BuildOutput\WebApp\bin\UrlRewritingNet.UrlRewriter.dll" target="lib\UrlRewritingNet.UrlRewriter.dll" />
 		<file src="tools\install.core.ps1" target="tools\install.ps1" />

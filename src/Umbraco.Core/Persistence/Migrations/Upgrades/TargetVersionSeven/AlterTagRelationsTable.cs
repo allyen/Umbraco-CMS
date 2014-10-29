@@ -25,19 +25,35 @@ namespace Umbraco.Core.Persistence.Migrations.Upgrades.TargetVersionSeven
 
         private void Initial()
         {
+            var constraints = SqlSyntaxContext.SqlSyntaxProvider.GetConstraintsPerColumn(Context.Database).Distinct().ToArray();
+
             //create a new col which we will make a foreign key, but first needs to be populated with data.
             Alter.Table("cmsTagRelationship").AddColumn("propertyTypeId").AsInt32().Nullable();
-            
-            //drop the foreign key on umbracoNode.  Must drop foreign key first before primary key can be removed in MySql.
 
-            Delete.ForeignKey().FromTable("cmsTagRelationship").ForeignColumn("nodeId").ToTable("umbracoNode").PrimaryColumn("id");
+            //drop the foreign key on umbracoNode.  Must drop foreign key first before primary key can be removed in MySql.
+            if (Context.CurrentDatabaseProvider != DatabaseProviders.SqlServer)
+            {
+                Delete.ForeignKey().FromTable("cmsTagRelationship").ForeignColumn("nodeId").ToTable("umbracoNode").PrimaryColumn("id");
+            }
+            else
+            {
+                //If we are on SQLServer, we need to delete constraints by name, older versions of umbraco did not name these key constraints
+                // consistently so we need to look up the constraint name to delete, this only pertains to SQL Server and this issue:
+                // http://issues.umbraco.org/issue/U4-4133
+
+                var constraint = constraints
+                    .SingleOrDefault(x => x.Item1 == "cmsTagRelationship" && x.Item2 == "nodeId" && x.Item3.InvariantStartsWith("PK_") == false);
+                if (constraint != null)
+                {
+                    Delete.ForeignKey(constraint.Item3).OnTable("cmsTagRelationship");
+                }
+            }
 
             //we need to drop the primary key, this is sql specific since MySQL has never had primary keys on this table
             // at least since 6.0 and the new installation way but perhaps it had them way back in 4.x so we need to check
             // it exists before trying to drop it.
             if (Context.CurrentDatabaseProvider == DatabaseProviders.MySql)
-            {
-                var constraints = SqlSyntaxContext.SqlSyntaxProvider.GetConstraintsPerColumn(Context.Database).Distinct().ToArray();
+            {   
                 //this will let us know if this pk exists on this table
                 if (constraints.Count(x => x.Item1.InvariantEquals("cmsTagRelationship") && x.Item3.InvariantEquals("PRIMARY")) > 0)
                 {
@@ -120,6 +136,22 @@ namespace Umbraco.Core.Persistence.Migrations.Upgrades.TargetVersionSeven
                   .PrimaryColumn("id")
                   .OnDelete(Rule.None)
                   .OnUpdate(Rule.None);
+
+            //Some very old schemas don't have an index on the cmsContent.nodeId column, I'm not actually sure when it was added but 
+            // it is absolutely required to exist in order to add this foreign key, so we'll need to check it's existence
+            // this came to light from this issue: http://issues.umbraco.org/issue/U4-4133
+            var dbIndexes = SqlSyntaxContext.SqlSyntaxProvider.GetDefinedIndexes(Context.Database)
+                .Select(x => new DbIndexDefinition()
+                {
+                    TableName = x.Item1,
+                    IndexName = x.Item2,
+                    ColumnName = x.Item3,
+                    IsUnique = x.Item4
+                }).ToArray();
+            if (dbIndexes.Any(x => x.IndexName.InvariantEquals("IX_cmsContent")) == false)
+            {
+                Create.Index("IX_cmsContent").OnTable("cmsContent").OnColumn("nodeId").Ascending().WithOptions().Unique();
+            }
 
             //now we need to add a foreign key to the nodeId column to cmsContent (intead of the original umbracoNode)
             Create.ForeignKey("FK_cmsTagRelationship_cmsContent")

@@ -9,6 +9,7 @@ namespace Umbraco.Core.Persistence.Repositories
 {
     public interface IMediaRepository : IRepositoryVersionable<int, IMedia>, IRecycleBinRepository<IMedia>
     {
+        
         /// <summary>
         /// Used to add/update published xml for the media item
         /// </summary>
@@ -27,14 +28,14 @@ namespace Umbraco.Core.Persistence.Repositories
         /// Gets paged media results
         /// </summary>
         /// <param name="query">Query to excute</param>
-        /// <param name="pageNumber">Page number</param>
+        /// <param name="pageIndex">Page number</param>
         /// <param name="pageSize">Page size</param>
         /// <param name="totalRecords">Total records query would return without paging</param>
         /// <param name="orderBy">Field to order by</param>
         /// <param name="orderDirection">Direction to order by</param>
         /// <param name="filter">Search text filter</param>
         /// <returns>An Enumerable list of <see cref="IMedia"/> objects</returns>
-        IEnumerable<IMedia> GetPagedResultsByQuery(IQuery<IMedia> query, int pageNumber, int pageSize, out int totalRecords,
+        IEnumerable<IMedia> GetPagedResultsByQuery(IQuery<IMedia> query, int pageIndex, int pageSize, out int totalRecords,
             string orderBy, Direction orderDirection, string filter = "");
     }
 }

@@ -1,7 +1,7 @@
 angular.module("umbraco")
     .controller("Umbraco.PropertyEditors.Grid.MediaController",
     function ($scope, $rootScope, $timeout, dialogService) {
-    	
+
     	$scope.setImage = function(){
     		dialogService.mediaPicker({
     		    multiPicker: false,
@@ -21,3 +21,4 @@ angular.module("umbraco")
     		}
     	}, 200);
 });
+

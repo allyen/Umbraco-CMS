@@ -94,15 +94,20 @@ namespace Umbraco.Tests.Services
             ServiceContext.MemberTypeService.Save(memberType);
             IMember member = MockedMember.CreateSimpleMember(memberType, "test", "test@test.com", "pass", "test");
             ServiceContext.MemberService.Save(member);
+            //need to test with '@' symbol in the lookup
+            IMember member2 = MockedMember.CreateSimpleMember(memberType, "test2", "test2@test.com", "pass", "test2@test.com");
+            ServiceContext.MemberService.Save(member2);
 
             ServiceContext.MemberService.AddRole("MyTestRole1");
             ServiceContext.MemberService.AddRole("MyTestRole2");
             ServiceContext.MemberService.AddRole("MyTestRole3");
-            ServiceContext.MemberService.AssignRoles(new[] { member.Id }, new[] { "MyTestRole1", "MyTestRole2" });
+            ServiceContext.MemberService.AssignRoles(new[] { member.Id, member2.Id }, new[] { "MyTestRole1", "MyTestRole2" });
 
             var memberRoles = ServiceContext.MemberService.GetAllRoles("test");
-
             Assert.AreEqual(2, memberRoles.Count());
+
+            var memberRoles2 = ServiceContext.MemberService.GetAllRoles("test2@test.com");
+            Assert.AreEqual(2, memberRoles2.Count());
         }
 
         [Test]
@@ -325,9 +330,12 @@ namespace Umbraco.Tests.Services
             ServiceContext.MemberTypeService.Save(memberType);
             IMember member = MockedMember.CreateSimpleMember(memberType, "test", "test@test.com", "pass", "test");
             ServiceContext.MemberService.Save(member);
+            IMember member2 = MockedMember.CreateSimpleMember(memberType, "test", "test2@test.com", "pass", "test2@test.com");
+            ServiceContext.MemberService.Save(member2);
 
             Assert.IsTrue(ServiceContext.MemberService.Exists("test"));
             Assert.IsFalse(ServiceContext.MemberService.Exists("notFound"));
+            Assert.IsTrue(ServiceContext.MemberService.Exists("test2@test.com"));
         }
 
         [Test]
@@ -444,6 +452,23 @@ namespace Umbraco.Tests.Services
             Assert.AreEqual(10, totalRecs);
             Assert.AreEqual("test0", found.First().Username);
             Assert.AreEqual("test1", found.Last().Username);
+        }
+
+        [Test]
+        public void Find_By_Name_Starts_With()
+        {
+            IMemberType memberType = MockedContentTypes.CreateSimpleMemberType();
+            ServiceContext.MemberTypeService.Save(memberType);
+            var members = MockedMember.CreateSimpleMember(memberType, 10);
+            ServiceContext.MemberService.Save(members);
+            
+            var customMember = MockedMember.CreateSimpleMember(memberType, "Bob", "hello@test.com", "hello", "hello");
+            ServiceContext.MemberService.Save(customMember);
+
+            int totalRecs;
+            var found = ServiceContext.MemberService.FindMembersByDisplayName("B", 0, 100, out totalRecs, StringPropertyMatchType.StartsWith);
+
+            Assert.AreEqual(1, found.Count());
         }
 
         [Test]

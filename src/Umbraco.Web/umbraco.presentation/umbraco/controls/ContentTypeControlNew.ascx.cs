@@ -49,6 +49,15 @@ namespace umbraco.controls
         public bool HideStructure { get; set; }
         public Func<DocumentType, DocumentType> DocumentTypeCallback { get; set; }
 
+        protected string ContentTypeAlias
+        {
+            get { return _contentType.Alias; }
+        }
+        protected int ContentTypeId
+        {
+            get { return _contentType.Id; }
+        }
+
         // "Tab" tab
         protected uicontrols.Pane Pane8;
 
@@ -113,9 +122,9 @@ namespace umbraco.controls
             pp_compositions.Text = ui.Text("contenttypecompositions", Security.CurrentUser);
             pp_description.Text = ui.Text("editcontenttype", "description", Security.CurrentUser);
             pp_icon.Text = ui.Text("icon", Security.CurrentUser);
+            pp_Root.Text = ui.Text("editcontenttype", "allowAtRoot", Security.CurrentUser) + "<br/><small>" + ui.Text("editcontenttype", "allowAtRootDesc", Security.CurrentUser) + "</small>";
+            pp_isContainer.Text = ui.Text("editcontenttype", "hasListView", Security.CurrentUser) + "<br/><small>" + ui.Text("editcontenttype", "hasListViewDesc", Security.CurrentUser) + "</small>";
 
-            pp_isContainer.Text = ui.Text("editcontenttype", "hasListView", Security.CurrentUser);
-            
             // we'll disable this...
             if (!Page.IsPostBack && _contentType.MasterContentType != 0)
             {
@@ -132,6 +141,7 @@ namespace umbraco.controls
                 lt_icon.Text = _contentType.IconUrl.TrimStart('.');
 
             checkTxtAliasJs.Text = string.Format("checkAlias('#{0}');", txtAlias.ClientID);
+
         }
         
         /// <summary>
@@ -866,18 +876,7 @@ jQuery(document).ready(function() {{ refreshDropDowns(); }});
             out cms.businesslogic.datatype.DataTypeDefinition[] filteredDefinitions)
         {
             filteredDefinitions = allDtds;
-
-            //special case if this is a list view, if so, filter the dtd's to only include other list view types,
-            // don't allow editing of anything except for the tab and data type
-            if (pt.Alias == Constants.Conventions.PropertyTypes.ListViewPropertyAlias)
-            {
-                //filter the dtds to only list view
-                filteredDefinitions = allDtds.Where(x => x.PropertyEditorAlias == Constants.PropertyEditors.ListViewAlias).ToArray();
-
-                var gpw = new GenericPropertyWrapper(false, true, false, true, false, false, false);
-                return gpw;
-            }
-
+            
             //not editable if any of the built in member types
             if (_contentType.ContentTypeItem is IMemberType)
             {
@@ -1083,33 +1082,6 @@ jQuery(document).ready(function() {{ refreshDropDowns(); }});
                 hasAlias = ct.getPropertyType(Casing.SafeAliasWithForcingCheck(gpData.Alias.Trim())) != null;
             }
             return !hasAlias;
-        }
-
-        /// <summary>
-        /// Removes a PropertyType, but when???
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        protected void dgGenericPropertiesOfTab_itemcommand(object sender, DataGridCommandEventArgs e)
-        {
-            // Delete propertytype from contenttype
-            if (e.CommandName == "Delete")
-            {
-                int propertyId = int.Parse(e.Item.Cells[0].Text);
-                string rawName = string.Empty;
-
-                var propertyType = _contentType.ContentTypeItem.PropertyTypes.FirstOrDefault(x => x.Id == propertyId);
-                if (propertyType != null && string.IsNullOrEmpty(propertyType.Alias) == false)
-                {
-                    rawName = propertyType.Name;
-                    _contentType.ContentTypeItem.RemovePropertyType(propertyType.Alias);
-                    _contentType.Save();
-                }
-
-                RaiseBubbleEvent(new object(), new SaveClickEventArgs("Property ´" + rawName + "´ deleted"));
-       
-                BindDataGenericProperties(false);
-            }
         }
 
         /// <summary>
