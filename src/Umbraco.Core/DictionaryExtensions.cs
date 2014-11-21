@@ -13,7 +13,7 @@ namespace Umbraco.Core
 	///<summary>
 	/// Extension methods for dictionary & concurrentdictionary
 	///</summary>
-	internal static class DictionaryExtensions
+	public static class DictionaryExtensions
 	{
 
         /// <summary>
