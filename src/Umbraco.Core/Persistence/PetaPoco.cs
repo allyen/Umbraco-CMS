@@ -1857,7 +1857,7 @@ namespace Umbraco.Core.Persistence
 
 
 			// Create factory function that can convert a IDataReader record into a POCO
-			public Delegate GetFactory(string sql, string connString, bool ForceDateTimesToUtc, int firstColumn, int countColumns, IDataReader r)
+			public Delegate GetFactory(string sql, string connString, bool ForceDateTimesToUtc, int firstColumn, int countColumns, IDataReader r, string prefix = null)
 			{
 
                 //TODO: It would be nice to remove the irrelevant SQL parts - for a mapping operation anything after the SELECT clause isn't required. 
@@ -1906,7 +1906,7 @@ namespace Umbraco.Core.Persistence
                             var srcType = r.GetFieldType(i);
 
                             il.Emit(OpCodes.Dup);						// obj, obj
-                            il.Emit(OpCodes.Ldstr, r.GetName(i));		// obj, obj, fieldname
+                            il.Emit(OpCodes.Ldstr, r.GetName(i).Remove(0, prefix == null ? 0 : prefix.Length));		// obj, obj, fieldname
 
                             // Get the converter
                             Func<object, object> converter = null;
@@ -1992,7 +1992,7 @@ namespace Umbraco.Core.Persistence
                             {
                                 // Get the PocoColumn for this db column, ignore if not known
                                 PocoColumn pc;
-                                if (!Columns.TryGetValue(r.GetName(i), out pc))
+                                if (!Columns.TryGetValue(r.GetName(i).Remove(0, prefix == null ? 0 : prefix.Length), out pc))
                                     continue;
 
                                 // Get the source type for this column
