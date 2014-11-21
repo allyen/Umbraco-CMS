@@ -18,8 +18,9 @@ module.exports = function (grunt) {
 
   //triggered from grunt dev or grunt
   grunt.registerTask('build', ['clean', 'concat', 'recess:min', 'recess:installer', 'recess:canvasdesigner', 'bower', 'copy']);
-    //build-dev doesn't min - we are trying to speed this up and we don't want minified stuff when we are in dev mode
-    grunt.registerTask('build-dev', ['clean', 'concat', 'recess:build', 'recess:installer', 'copy']);
+  
+  //build-dev doesn't min - we are trying to speed this up and we don't want minified stuff when we are in dev mode
+  grunt.registerTask('build-dev', ['clean', 'concat', 'recess:build', 'recess:installer', 'copy']);
 
   //utillity tasks
   grunt.registerTask('docs', ['ngdocs']);
@@ -31,9 +32,9 @@ module.exports = function (grunt) {
     grunt.log.subhead(Date());
   });
 
-    // Custom task to run the bower dependency installer
-    // tried, a few other things but this seems to work the best.
-    // https://coderwall.com/p/xnkdqw
+  // Custom task to run the bower dependency installer
+  // tried, a few other things but this seems to work the best.
+  // https://coderwall.com/p/xnkdqw
   grunt.registerTask('bower', 'Get js packages listed in bower.json',
       function () {
           var bower = require('bower');
@@ -108,7 +109,7 @@ module.exports = function (grunt) {
     vsdir: '../Umbraco.Web.UI/umbraco',
     pkg: grunt.file.readJSON('package.json'),
     banner:
-    '/*! <%= pkg.title || pkg.name %> - <%= grunt.template.today("yyyy-mm-dd") %>\n' +
+    '/*! <%= pkg.title || pkg.name %>\n' +
     '<%= pkg.homepage ? " * " + pkg.homepage + "\\n" : "" %>' +
     ' * Copyright (c) <%= grunt.template.today("yyyy") %> <%= pkg.author %>;\n' +
     ' * Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %>\n */\n',
@@ -137,6 +138,9 @@ module.exports = function (grunt) {
         files: [{ dest: '<%= distdir %>/assets', src : '**', expand: true, cwd: 'src/assets/' }]
       },
 
+      config: {
+        files: [{ dest: '<%= distdir %>/../config', src : '**', expand: true, cwd: 'src/config/' }]
+      },
 
       // Copies over the files downloaded by bower
       bower: {

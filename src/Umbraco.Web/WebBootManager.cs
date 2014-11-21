@@ -338,7 +338,7 @@ namespace Umbraco.Web
 
             PublishedCachesResolver.Current = new PublishedCachesResolver(new PublishedCaches(
                 new PublishedCache.XmlPublishedCache.PublishedContentCache(),
-                new PublishedCache.XmlPublishedCache.PublishedMediaCache()));
+                new PublishedCache.XmlPublishedCache.PublishedMediaCache(ApplicationContext)));
 
             GlobalConfiguration.Configuration.Services.Replace(typeof(IHttpControllerSelector), 
                 new NamespaceHttpControllerSelector(GlobalConfiguration.Configuration));
@@ -352,8 +352,9 @@ namespace Umbraco.Web
 					});
 
             UrlProviderResolver.Current = new UrlProviderResolver(
-                //typeof(AliasUrlProvider), // not enabled by default
-                    typeof(DefaultUrlProvider)
+                    //typeof(AliasUrlProvider), // not enabled by default
+                    typeof(DefaultUrlProvider),
+                    typeof(CustomRouteUrlProvider)
                 );
 
             ContentLastChanceFinderResolver.Current = new ContentLastChanceFinderResolver(

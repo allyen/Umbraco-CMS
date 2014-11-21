@@ -642,36 +642,140 @@ jQuery(document).ready(function() {{ refreshDropDowns(); }});
 
         #region Compositions Pane
 
+        // returns content type compositions, recursively
+        // return each content type once and only once
+        private IEnumerable<IContentTypeComposition> GetIndirect(IContentTypeComposition ctype)
+        {
+            // hashset guarantees unicity on Id
+            var all = new HashSet<IContentTypeComposition>(new DelegateEqualityComparer<IContentTypeComposition>(
+                (x, y) => x.Id == y.Id,
+                x => x.Id));
+
+            var stack = new Stack<IContentTypeComposition>();
+
+            foreach (var x in ctype.ContentTypeComposition)
+                stack.Push(x);
+
+            while (stack.Count > 0)
+            {
+                var x = stack.Pop();
+                all.Add(x);
+                foreach (var y in x.ContentTypeComposition)
+                    stack.Push(y);
+            }
+
+            return all;
+        }
+
         private void SetupCompositionsPane()
         {
             DualContentTypeCompositions.ID = "compositionContentTypes";
             DualContentTypeCompositions.Width = 175;
 
-            int[] compositionIds = _contentType.ContentTypeItem.CompositionIds().ToArray();
-            if (!Page.IsPostBack)
-            {
-                string chosenContentTypeIDs = "";
-                ContentType[] contentTypes = _contentType.GetAll();
-                foreach (ContentType ct in contentTypes.OrderBy(x => x.Text))
-                {
-                    ListItem li = new ListItem(ct.Text, ct.Id.ToString());
-                    if (ct.Id == _contentType.Id)
-                        li.Enabled = false;
+            // fix for 7.2 - only top-level content types can be used as mixins
 
-                    DualContentTypeCompositions.Items.Add(li);
-                    lstContentTypeCompositions.Items.Add(li);
-                    
-                    foreach (int i in compositionIds)
-                    {
-                        if (i == ct.Id)
-                        {
-                            li.Selected = true;
-                            chosenContentTypeIDs += ct.Id + ",";
-                        }
-                    }
+            if (Page.IsPostBack == false)
+            {
+                var allContentTypes = ApplicationContext.Services.ContentTypeService.GetAllContentTypes().ToArray();
+
+                // note: there are many sanity checks missing here and there ;-((
+                // make sure once and for all
+                //if (allContentTypes.Any(x => x.ParentId > 0 && x.ContentTypeComposition.Any(y => y.Id == x.ParentId) == false))
+                //    throw new Exception("A parent does not belong to a composition.");
+
+                // find out if any content type uses this content type
+                var isUsing = allContentTypes.Where(x => x.ContentTypeComposition.Any(y => y.Id == _contentType.Id)).ToArray();
+                if (isUsing.Length > 0)
+                {
+                    // if it is used then it has to remain top-level
+
+                    // no composition is possible at all
+                    DualContentTypeCompositions.Items.Clear();
+                    lstContentTypeCompositions.Items.Clear();
+                    DualContentTypeCompositions.Value = "";
+
+                    PlaceHolderContentTypeCompositions.Controls.Add(new Literal { Text = "<em>This content type is used as a parent and/or in "
+                        + "a composition, and therefore cannot be composed itself.<br /><br />" 
+                        + string.Join(", ", isUsing.Select(x => x.Name))
+                        + "</em>" });
                 }
-                DualContentTypeCompositions.Value = chosenContentTypeIDs;
+                else
+                {
+                    // if it is not used then composition is possible
+
+                    // hashset guarantees unicity on Id
+                    var list = new HashSet<IContentTypeComposition>(new DelegateEqualityComparer<IContentTypeComposition>(
+                        (x, y) => x.Id == y.Id,
+                        x => x.Id));
+
+                    // usable types are those that are top-level
+                    var usableContentTypes = allContentTypes
+                        .Where(x => x.ContentTypeComposition.Any() == false).ToArray();
+                    foreach (var x in usableContentTypes)
+                        list.Add(x);
+
+                    // indirect types are those that we use, directly or indirectly
+                    var indirectContentTypes = GetIndirect(_contentType.ContentTypeItem).ToArray();
+                    foreach (var x in indirectContentTypes)
+                        list.Add(x);
+
+                    // directContentTypes are those we use directly
+                    // they are already in indirectContentTypes, no need to add to the list
+                    var directContentTypes = _contentType.ContentTypeItem.ContentTypeComposition.ToArray();
+
+                    var enabled = usableContentTypes.Select(x => x.Id) // those we can use
+                        .Except(indirectContentTypes.Select(x => x.Id)) // except those that are indirectly used
+                        .Union(directContentTypes.Select(x => x.Id)) // but those that are directly used
+                        .Where(x => x != _contentType.ParentId) // but not the parent
+                        .Distinct()
+                        .ToArray();
+
+                    var wtf = new List<int>();
+                    foreach (var contentType in list.OrderBy(x => x.Name).Where(x => x.Id != _contentType.Id))
+                    {
+                        var li = new ListItem(contentType.Name, contentType.Id.ToInvariantString())
+                        {
+                            // disable parent and anything that's not usable
+                            Enabled = enabled.Contains(contentType.Id),
+                            // select
+                            Selected = indirectContentTypes.Any(x => x.Id == contentType.Id)
+                        };
+
+                        DualContentTypeCompositions.Items.Add(li);
+                        lstContentTypeCompositions.Items.Add(li);
+
+                        if (li.Selected)
+                            wtf.Add(contentType.Id);
+                    }
+                    DualContentTypeCompositions.Value = string.Join(",", wtf);
+                }
             }
+
+            //int[] compositionIds = _contentType.ContentTypeItem.CompositionIds().ToArray();
+            //if (!Page.IsPostBack)
+            //{
+            //    string chosenContentTypeIDs = "";
+            //    ContentType[] contentTypes = _contentType.GetAll();
+            //    foreach (ContentType ct in contentTypes.OrderBy(x => x.Text))
+            //    {
+            //        ListItem li = new ListItem(ct.Text, ct.Id.ToString());
+            //        if (ct.Id == _contentType.Id)
+            //            li.Enabled = false;
+
+            //        DualContentTypeCompositions.Items.Add(li);
+            //        lstContentTypeCompositions.Items.Add(li);
+                    
+            //        foreach (int i in compositionIds)
+            //        {
+            //            if (i == ct.Id)
+            //            {
+            //                li.Selected = true;
+            //                chosenContentTypeIDs += ct.Id + ",";
+            //            }
+            //        }
+            //    }
+            //    DualContentTypeCompositions.Value = chosenContentTypeIDs;
+            //}
         }
 
         private int[] SaveCompositionContentTypes()
@@ -1189,7 +1293,7 @@ jQuery(document).ready(function() {{ refreshDropDowns(); }});
             foreach (DataGridItem dgi in dgTabs.Items)
             {
                 int tabid = int.Parse(dgi.Cells[0].Text);
-                string tabName = ((TextBox)dgi.FindControl("txtTab")).Text.Replace("'", "''");
+                string tabName = ((TextBox) dgi.FindControl("txtTab")).Text;
                 int tabSortOrder;
                 if (Int32.TryParse(((TextBox)dgi.FindControl("txtSortOrder")).Text, out tabSortOrder))
                 {

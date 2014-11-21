@@ -3,8 +3,13 @@ angular.module("umbraco")
     function ($scope, $rootScope, $timeout, dialogService, macroResource, macroService,  $routeParams) {
 
         $scope.title = "Click to insert macro";
+
         $scope.setMacro = function(){
-    		dialogService.macroPicker({
+            dialogService.macroPicker({
+                dialogData: {
+                    richTextEditor: true,  
+                    macroData: $scope.control.value
+                },
                 callback: function (data) {
 
                     $scope.control.value = {
@@ -32,9 +37,9 @@ angular.module("umbraco")
         };
 
     	$timeout(function(){
-    		if($scope.control.value === null){
+    		if($scope.control.$initializing){
     			$scope.setMacro();
-    		}else{
+    		}else if($scope.control.value){
                 var parsed = macroService.parseMacroSyntax($scope.control.value.syntax);
                 $scope.setPreview(parsed);
             }

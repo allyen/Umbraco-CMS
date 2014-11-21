@@ -8,7 +8,7 @@ angular.module("umbraco")
         $scope.currentToolsControl = null;
         $scope.currentControl = null;
         $scope.openRTEToolbarId = null;
-
+        $scope.hasSettings = false;
 
         // *********************************************
         // Sortable options
@@ -28,6 +28,17 @@ angular.module("umbraco")
                 left: 90
             },
 
+            sort: function (event, ui) {
+                /* prevent vertical scroll out of the screen */
+                var max = $(".usky-grid").width() - 150;
+                if (parseInt(ui.helper.css('left')) > max) {
+                    ui.helper.css({ 'left': max + "px" })
+                }
+                if (parseInt(ui.helper.css('left')) < 20) {
+                    ui.helper.css({ 'left': 20 })
+                }
+            },
+
             start: function (e, ui) {
                 ui.item.find('.mceNoEditor').each(function () {
                     tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'));
@@ -40,14 +51,12 @@ angular.module("umbraco")
                     tinyMCE.execCommand('mceAddEditor', false, $(this).attr('id'));
                 });
             }
-
         };
 
         var notIncludedRte = [];
         var cancelMove = false;
 
         $scope.sortableOptionsCell = {
-
             distance: 10,
             cursor: "move",
             placeholder: "ui-sortable-placeholder",
@@ -60,6 +69,18 @@ angular.module("umbraco")
             cursorAt: {
                 top: 45,
                 left: 90
+            },
+
+            sort: function (event, ui) {
+                /* prevent vertical scroll out of the screen */
+                var position = parseInt(ui.item.parent().offset().left) + parseInt(ui.helper.css('left')) - parseInt($(".usky-grid").offset().left);
+                var max = $(".usky-grid").width() - 220;
+                if (position > max) {
+                    ui.helper.css({ 'left': max - parseInt(ui.item.parent().offset().left) + parseInt($(".usky-grid").offset().left) + "px" })
+                }
+                if (position < 0) {
+                    ui.helper.css({ 'left': 0 - parseInt(ui.item.parent().offset().left) + parseInt($(".usky-grid").offset().left) + "px" })
+                }
             },
 
             over: function (event, ui) {
@@ -99,8 +120,8 @@ angular.module("umbraco")
 
             start: function (e, ui) {
                 ui.item.find('.mceNoEditor').each(function () {
-                    notIncludedRte = []
-                    tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'))
+                    notIncludedRte = [];
+                    tinyMCE.execCommand('mceRemoveEditor', false, $(this).attr('id'));
                 });
             },
 
@@ -119,7 +140,7 @@ angular.module("umbraco")
                 }, 500, false);
             }
 
-        }
+        };
 
         // *********************************************
         // Add items overlay menu
@@ -152,8 +173,8 @@ angular.module("umbraco")
             $scope.overlayMenu.show = true;
         };
 
-        $scope.closeItemOverlay = function(){
-            $scope.currentControl = undefined;
+        $scope.closeItemOverlay = function () {
+            $scope.currentControl = null;
             $scope.overlayMenu.show = false;
             $scope.overlayMenu.key = undefined;
         };
@@ -184,14 +205,20 @@ angular.module("umbraco")
             $scope.currentRow = null;
         };
 
-        $scope.setCurrentMovedRow = function (Row) {
-            $scope.currentRow = null;
-            $scope.currentRemoveControl = null;
-            $scope.currentMovedRow = Row;
+        $scope.setWarnighlightRow = function (row) {
+            $scope.currentWarnhighlightRow = row;
         };
 
-        $scope.disableCurrentMovedRow = function (Row) {
-            $scope.currentMovedRow = null;
+        $scope.disableWarnhighlightRow = function () {
+            $scope.currentWarnhighlightRow = null;
+        };
+
+        $scope.setInfohighlightRow = function (row) {
+            $scope.currentInfohighlightRow = row;
+        };
+
+        $scope.disableInfohighlightRow = function () {
+            $scope.currentInfohighlightRow = null;
         };
 
         $scope.getAllowedLayouts = function(column){
@@ -218,28 +245,44 @@ angular.module("umbraco")
             if(row){
                section.rows.push(row);
             }
-
         };
 
         $scope.removeRow = function (section, $index) {
             if (section.rows.length > 0) {
                 section.rows.splice($index, 1);
+                $scope.currentRow = null;
                 $scope.openRTEToolbarId = null;
-
                 $scope.initContent();
             }
         };
 
+        $scope.editGridItemSettings = function (gridItem, itemType) {
+
+            dialogService.open(
+                {
+                    template: "views/propertyeditors/grid/dialogs/config.html",
+                    gridItem: gridItem,
+                    config: $scope.model.config,
+                    itemType: itemType,
+                    callback: function(data){
+
+                        gridItem.styles = data.styles;
+                        gridItem.config = data.config;
+
+                    }
+                });
+
+        };
 
         // *********************************************
-        // Cell management functions
+        // Area management functions
         // *********************************************
 
         $scope.setCurrentCell = function (cell) {
             $scope.currentCell = cell;
         };
 
-        $scope.disableCurrentCell = function (cell) {
+        $scope.disableCurrentCell = function () {
             $scope.currentCell = null;
         };
 
@@ -252,7 +295,13 @@ angular.module("umbraco")
             }
         };
 
+        $scope.setInfohighlightArea = function (cell) {
+            $scope.currentInfohighlightArea = cell;
+        };
 
+        $scope.disableInfohighlightArea = function () {
+            $scope.currentInfohighlightArea = null;
+        };
 
 
         // *********************************************
@@ -274,22 +323,20 @@ angular.module("umbraco")
             $scope.currentToolsControl = null;
         };
 
-        $scope.setCurrentRemoveControl = function (Control) {
-            $scope.currentRemoveControl = Control;
+        $scope.setWarnhighlightControl = function (Control) {
+            $scope.currentWarnhighlightControl = Control;
         };
 
-        $scope.disableCurrentRemoveControl = function (Control) {
-            $scope.currentRemoveControl = null;
+        $scope.disableWarnhighlightControl = function (Control) {
+            $scope.currentWarnhighlightControl = null;
         };
 
-        $scope.setCurrentMovedControl = function (Control) {
-            $scope.currentRow = null;
-            $scope.currentRemoveControl = null;
-            $scope.currentMovedControl = Control;
+        $scope.setInfohighlightControl = function (Control) {
+            $scope.currentInfohighlightControl = Control;
         };
 
-        $scope.disableCurrentMovedControl = function (Control) {
-            $scope.currentMovedControl = null;
+        $scope.disableInfohighlightControl = function (Control) {
+            $scope.currentInfohighlightControl = null;
         };
 
         $scope.setUniqueId = function (cell, index) {
@@ -313,7 +360,8 @@ angular.module("umbraco")
 
             var newControl = {
                 value: null,
-                editor: editor
+                editor: editor,
+                $initializing: true
             };
 
             if (index === undefined) {
@@ -332,10 +380,11 @@ angular.module("umbraco")
         };
 
         $scope.getEditor = function(alias){
-            return  _.find($scope.availableEditors, function(editor){return editor.alias === alias});
+            return  _.find($scope.availableEditors, function(editor){return editor.alias === alias;});
         };
 
         $scope.removeControl = function (cell, $index) {
+            $scope.currentControl = null;
             cell.controls.splice($index, 1);
         };
 
@@ -365,16 +414,27 @@ angular.module("umbraco")
         $scope.initContent = function() {
             var clear = true;
 
+            //settings indicator shortcut
+            if($scope.model.config.items.config || $scope.model.config.items.styles){
+                $scope.hasSettings = true;
+            }
+
             if ($scope.model.value && $scope.model.value.sections && $scope.model.value.sections.length > 0) {
-                _.forEach($scope.model.value.sections, function(section){
+                _.forEach($scope.model.value.sections, function(section, index){
 
-                    $scope.initSection(section);
+                    if(section.grid > 0){
+                        $scope.initSection(section);
 
-                    //we do this to ensure that the grid can be reset by deleting the last row
-                    if(section.rows.length > 0){
-                        clear = false;
+                        //we do this to ensure that the grid can be reset by deleting the last row
+                        if(section.rows.length > 0){
+                            clear = false;
+                        }
+                    }else{
+                        $scope.model.value.sections.splice(index, 1);
                     }
                 });
+            }else if($scope.model.config.items.templates && $scope.model.config.items.templates.length === 1){
+                $scope.addTemplate($scope.model.config.items.templates[0]);
             }
 
             if(clear){
@@ -401,9 +461,10 @@ angular.module("umbraco")
                 _.forEach(section.rows, function(row, index){
                     if(!row.$initialized){
                         var initd = $scope.initRow(row);
+
                         //if init fails, remove
                         if(!initd){
-                            section.rows.splic(index, 1);
+                            section.rows.splice(index, 1);
                         }else{
                             section.rows[index] = initd;
                         }
@@ -420,43 +481,56 @@ angular.module("umbraco")
 
             //merge the layout data with the original config data
             //if there are no config info on this, splice it out
-            var original = _.find($scope.model.config.items.layouts, function(o){ return o.name === row.name; });
+            var original = _.find($scope.model.config.items.layouts, function (o) { return o.name === row.name; });
+
             if(!original){
                 return null;
             }else{
                 //make a copy to not touch the original config
                 original = angular.copy(original);
+                original.styles = row.styles;
+                original.config = row.config;
 
                 //sync area configuration
                 _.each(original.areas, function(area, areaIndex){
-                    //copy over existing controls into the new areas
-                    if(row.areas.length > areaIndex && row.areas[areaIndex].controls){
-                        area.controls = row.areas[areaIndex].controls;
 
-                        _.forEach(area.controls, function(control, controlIndex){
-                            $scope.initControl(control, controlIndex);
-                        });
 
-                    }else{
-                        area.controls = [];
-                    }
+                    if(area.grid > 0){
+                        var currentArea = row.areas[areaIndex];
+                        area.config = currentArea.config;
+                        area.styles = currentArea.styles;
 
-                    //set width
-                    area.$percentage = $scope.percentage(area.grid);
-                    area.$uniqueId = $scope.setUniqueId();
+                        //copy over existing controls into the new areas
+                        if(row.areas.length > areaIndex && row.areas[areaIndex].controls){
+                            area.controls = currentArea.controls;
 
-                    //set editor permissions
-                    if(!area.allowed || area.allowAll === true){
-                        area.$allowedEditors = $scope.availableEditors;
-                        area.$allowsRTE = true;
-                    }else{
-                        area.$allowedEditors = _.filter($scope.availableEditors, function(editor){
-                            return _.indexOf(area.allowed, editor.alias) >= 0;
-                        });
+                            _.forEach(area.controls, function(control, controlIndex){
+                                $scope.initControl(control, controlIndex);
+                            });
 
-                        if(_.indexOf(area.allowed,"rte")>=0){
-                            area.$allowsRTE = true;
+                        }else{
+                            area.controls = [];
                         }
+
+                        //set width
+                        area.$percentage = $scope.percentage(area.grid);
+                        area.$uniqueId = $scope.setUniqueId();
+
+                        //set editor permissions
+                        if(!area.allowed || area.allowAll === true){
+                            area.$allowedEditors = $scope.availableEditors;
+                            area.$allowsRTE = true;
+                        }else{
+                            area.$allowedEditors = _.filter($scope.availableEditors, function(editor){
+                                return _.indexOf(area.allowed, editor.alias) >= 0;
+                            });
+
+                            if(_.indexOf(area.allowed,"rte")>=0){
+                                area.$allowsRTE = true;
+                            }
+                        }
+                    }else{
+                        original.areas.splice(areaIndex, 1);
                     }
                 });
 
@@ -475,7 +549,6 @@ angular.module("umbraco")
         };
 
 
-
         // *********************************************
         // Init control
         // *********************************************
@@ -485,6 +558,9 @@ angular.module("umbraco")
             control.$uniqueId = $scope.setUniqueId();
 
             if(!control.$editorPath){
+                var editorConfig = $scope.getEditor(control.editor.alias);
+                control.editor = editorConfig;
+
                 //if its a path
                 if(_.indexOf(control.editor.view, "/") >= 0){
                     control.$editorPath = control.editor.view;
