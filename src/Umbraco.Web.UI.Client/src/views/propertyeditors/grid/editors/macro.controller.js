@@ -15,7 +15,8 @@ angular.module("umbraco")
                     $scope.control.value = {
                             syntax: data.syntax,
                             macroAlias: data.macroAlias,
-                            macroParamsDictionary: data.macroParamsDictionary
+                            macroParamsDictionary: data.macroParamsDictionary,
+                            name: data.macroName
                     };
 
                     $scope.setPreview(data);
@@ -28,7 +29,7 @@ angular.module("umbraco")
 
             macroResource.getMacroResultAsHtmlForEditor(macro.macroAlias, contentId, macro.macroParamsDictionary)
             .then(function (htmlResult) {
-                $scope.title = macro.macroAlias;
+                $scope.title = macro.macroName;
                 if(htmlResult.trim().length > 0 && htmlResult.indexOf("Macro:") < 0){
                     $scope.preview = htmlResult;
                 }
@@ -40,7 +41,8 @@ angular.module("umbraco")
     		if($scope.control.$initializing){
     			$scope.setMacro();
     		}else if($scope.control.value){
-                var parsed = macroService.parseMacroSyntax($scope.control.value.syntax);
+    		    var parsed = macroService.parseMacroSyntax($scope.control.value.syntax);
+    		    parsed.macroName = $scope.control.value.name
                 $scope.setPreview(parsed);
             }
     	}, 200);

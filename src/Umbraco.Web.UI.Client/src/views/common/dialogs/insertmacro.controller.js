@@ -102,7 +102,7 @@ function InsertMacroController($scope, entityResource, macroResource, umbPropEdi
             syntax = macroService.generateMacroSyntax({ macroAlias: macroAlias, macroParamsDictionary: paramDictionary });
         }
 
-        $scope.submit({ syntax: syntax, macroAlias: macroAlias, macroParamsDictionary: paramDictionary });
+        $scope.submit({ syntax: syntax, macroAlias: macroAlias, macroName: $scope.selectedMacro.name, macroParamsDictionary: paramDictionary });
     }
 
     $scope.macros = [];
