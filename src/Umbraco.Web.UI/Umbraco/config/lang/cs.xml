@@ -114,7 +114,7 @@
   </area>
   <area alias="content">
     <key alias="about">O této stránce</key>
-    <key alias="alias">Alternativní odkaz</key>
+    <key alias="alias">Alias</key>
     <key alias="alternativeTextHelp">(jak byste popsal(a) obrázek nad telefonem)</key>
     <key alias="alternativeUrls">Alternativní odkazy</key>
     <key alias="clickToEdit">Po kliknutí budete moci editovat tuto položku</key>
@@ -243,6 +243,8 @@
     <key alias="filter">Filtrovat podle typu...</key>
   </area>
   <area alias="editcontenttype">
+    <key alias="allowAtRoot" version="7.2">Allow at root</key>
+    <key alias="allowAtRootDesc" version="7.2">Only Content Types with this checked can be created at the root level of Content and Media trees</key>
     <key alias="allowedchildnodetypes">Povolené typy potomků</key>
     <key alias="contenttypecompositions">Kompozice dokumentových typů</key>
     <key alias="create">Vytvořit</key>
@@ -252,6 +254,11 @@
     <key alias="tab">Záložka</key>
     <key alias="thumbnail">Náhledový obrázek</key>
     <key alias="hasListView">Povolit zobrazení seznamu</key>
+    <key alias="hasListViewDesc" version="7.2">Configures the content item to show a sortable &amp; searchable list of its children, the children will not be shown in the tree</key>
+    <key alias="currentListView" version="7.2">Current list view</key>
+    <key alias="currentListViewDesc" version="7.2">The active list view data type</key>
+    <key alias="createListView" version="7.2">Create custom list view</key>
+    <key alias="removeListView" version="7.2">Remove custom list view</key>
   </area>
   <area alias="editdatatype"> 
     <key alias="addPrevalue">Přidat předvolenou hodnotu</key>
@@ -736,7 +743,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="help" version="7.0">Nápověda</key>
   </area>
   <area alias="settings">
-    <key alias="defaulttemplate">Defaultní šablona</key>
+    <key alias="defaulttemplate">Výchozí šablona</key>
     <key alias="dictionary editor egenskab" version="2.1">Slovníkový klíč</key>
     <key alias="importDocumentTypeHelp" version="3.0">K importu dokumentového typu je nutné nalézt soubor s příponou ".udt" v počítači kliknutím na tlačítko "Procházet" a následně kliknutím na "Importortovat" (budete požádání o potvrzení na následující obrazovce)</key> 
     <key alias="newtabname">Nový název záložky</key>
@@ -752,6 +759,8 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="contentTypeUses">Tento obsahový typ je použit</key>
     <key alias="asAContentMasterType">jako nadřazený obsahový typ. Záložky z nadřazeného typu nejsou zobrazeny a mohou být editovány pouze přímo na nadřazeném uzlu</key>
     <key alias="noPropertiesDefinedOnTab">Na záložce nejsou definovány žádné properties. Klikněte na "Přidat novou property" na horní straně stránky pro vytvoření nové property.</key>
+    <key alias="masterDocumentType">Nadřazený obsahový typ</key>
+    <key alias="createMatchingTemplate">Vytvořit i šablonu</key>
   </area>
   <area alias="sort">
     <key alias="sortDone">Řazení bylo dokončeno.</key>
