@@ -673,6 +673,8 @@ namespace Umbraco.Core.Services
             }
         }
 
+
+
         /// <summary>
         /// Get permissions set for a user and optional node ids
         /// </summary>
@@ -698,6 +700,8 @@ namespace Umbraco.Core.Services
                             id,
                             user.DefaultPermissions.ToArray()));
                 }
+
+                GettingPermissions.RaiseEvent(new GettingPermissionsEventArgs(user, result, nodeIds), this);
 
                 return result;
             }
@@ -744,5 +748,10 @@ namespace Umbraco.Core.Services
         /// Occurs after Delete
         /// </summary>
         public static event TypedEventHandler<IUserService, DeleteEventArgs<IUserType>> DeletedUserType;
+
+        /// <summary>
+        /// Occurs after user permissons were obtained, possible to change them
+        /// </summary>
+        public static event TypedEventHandler<IUserService, GettingPermissionsEventArgs> GettingPermissions;
     }
 }
