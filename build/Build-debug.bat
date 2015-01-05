@@ -48,6 +48,7 @@ SET DEST=n:\web\webcentrum-dev.muni.cz\%1\web
 
 echo. && echo bin:
 robocopy %SRC%\bin %DEST%\bin /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\UmbracoExamine.PDF %DEST%\bin /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco:
 robocopy %SRC%\umbraco %DEST%\umbraco /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco_client:
