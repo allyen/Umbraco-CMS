@@ -1835,7 +1835,7 @@ namespace Umbraco.Core.Persistence
 				bool ExplicitColumns = t.GetCustomAttributes(typeof(ExplicitColumnsAttribute), true).Length > 0;
 				Columns = new Dictionary<string, PocoColumn>(StringComparer.OrdinalIgnoreCase);
 
-                foreach (var pi in t.GetProperties())
+                foreach (var pi in t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 				{
 					// Work out if properties is to be included
 					var ColAttrs = pi.GetCustomAttributes(typeof(ColumnAttribute), true);
