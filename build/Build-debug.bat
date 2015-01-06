@@ -43,16 +43,16 @@ ECHO Performing MSBuild and producing Umbraco binaries zip files
 IF ERRORLEVEL 1 GOTO :showerror
 
 echo off
-SET SRC=c:\Repositories\Umbraco\build\_BuildOutput\WebApp
-SET DEST=n:\web\webcentrum-dev.muni.cz\%1\web
+SET SRC=c:\Repositories\Umbraco\build\_BuildOutput
+SET DEST=n:\web\webcentrum-dev.muni.cz\%1
 
 echo. && echo bin:
-robocopy %SRC%\bin %DEST%\bin /S /XO /IS /NJH /NFL /NDL
-robocopy %SRC%\UmbracoExamine.PDF %DEST%\bin /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\bin %DEST%\src\Lib\Umbraco /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\UmbracoExamine.PDF %DEST%\src\Lib\Umbraco /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco:
-robocopy %SRC%\umbraco %DEST%\umbraco /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\umbraco %DEST%\web\Umbraco /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco_client:
-robocopy %SRC%\umbraco_client %DEST%\umbraco_client /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\umbraco_client %DEST%\web\Umbraco_Client /S /XO /IS /NJH /NFL /NDL
 
 GOTO :EOF
 
