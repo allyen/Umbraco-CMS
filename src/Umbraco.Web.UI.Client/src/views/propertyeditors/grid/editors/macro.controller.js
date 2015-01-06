@@ -27,7 +27,7 @@ angular.module("umbraco")
 
             macroResource.getMacroResultAsHtmlForEditor(macro.macroAlias, contentId, macro.macroParamsDictionary)
             .then(function (htmlResult) {
-                $scope.title = macro.macroName;
+                $scope.title = macro.name;
                 if(htmlResult.trim().length > 0 && htmlResult.indexOf("Macro:") < 0){
                     $scope.preview = htmlResult;
                 }
