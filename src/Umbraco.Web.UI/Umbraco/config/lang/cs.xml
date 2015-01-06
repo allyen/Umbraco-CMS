@@ -83,6 +83,7 @@
     <key alias="macroInsert">Vložit makro</key>
     <key alias="pictureInsert">Vložit obrázek</key>
     <key alias="relations">Editovat vztahy</key>
+    <key alias="returnToList">Zpět na seznam</key>
     <key alias="save">Uložit</key>
     <key alias="saveAndPublish">Uložit a publikovat</key>
     <key alias="saveToPublish">Uložit a poslat ke schválení</key>
@@ -238,7 +239,7 @@
     <key alias="username">Zadejte své uživatelské jméno</key>
     <key alias="password">Zadejte své heslo</key>
     <key alias="nameentity">Jméno %0%...</key>
-    <key alias="entername">Zadejte jméno...</key>
+    <key alias="entername">Zadejte název...</key>
     <key alias="search">Hledaný typ...</key>
     <key alias="filter">Filtrovat podle typu...</key>
   </area>
@@ -378,7 +379,7 @@
     <key alias="remaining">Zbývající</key>
     <key alias="rename">Přejmenovat</key>
     <key alias="renew">Obnovit</key>
-    <key alias="required" version="7.0">Povinný</key>
+    <key alias="required" version="7.0">Toto pole je povinné</key>
     <key alias="retry">Zkusit znovu</key>
     <key alias="rights">Práva</key>
     <key alias="search">Vyhledávání</key>
@@ -976,6 +977,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="stylesheets">Styly</key>
     <key alias="templates">Šablony</key>
     <key alias="xslt">XSLT soubory</key>
+    <key alias="webCentrumUsers">Uživatelé</key>
   </area>
   <area alias="update">     <!-- Neprelozena cela oblast -->
     <key alias="updateAvailable">New update ready</key>
@@ -1011,8 +1013,8 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="passwordInvalid">Neplatné současné heslo</key>
     <key alias="passwordIsDifferent">Potvrzovací zadání nového hesla se lišilo od prvně zadaného hesla. Zkuste to prosím znovu!</key>
     <key alias="passwordMismatch">Potvrzovací heslo se liší od nového hesla!</key>
-    <key alias="permissionReplaceChildren">Nahradit přístupová práva potomka</key>
-    <key alias="permissionSelectedPages">Modifikujete přístupová práva pro stránku:</key>
+    <key alias="permissionReplaceChildren">Nahradit přístupová oprávnění potomků</key>
+    <key alias="permissionSelectedPages">Modifikujete přístupová oprávnění pro stránku:</key>
     <key alias="permissionSelectPages">Vyberte stránky pro změnu jejich přístupových práv</key>
     <key alias="searchAllChildren">Prohledej všechny potomky</key>
     <key alias="startnode">Výchozí uzel v Obsahu</key>
@@ -1024,5 +1026,18 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="yourProfile" version="7.0">Váš profil</key>   
     <key alias="yourHistory" version="7.0">Nedávná historie</key>  
     <key alias="sessionExpires" version="7.0">Čas do automatického odhlášení</key>
+  </area>
+  <area alias="wc-users">
+    <key alias="userType-user">Běžný uživatel</key>
+    <key alias="userType-superuser">Superuživatel</key>
+    <key alias="userType-admin">Administrátor</key>
+    <key alias="permission-browse">Procházení</key>
+    <key alias="permission-edit">Editace</key>
+    <key alias="permission-publish">Zveřejňování</key>
+    <key alias="permission-editPermissions">Úprava oprávnění</key>
+    <key alias="newUser">Nový uživatel</key>
+  </area>
+  <area alias="wc-actions">
+    <key alias="permissions">Oprávnění k editaci</key>
   </area>
 </language>
