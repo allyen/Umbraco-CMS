@@ -160,6 +160,7 @@
     <key alias="notmemberof">Nečlen skupiny/skupiny</key>
     <key alias="childItems" version="7.0">Potomci</key>
     <key alias="target" version="7.0">Cíl</key>
+    <key alias="altTextOptional">Alternativní text (nepovinný)</key>
   </area>
   <area alias="media">
     <key alias="clickToUpload">Klikněte pro nahrání</key>

@@ -218,7 +218,7 @@ namespace Umbraco.Web.Models.Mapping
                 }
                 var svc = _userService.Value;
 
-                var permissions = svc.GetPermissions(UmbracoContext.Current.Security.CurrentUser, source.Id)
+                var permissions = svc.GetPermissions(UmbracoContext.Current.Security.CurrentUser, source.Id == 0 ? source.ParentId : source.Id)
                                               .FirstOrDefault();
                 if (permissions == null)
                 {
