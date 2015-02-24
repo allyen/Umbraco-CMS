@@ -631,6 +631,17 @@ namespace Umbraco.Core.Persistence.Repositories
             repo.ReplaceEntityPermissions(permissionSet);
         }
 
+        public void ClearPublished(IContent content)
+        {
+            // race cond!
+            var documentDtos = Database.Fetch<DocumentDto>("WHERE nodeId=@id AND published=@published", new { id = content.Id, published = true });
+            foreach (var documentDto in documentDtos)
+            {
+                documentDto.Published = false;
+                Database.Update(documentDto);
+            }
+        }
+
         public IContent GetByLanguage(int id, string language)
         {
             var sql = GetBaseQuery(false);
@@ -670,10 +681,8 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <param name="content"></param>
         /// <param name="xml"></param>
         public void AddOrUpdateContentXml(IContent content, Func<IContent, XElement> xml)
-        {
-            var contentExists = Database.ExecuteScalar<int>("SELECT COUNT(nodeId) FROM cmsContentXml WHERE nodeId = @Id", new { Id = content.Id }) != 0;
-
-            _contentXmlRepository.AddOrUpdate(new ContentXmlEntity<IContent>(contentExists, content, xml));
+        {           
+            _contentXmlRepository.AddOrUpdate(new ContentXmlEntity<IContent>(content, xml));
         }
 
         /// <summary>
@@ -692,11 +701,7 @@ namespace Umbraco.Core.Persistence.Repositories
         /// <param name="xml"></param>
         public void AddOrUpdatePreviewXml(IContent content, Func<IContent, XElement> xml)
         {
-            var previewExists =
-                    Database.ExecuteScalar<int>("SELECT COUNT(nodeId) FROM cmsPreviewXml WHERE nodeId = @Id AND versionId = @Version",
-                                                    new { Id = content.Id, Version = content.Version }) != 0;
-
-            _contentPreviewRepository.AddOrUpdate(new ContentPreviewEntity<IContent>(previewExists, content, xml));
+            _contentPreviewRepository.AddOrUpdate(new ContentPreviewEntity<IContent>(content, xml));
         }
 
         /// <summary>
