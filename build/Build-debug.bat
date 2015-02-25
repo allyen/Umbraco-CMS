@@ -44,7 +44,7 @@ IF ERRORLEVEL 1 GOTO :showerror
 
 echo off
 SET SRC=c:\Repositories\Umbraco\build\_BuildOutput
-SET DEST=n:\web\webcentrum-dev.muni.cz\%1
+SET DEST=n:\web\webcentrum2-dev.muni.cz\%1
 
 echo. && echo bin:
 robocopy %SRC%\WebApp\bin %DEST%\src\Lib\Umbraco /S /XO /IS /NJH /NFL /NDL
