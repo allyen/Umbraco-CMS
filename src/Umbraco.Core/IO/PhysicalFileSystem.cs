@@ -204,6 +204,18 @@ namespace Umbraco.Core.IO
                 : File.GetCreationTimeUtc(GetFullPath(path));
         }
 
+        public long GetSize(string path)
+        {
+            using (var file = OpenFile(path))
+            {
+                using (var sr = new StreamReader(file))
+                {
+                    var str = sr.ReadToEnd();
+                    return str.Length;
+                }
+            }
+        }
+
         #region Helper Methods
 
         protected virtual void EnsureDirectory(string path)

@@ -102,5 +102,10 @@ namespace Umbraco.Core.IO
 		{
 			return _wrapped.GetCreated(path);
 		}
+
+        public long GetSize(string path)
+        {
+            return _wrapped.GetSize(path);
+        }
 	}
 }
