@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <language alias="cs" intName="Czech" localName="česky" lcid="5" culture="cs">
   <creator>
     <name>umbraco</name>
@@ -23,16 +23,16 @@
     <key alias="move">Přesunout</key>
     <key alias="notify">Oznámení</key>
     <key alias="protect">Veřejně přístupné</key>
-    <key alias="publish">Zveřejnit</key>
+    <key alias="publish">Publikovat</key>
     <key alias="unpublish">Zneveřejnit</key>
     <key alias="refreshNode">Znovu načíst uzly</key>
-    <key alias="republish">Znovu zveřejnit celý web</key>
+    <key alias="republish">Znovu publikovat celý web</key>
     <key alias="rights">Oprávnění</key>
     <key alias="rollback">Vrátit</key>
-    <key alias="sendtopublish">Poslat ke zveřejnění</key>
+    <key alias="sendtopublish">Poslat k publikování</key>
     <key alias="sendToTranslate">Poslat k přeložení</key>
     <key alias="sort">Setřídit</key>
-    <key alias="toPublish">Poslat ke zveřejnění</key>
+    <key alias="toPublish">Poslat k publikování</key>
     <key alias="translate">Přeložit</key>
     <key alias="update">Aktualizovat</key>
     <key alias="defaultValue">Implicitní hodnota</key>
@@ -114,6 +114,7 @@
     <key alias="validDocTypesNote">Zobrazeny jsou pouze platné typy pro dané místo.</key>
   </area>
   <area alias="content">
+    <key alias="isPublished" version="7.2">Publikováno</key>
     <key alias="about">O této stránce</key>
     <key alias="alias">Alias</key>
     <key alias="alternativeTextHelp">(jak byste popsal(a) obrázek nad telefonem)</key>
@@ -127,9 +128,9 @@
     <key alias="documentType">Typ dokumentu</key>
     <key alias="editing">Editace</key>
     <key alias="expireDate">Odstanit k datu</key>
-    <key alias="itemChanged">Tato položka byla od posledního zveřejnění změněna</key>
-    <key alias="itemNotPublished">Tato položka není zveřejněna</key>
-    <key alias="lastPublished">Datum posledního zveřejnění</key>
+    <key alias="itemChanged">Tato položka byla od posledního publikování změněna</key>
+    <key alias="itemNotPublished">Tato položka není publikována</key>
+    <key alias="lastPublished">Datum poslední publikace</key>
     <key alias="listViewNoItems" version="7.1.5">V seznamu se nenechází žádná položka.</key>
     <key alias="mediatype">Media - typ</key>
     <key alias="mediaLinks">Odkaz na média</key>
@@ -139,11 +140,11 @@
     <key alias="noDate">Není zvoleno žádné datum</key>
     <key alias="nodeName">Název stránky</key>
     <key alias="otherElements">Vlastnosti</key>
-    <key alias="parentNotPublished">Tento dokument je zveřejněný, ale není viditelný, protože jeho rodič '%0%' není zveřejněný</key>
-    <key alias="parentNotPublishedAnomaly">Chybička se vloudila: tento dokument je zveřejněn, ale chybí v cache paměti (systémová chyba)</key>
-    <key alias="publish">Zveřejnit</key>
+    <key alias="parentNotPublished">Tento dokument je publikovaný, ale není viditelný, protože jeho rodič '%0%' není publikovaný</key>
+    <key alias="parentNotPublishedAnomaly">Chybička se vloudila: tento dokument je publikovaný, ale chybí v cache paměti (systémová chyba)</key>
+    <key alias="publish">Publikovat</key>
     <key alias="publishStatus">Stav zveřejnění</key>
-    <key alias="releaseDate">Zveřejnit k datu</key>
+    <key alias="releaseDate">Publikovat k datu</key>
     <key alias="unpublishDate">Zneveřejnit k datu</key>
     <key alias="removeDate">Odstranit datum</key>
     <key alias="sortDone">Řazení bylo aktualizováno</key>
@@ -243,6 +244,7 @@
     <key alias="entername">Zadejte název...</key>
     <key alias="search">Hledaný typ...</key>
     <key alias="filter">Filtrovat podle typu...</key>
+    <key alias="enterTags">Zápisem přidáte značky (zmáčkněte enter za každou značkou)...</key>
   </area>
   <area alias="editcontenttype">
     <key alias="allowAtRoot" version="7.2">Allow at root</key>
@@ -276,7 +278,7 @@
     <key alias="rteWidthAndHeight">Šířka a výška</key>
   </area>
   <area alias="errorHandling">
-    <key alias="errorButDataWasSaved" version="4.0">Data byla uložena, ale není možno stránku zveřejnit, dokud nebudou opraveny následující chyby:</key>
+    <key alias="errorButDataWasSaved" version="4.0">Data byla uložena, ale není možno stránku publikovat, dokud nebudou opraveny následující chyby:</key>
     <key alias="errorChangingProviderPassword" version="4.0">Současné nastavení nepodporuje změnu hesla (parametr EnablePasswordRetrieval u MemberShip Provider musí být nastaven na true)</key>
     <key alias="errorExistsWithoutTab" version="2.1">"%0%" už existuje</key>
     <key alias="errorHeader" version="2.1">Došlo k následujícím chybám:</key>
@@ -680,17 +682,17 @@ To manage your website, simply open the umbraco back office and start adding con
   <area alias="publish">
     <key alias="contentPublishedFailedAwaitingRelease">       
       <![CDATA[
-      %0% nelze zveřejnit, jelikož je zde nastaven plán zveřejnění.
+      %0% nelze publiovat, jelikož je zde nastaven plán zveřejnění.
     ]]>
     </key>
     <key alias="contentPublishedFailedInvalid"><![CDATA[
-      %0% nelze zveřejnit, jelikož tyto properties:  %1%  neprošly validační kontrolou.
+      %0% nelze publikovat, jelikož tyto properties:  %1%  neprošly validační kontrolou.
     ]]></key>
     <key alias="contentPublishedFailedByEvent" version="4.0">
-      Stránka %0% nemohla být zveřejněna kvůli zásahu třetí strany.
+      Stránka %0% nemohla být publikována kvůli zásahu třetí strany.
     </key>
     <key alias="contentPublishedFailedByParent"><![CDATA[
-      %0% nelze zveřejnit, protože rodičovská stránka není zveřejněna.
+      %0% nelze publikovat, protože rodičovská stránka není zveřejněna.
     ]]></key>
     <key alias="includeUnpublished">Zahrnout nezveřejněné podstránky</key>
     <key alias="inProgress">Probíhá zveřejňování - počkejte prosím...</key>
@@ -698,7 +700,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="nodePublish">Stránka %0% byla zveřejněna</key>
     <key alias="nodePublishAll">Stránka %0% a podstránky byly zveřejněny</key>
     <key alias="publishAll">Zveřejnit %0% a všechny podstránky</key>
-    <key alias="publishHelp" version="4.0"><![CDATA[Kliknutím na <em>ok</em> zveřejníte <strong>%0%</strong> a tím veřejně zpřístupníte tuto stránku.<br/><br />
+    <key alias="publishHelp" version="4.0"><![CDATA[Kliknutím na <em>ok</em> publikujete <strong>%0%</strong> a tím veřejně zpřístupníte tuto stránku.<br/><br />
       Můžete zveřejnit tuto stránku a všechny její podstránky zatrhnutím <em>zveřejnit všechny podstránky</em> níže.
       ]]></key>
   </area>
@@ -716,6 +718,14 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="modeUp">Posunout směrem vzhůru</key>
     <key alias="newWindow">Otevřít v novém okně</key>
     <key alias="removeLink">Odstranit odkazy</key>
+    <key alias="enterExternal">Zadejte externí odkaz</key>
+    <key alias="chooseInternal">Vyberte interní stránku</key>
+    <key alias="link">Odkaz</key>
+    <key alias="captionPlaceholder">Zadejte nový popisek</key>
+    <key alias="externalLinkPlaceholder">Zadejte odkaz</key>
+  </area>
+  <area alias="imagecropper">
+    <key alias="reset">Reset</key>
   </area>
   <area alias="rollback">
     <key alias="currentVersion">Současná verze</key>
@@ -743,6 +753,8 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="translation">Překlad</key>
     <key alias="users">Uživatelé</key>
     <key alias="help" version="7.0">Nápověda</key>
+    <key alias="forms">Formuláře</key>
+    <key alias="analytics">Analytika</key>
   </area>
   <area alias="settings">
     <key alias="defaulttemplate">Výchozí šablona</key>
@@ -770,7 +782,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="sortPleaseWait"><![CDATA[ Počkejte prosím. Probíhá řazení položek, což může chvíli trvat.<br/> <br/> Nezavírejte toto okno během třízení]]></key>
   </area>
   <area alias="speechBubbles">
-    <key alias="contentPublishedFailedByEvent">Zveřejňování bylo zrušeno kvůli zásahu třetí strany.</key>
+    <key alias="contentPublishedFailedByEvent">Publikování bylo zrušeno kvůli zásahu třetí strany.</key>
     <key alias="contentTypeDublicatePropertyType">Tento typ property již existuje</key>
     <key alias="contentTypePropertyTypeCreated">Typ property byl vytvořen</key>
     <key alias="contentTypePropertyTypeCreatedText"><![CDATA[Název: %0% <br /> Datový typ: %1%]]></key> 
@@ -784,11 +796,11 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="cssSavedText">Šablona byla uloženy bez výskytu chyb</key>
     <key alias="dataTypeSaved">Datový typ byl uložen</key>   
     <key alias="dictionaryItemSaved">Položka ve slovníku byla uložena</key>
-    <key alias="editContentPublishedFailedByParent">Zveřejnění selhalo, protože rodičovská stránka není zveřejněna</key>
-    <key alias="editContentPublishedHeader">Obsah byl zveřejněn</key>
+    <key alias="editContentPublishedFailedByParent">Publikování selhalo, protože rodičovská stránka není publikována</key>
+    <key alias="editContentPublishedHeader">Obsah byl publikován</key>
     <key alias="editContentPublishedText">a je viditelný na webové stránce</key>
     <key alias="editContentSavedHeader">Obsah byl uložen</key>
-    <key alias="editContentSavedText">Nezapomeňte stisknout "Zveřejnit", aby se změny projevily na Vaší webové stránce</key>
+    <key alias="editContentSavedText">Nezapomeňte stisknout "Publikovat", aby se změny projevily na Vaší webové stránce</key>
     <key alias="editContentSendToPublish">Poslat ke schválení</key>      
     <key alias="editContentSendToPublishText">Změny byly odeslány ke schválení</key>    
     <key alias="editMediaSaved">Media uložena</key> 
@@ -844,9 +856,14 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="template">Šablona</key>
   </area>
   <area alias="grid">
-    <key alias="insertControl">Insert control</key>
-    <key alias="addRows">Add rows to your layout</key>
-    <key alias="addElement"><![CDATA[To start, click the <i class="icon icon-add blue"></i> below and add your first element]]></key>
+    <key alias="insertControl">Výběr nového elementu</key>
+    <key alias="addRows">Vyberte rozložení stránky</key>
+    <key alias="addElement"><![CDATA[Kliknutím na ikonku <i class="icon icon-add blue"></i> vložíte další elementy]]></key>
+    
+    <key alias="clickToEmbed">Klikněte pro výběr obsahu</key>
+    <key alias="clickToInsertImage">Klikněte pro výběr obrázku</key>
+    <key alias="placeholderImageCaption">Nadpis obrázku...</key>
+    <key alias="placeholderWriteHere">Sem můžete psát...</key>
 
     <key alias="gridLayouts">Grid layouts</key>
     <key alias="gridLayoutsDetail">Layouts are the overall work area for the grid editor, usually you only need one or two differnt layouts</key>
@@ -979,6 +996,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="templates">Šablony</key>
     <key alias="xslt">XSLT soubory</key>
     <key alias="webCentrumUsers">Uživatelé</key>
+    <key alias="analytics">Analytika</key>
   </area>
   <area alias="update">     <!-- Neprelozena cela oblast -->
     <key alias="updateAvailable">New update ready</key>
@@ -1034,7 +1052,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="userType-admin">Administrátor</key>
     <key alias="permission-browse">Procházení</key>
     <key alias="permission-edit">Editace</key>
-    <key alias="permission-publish">Zveřejňování</key>
+    <key alias="permission-publish">Publikování</key>
     <key alias="permission-editPermissions">Úprava oprávnění</key>
     <key alias="newUser">Nový uživatel</key>
   </area>
