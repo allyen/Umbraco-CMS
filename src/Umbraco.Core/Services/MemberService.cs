@@ -901,6 +901,9 @@ namespace Umbraco.Core.Services
             // a caching mechanism since this method is used by all the membership providers and could be
             // called quite a bit when dealing with members.
 
+            if (username.IsNullOrWhiteSpace())
+                return null;
+
             var uow = _uowProvider.GetUnitOfWork();
             using (var repository = _repositoryFactory.CreateMemberRepository(uow))
             {
