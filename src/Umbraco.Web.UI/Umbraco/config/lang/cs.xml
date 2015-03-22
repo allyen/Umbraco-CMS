@@ -864,6 +864,11 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="clickToInsertImage">Klikněte pro výběr obrázku</key>
     <key alias="placeholderImageCaption">Nadpis obrázku...</key>
     <key alias="placeholderWriteHere">Sem můžete psát...</key>
+    
+    <key alias="clickToEmbed">Klikněte pro vložení</key>
+    <key alias="clickToInsertImage">Klikněte pro vložení obrázku</key>
+    <key alias="placeholderImageCaption">Nadpis obrázku...</key>
+    <key alias="placeholderWriteHere">Sem můžete psát...</key>
 
     <key alias="gridLayouts">Grid layouts</key>
     <key alias="gridLayoutsDetail">Layouts are the overall work area for the grid editor, usually you only need one or two differnt layouts</key>
@@ -1058,5 +1063,8 @@ To manage your website, simply open the umbraco back office and start adding con
   </area>
   <area alias="wc-actions">
     <key alias="permissions">Oprávnění k editaci</key>
+  </area>
+  <area alias="wc-grid">
+    <key alias="placeholderTitle">Nadpis...</key>
   </area>
 </language>
