@@ -7,9 +7,10 @@ angular.module("umbraco.directives")
                 onClick: '&',
                 onFocus: '&',
                 onBlur: '&',
-                configuration:"="
+                configuration: "=",
+                placeholder: "@"
             },
-            template: "<textarea ng-model=\"value\" rows=\"10\" class=\"mceNoEditor\" style=\"overflow:hidden\" id=\"{{uniqueId}}\"></textarea>",
+            template: "<textarea ng-model=\"value\" rows=\"10\" class=\"mceNoEditor\" style=\"overflow:hidden\" id=\"{{uniqueId}}\" placeholder=\"{{placeholder}}\"></textarea>",
             replace: true,
             link: function (scope, element, attrs) {
 
