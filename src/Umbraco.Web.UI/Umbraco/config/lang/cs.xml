@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <language alias="cs" intName="Czech" localName="česky" lcid="5" culture="cs">
   <creator>
     <name>umbraco</name>
@@ -131,7 +131,7 @@
     <key alias="itemChanged">Tato položka byla od posledního publikování změněna</key>
     <key alias="itemNotPublished">Tato položka není publikována</key>
     <key alias="lastPublished">Datum poslední publikace</key>
-    <key alias="listViewNoItems" version="7.1.5">V seznamu se nenechází žádná položka.</key>
+    <key alias="listViewNoItems" version="7.1.5">V seznamu se nenachází žádná položka.</key>
     <key alias="mediatype">Media - typ</key>
     <key alias="mediaLinks">Odkaz na média</key>
     <key alias="membergroup">Skupina registrovaných osob</key>
@@ -233,7 +233,7 @@
   </area>
   <area alias="dictionaryItem">
     <key alias="description"><![CDATA[
-      Upravit různé verze jazyků pro položku '<em>%0%</em>' below<br/> Další jazyky lze přidat v sekci 'Languages' v levém menu
+      Níže upravte různé jazykové verze položky '<em>%0%</em>'<br/> Další jazyky lze přidat v sekci 'Jazyky' v levém menu
    ]]></key>
     <key alias="displayName">Název jazyka</key>
   </area>
@@ -376,7 +376,7 @@
     <key alias="placeHolderID">Placeholder ID</key>
     <key alias="pleasewait">Moment, prosím...</key>
     <key alias="previous">Předchozí</key>
-    <key alias="properties">Systémové vlastnosti</key>
+    <key alias="properties">Umbraco</key>
     <key alias="reciept">Email, na která se mají zasílat data z formuláře</key>
     <key alias="recycleBin">Koš</key>
     <key alias="remaining">Zbývající</key>
@@ -1066,5 +1066,9 @@ To manage your website, simply open the umbraco back office and start adding con
   </area>
   <area alias="wc-grid">
     <key alias="placeholderTitle">Nadpis...</key>
+    <key alias="placeholderSubtitle">Podnadpis...</key>
+  </area>
+  <area alias="wc-general">
+    <key alias="noValue">Žádná hodnota</key>
   </area>
 </language>
