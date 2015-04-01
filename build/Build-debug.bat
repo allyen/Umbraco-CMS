@@ -41,13 +41,15 @@ ECHO Performing MSBuild and producing Umbraco binaries zip files
 %windir%\Microsoft.NET\Framework\v4.0.30319\msbuild.exe "Build-debug.proj" /p:BUILD_RELEASE=%release% /p:BUILD_COMMENT=%comment%
 
 IF ERRORLEVEL 1 GOTO :showerror
+ 
+IF "%1"=="" GOTO :EOF
 
 echo off
 SET SRC=c:\Repositories\Umbraco\build\_BuildOutput
 SET DEST=n:\web\webcentrum2-dev.muni.cz\%1
 
 echo. && echo bin:
-robocopy %SRC%\WebApp\bin %DEST%\src\Lib\Umbraco /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\bin %DEST%\lib\Umbraco-CMS /S /XO /IS /NJH /NFL /NDL
 robocopy %SRC%\UmbracoExamine.PDF %DEST%\lib\Umbraco-CMS /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco:
 robocopy %SRC%\WebApp\umbraco %DEST%\web\Umbraco /S /XO /IS /NJH /NFL /NDL
