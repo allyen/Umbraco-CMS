@@ -13,6 +13,8 @@ using System.Linq;
 using Umbraco.Web.WebApi.Filters;
 using Constants = Umbraco.Core.Constants;
 using Newtonsoft.Json;
+using Umbraco.Core.Events;
+using System;
 
 namespace Umbraco.Web.Editors
 {
@@ -27,6 +29,25 @@ namespace Umbraco.Web.Editors
     [PluginController("UmbracoApi")]
     public class ContentTypeController : ContentTypeControllerBase
     {
+        public class GettingAllowedChildrenEventArgs : EventArgs
+        {
+            public int ContentId { get; private set; }
+
+            public List<IContentType> AllowedChildren { get; set; }
+
+            public GettingAllowedChildrenEventArgs(int contentId, List<IContentType> allowedChildren)
+            {
+                ContentId = contentId;
+                AllowedChildren = allowedChildren;
+            }
+        }
+
+        /// <summary>
+        /// Occurs after user permissons were obtained, possible to change them
+        /// </summary>
+        public static event TypedEventHandler<ContentTypeController, GettingAllowedChildrenEventArgs> GettingAllowedChildren;
+
+
         private ICultureDictionary _cultureDictionary;
 
         /// <summary>
@@ -84,10 +105,13 @@ namespace Umbraco.Web.Editors
 
                 var ids = contentItem.ContentType.AllowedContentTypes.Select(x => x.Id.Value).ToArray();
                 
-                if (ids.Any() == false) return Enumerable.Empty<ContentTypeBasic>();
+                //if (ids.Any() == false) return Enumerable.Empty<ContentTypeBasic>();
 
                 types = Services.ContentTypeService.GetAllContentTypes(ids).ToList();
             }
+
+            types = types.ToList();
+            GettingAllowedChildren.RaiseEvent(new GettingAllowedChildrenEventArgs(contentId, (List<IContentType>)types), this);
 
             var basics = types.Select(Mapper.Map<IContentType, ContentTypeBasic>).ToList();
 
