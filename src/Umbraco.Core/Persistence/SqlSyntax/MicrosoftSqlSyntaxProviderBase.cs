@@ -16,17 +16,17 @@ namespace Umbraco.Core.Persistence.SqlSyntax
 
         public override string GetQuotedTableName(string tableName)
         {
-            return string.Format("[{0}]", tableName);
+            return tableName[0] == '[' ? tableName : string.Format("[{0}]", tableName);
         }
 
         public override string GetQuotedColumnName(string columnName)
         {
-            return string.Format("[{0}]", columnName);
+            return columnName[0] == '[' ? columnName : string.Format("[{0}]", columnName);
         }
 
         public override string GetQuotedName(string name)
         {
-            return string.Format("[{0}]", name);
+            return name[0] == '[' ? name : string.Format("[{0}]", name);
         }
 
         public override string GetStringColumnEqualComparison(string column, int paramIndex, TextColumnType columnType)

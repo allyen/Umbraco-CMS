@@ -10,11 +10,11 @@ using Umbraco.Core.Persistence.SqlSyntax;
 
 namespace Umbraco.Core.Persistence.Querying
 {
-    internal abstract class BaseExpressionHelper<T> : BaseExpressionHelper
+    public abstract class BaseExpressionHelper<T> : BaseExpressionHelper
     {
         protected abstract string VisitMemberAccess(MemberExpression m);
 
-        protected internal virtual string Visit(Expression exp)
+        public virtual string Visit(Expression exp)
         {
 
             if (exp == null) return string.Empty;
@@ -113,6 +113,7 @@ namespace Umbraco.Core.Persistence.Querying
                 {
                     left = Visit(b.Left);
                 }
+                left = "(" + left;
                 m = b.Right as MemberExpression;
                 if (m != null && m.Expression != null)
                 {
@@ -127,6 +128,7 @@ namespace Umbraco.Core.Persistence.Querying
                 {
                     right = Visit(b.Right);
                 }
+                right = right + ")";
             }
             else
             {
@@ -523,7 +525,7 @@ namespace Umbraco.Core.Persistence.Querying
     /// <summary>
     /// Logic that is shared with the expression helpers
     /// </summary>
-    internal class BaseExpressionHelper 
+    public class BaseExpressionHelper 
     {
         protected List<object> SqlParameters = new List<object>();
 

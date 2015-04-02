@@ -6,7 +6,7 @@ namespace Umbraco.Core.Persistence.Querying
     /// <summary>
     /// String extension methods used specifically to translate into SQL
     /// </summary>
-    internal static class SqlStringExtensions
+    public static class SqlStringExtensions
     {
         public static bool SqlWildcard(this string str, string txt, TextColumnType columnType)
         {
