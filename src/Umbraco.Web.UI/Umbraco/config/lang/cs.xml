@@ -1067,6 +1067,7 @@ To manage your website, simply open the umbraco back office and start adding con
   <area alias="wc-grid">
     <key alias="placeholderTitle">Nadpis...</key>
     <key alias="placeholderSubtitle">Podnadpis...</key>
+    <key alias="placeholderPerex">Popisek...</key>
   </area>
   <area alias="wc-general">
     <key alias="noValue">Žádná hodnota</key>

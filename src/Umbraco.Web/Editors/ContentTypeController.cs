@@ -105,9 +105,10 @@ namespace Umbraco.Web.Editors
 
                 var ids = contentItem.ContentType.AllowedContentTypes.Select(x => x.Id.Value).ToArray();
                 
-                //if (ids.Any() == false) return Enumerable.Empty<ContentTypeBasic>();
-
-                types = Services.ContentTypeService.GetAllContentTypes(ids).ToList();
+                if (ids.Any())
+                    types = Services.ContentTypeService.GetAllContentTypes(ids).ToList();
+                else
+                    types = Enumerable.Empty<IContentType>();
             }
 
             types = types.ToList();
