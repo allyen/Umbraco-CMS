@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<language alias="en" intName="English (UK)" localName="English (UK)" lcid="" culture="en-GB">
+<language alias="en" intName="English (UK)" localName="English (UK)" lcid="" culture="en">
   <creator>
     <name>The Umbraco community</name>
     <link>http://our.umbraco.org/documentation/Extending-Umbraco/Language-Files</link>
@@ -1037,5 +1037,26 @@ To manage your website, simply open the Umbraco back office and start adding con
     <key alias="yourProfile" version="7.0">Your profile</key>
     <key alias="yourHistory" version="7.0">Your recent history</key>
     <key alias="sessionExpires" version="7.0">Session expires in</key>
+  </area>
+  <area alias="wc-users">
+    <key alias="userType-user">Regular user</key>
+    <key alias="userType-superuser">Superuser</key>
+    <key alias="userType-admin">Admin</key>
+    <key alias="permission-browse">Browsing</key>
+    <key alias="permission-edit">Editing</key>
+    <key alias="permission-publish">Publishing</key>
+    <key alias="permission-editPermissions">Edit premissions</key>
+    <key alias="newUser">New user</key>
+  </area>
+  <area alias="wc-actions">
+    <key alias="permissions">Permissions</key>
+  </area>
+  <area alias="wc-grid">
+    <key alias="placeholderTitle">Title...</key>
+    <key alias="placeholderSubtitle">Subtitle...</key>
+    <key alias="placeholderPerex">Description...</key>
+  </area>
+  <area alias="wc-general">
+    <key alias="noValue">No value</key>
   </area>
 </language>
