@@ -72,7 +72,7 @@
 
   <PropertyGroup>
     <BuildConfiguration>Debug</BuildConfiguration>
-    <BuildFolder>_BuildOutput\</BuildFolder>
+    <BuildFolder>_BuildOutput_Debug\</BuildFolder>
     <BuildZipFileName>UmbracoCms$(DECIMAL_BUILD_NUMBER).zip</BuildZipFileName>
     <BuildZipFileNameBin>UmbracoCms.AllBinaries$(DECIMAL_BUILD_NUMBER).zip</BuildZipFileNameBin>
     <BuildZipFileNameWebPi>UmbracoCms.WebPI$(DECIMAL_BUILD_NUMBER).zip</BuildZipFileNameWebPi>

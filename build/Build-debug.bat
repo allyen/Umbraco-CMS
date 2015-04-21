@@ -29,7 +29,7 @@ ECHO Removing the belle build folder to make sure everything is clean as a whist
 RD ..\src\Umbraco.Web.UI.Client\build /Q /S
 
 ECHO Removing existing built files to make sure everything is clean as a whistle
-RMDIR /Q /S _BuildOutput
+RMDIR /Q /S _BuildOutput_Debug
 DEL /F /Q UmbracoCms.*.zip
 DEL /F /Q UmbracoExamine.*.zip
 DEL /F /Q UmbracoCms.*.nupkg
@@ -45,12 +45,12 @@ IF ERRORLEVEL 1 GOTO :showerror
 IF "%1"=="" GOTO :EOF
 
 echo off
-SET SRC=c:\Repositories\Umbraco\build\_BuildOutput
+SET SRC=c:\Repositories\Umbraco\build\_BuildOutput_Debug
 SET DEST=n:\web\webcentrum2-dev.muni.cz\%1
 
 echo. && echo bin:
-robocopy %SRC%\WebApp\bin %DEST%\lib\Umbraco-CMS /S /XO /IS /NJH /NFL /NDL
-robocopy %SRC%\UmbracoExamine.PDF %DEST%\lib\Umbraco-CMS /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\bin %DEST%\lib\Umbraco-CMS\src\_BuildOutput_Debug\bin /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\UmbracoExamine.PDF %DEST%\lib\Umbraco-CMS\src\_BuildOutput_Debug\bin /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco:
 robocopy %SRC%\WebApp\umbraco %DEST%\web\Umbraco /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco_client:
