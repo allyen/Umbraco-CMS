@@ -55,6 +55,7 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
     //depending on what the menu item is supposed to do.
     $scope.executeMenuItem = function (action) {
         navigationService.executeMenuAction(action, $scope.currentNode, $scope.currentSection);
+        initInlineActions();
     };
 
 
