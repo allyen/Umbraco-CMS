@@ -6,11 +6,12 @@
  * @description
  * The controller for the content editor
  */
-function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $window, appState, contentResource, entityResource, navigationService, notificationsService, angularHelper, serverValidationManager, contentEditingHelper, treeService, fileManager, formHelper, umbRequestHelper, keyboardService, umbModelMapper, editorState, $http) {
+function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $window, appState, contentResource, entityResource, navigationService, notificationsService, angularHelper, serverValidationManager, contentEditingHelper, treeService, fileManager, formHelper, umbRequestHelper, keyboardService, umbModelMapper, editorState, $http, treeService) {
 
     //setup scope vars
     $scope.defaultButton = null;
-    $scope.subButtons = [];    
+    $scope.subButtons = [];
+    $scope.actionButtons = [];
     $scope.currentSection = appState.getSectionState("currentSection");
     $scope.currentNode = null; //the editors affiliated node
     $scope.isNew = $routeParams.create;
@@ -43,12 +44,27 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
         }
     }
 
+    function initInlineActions() {
+        treeService.getMenu({ treeNode: $scope.currentNode })
+            .then(function (data) {
+                $scope.actionButtons = _.filter(data.menuItems, function (item) { return item.metaData["inline"] != undefined; });
+            });
+    }
+
+    //adds a handler to the context menu item click, we need to handle this differently
+    //depending on what the menu item is supposed to do.
+    $scope.executeMenuItem = function (action) {
+        navigationService.executeMenuAction(action, $scope.currentNode, $scope.currentSection);
+    };
+
+
     /** Syncs the content item to it's tree node - this occurs on first load and after saving */
     function syncTreeNode(content, path, initialLoad) {
 
         if (!$scope.content.isChildOfListView) {
             navigationService.syncTree({ tree: "content", path: path.split(","), forceReload: initialLoad !== true }).then(function (syncArgs) {
                 $scope.currentNode = syncArgs.node;
+                initInlineActions();
             });
         }
         else if (initialLoad === true) {
@@ -62,6 +78,7 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
                 $http.get(content.treeNodeUrl),
                 'Failed to retrieve data for child node ' + content.id).then(function (node) {
                     $scope.currentNode = node;
+                    initInlineActions();
                 });
         }
     }

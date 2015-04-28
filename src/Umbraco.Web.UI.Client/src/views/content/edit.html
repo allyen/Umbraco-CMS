@@ -72,6 +72,13 @@
                             </ul>
 
                         </div>
+
+                        <div class="btn-group" ng-repeat="action in actionButtons">
+                            <a class="btn" ng-click="executeMenuItem(action)">
+                                <i class="icon icon-{{action.cssclass}}"></i>
+                                {{action.name}}
+                            </a>
+                        </div>
                     </div>
                 </div>
             </umb-tab>
