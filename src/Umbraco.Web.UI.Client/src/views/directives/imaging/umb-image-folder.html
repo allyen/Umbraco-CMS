@@ -3,13 +3,13 @@
 
     <div class="drop-zone">
 
-        <div class="fileinput-button umb-upload-button-big" ng-hide="dropping || uploading">
+        <div class="fileinput-button umb-upload-button-big" ng-hide="dropping || uploading || nodeId == -1">
             <i class="icon icon-page-up"></i>
             <p><localize key="media_clickToUpload">Click to upload</localize></p>
             <input type="file" name="files[]" multiple ng-disabled="disabled" class="uploader">
         </div>
 
-        <umb-upload-dropzone ng-show="dropping && !uploading"></umb-upload-dropzone>
+        <umb-upload-dropzone ng-show="dropping && !uploading && nodeId > -1"></umb-upload-dropzone>
 
         <div ng-if="uploading">
 
