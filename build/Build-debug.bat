@@ -49,10 +49,10 @@ SET SRC=c:\Repositories\Umbraco\build\_BuildOutput_Debug
 SET DEST=n:\web\webcentrum2-dev.muni.cz\%1
 
 echo. && echo bin:
-robocopy %SRC%\WebApp\bin %DEST%\lib\Umbraco-CMS\src\_BuildOutput_Debug\bin /S /XO /IS /NJH /NFL /NDL
-robocopy %SRC%\UmbracoExamine.PDF %DEST%\lib\Umbraco-CMS\src\_BuildOutput_Debug\bin /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\bin %DEST%\lib\Umbraco-CMS\src\build\_BuildOutput_Debug\bin /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\UmbracoExamine.PDF %DEST%\lib\Umbraco-CMS\src\build\_BuildOutput_Debug\bin /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco:
-robocopy %SRC%\WebApp\umbraco %DEST%\web\Umbraco /S /XO /IS /NJH /NFL /NDL
+robocopy %SRC%\WebApp\umbraco %DEST%\web\Redakce /S /XO /IS /NJH /NFL /NDL
 echo. && echo umbraco_client:
 robocopy %SRC%\WebApp\umbraco_client %DEST%\web\Umbraco_Client /S /XO /IS /NJH /NFL /NDL
 
