@@ -37,13 +37,6 @@ namespace Umbraco.Web.WebApi.Filters
             _permissionToCheck = ActionBrowse.Instance.Letter;
         }
 
-        protected override void FilterItems(IUser user, IList items)
-        {
-            base.FilterItems(user, items);
-
-            FilterBasedOnPermissions(items, user, ApplicationContext.Current.Services.UserService);
-        }
-
         protected override int GetUserStartNode(IUser user)
         {
             return user.StartContentId;
@@ -54,7 +47,7 @@ namespace Umbraco.Web.WebApi.Filters
             get { return Constants.System.RecycleBinContent; }
         }
 
-        internal void FilterBasedOnPermissions(IList items, IUser user, IUserService userService)
+        internal override void FilterBasedOnPermissions(IList items, IUser user, IUserService userService)
         {
             var length = items.Count;
 

@@ -33,6 +33,7 @@ using umbraco.BusinessLogic.Actions;
 using Constants = Umbraco.Core.Constants;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Persistence.FaultHandling;
+using Umbraco.Core.Events;
 
 namespace Umbraco.Web.Editors
 {
@@ -555,7 +556,25 @@ namespace Umbraco.Web.Editors
                                               Constants.System.RecycleBinMedia)
                                           : user.HasPathAccess(media);
 
-            return hasPathAccess;
+            if (!hasPathAccess || media == null)
+            {
+                return false;
+            }
+
+            var args = new GettingPermissionsEventArgs(user, null, new[] { nodeId });
+            RaiseGettingPermissionsEvent(args);
+
+            return args.Permissions == null || args.Permissions.Any(p => p.AssignedPermissions.Contains("A"));
         }
+
+        internal static void RaiseGettingPermissionsEvent(GettingPermissionsEventArgs args)
+        {
+            GettingPermissions.RaiseEvent(args, null);
+        }
+
+        /// <summary>
+        /// Occurs when user permissons for media are checked
+        /// </summary>
+        public static event TypedEventHandler<MediaController, GettingPermissionsEventArgs> GettingPermissions;
     }
 }

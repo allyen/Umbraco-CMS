@@ -7,6 +7,7 @@ using System.Web.Http.Filters;
 using Umbraco.Core;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Membership;
+using Umbraco.Core.Services;
 using Umbraco.Web.Models.ContentEditing;
 
 namespace Umbraco.Web.WebApi.Filters
@@ -78,6 +79,8 @@ namespace Umbraco.Web.WebApi.Filters
         protected virtual void FilterItems(IUser user, IList items)
         {
             FilterBasedOnStartNode(items, user);
+
+            FilterBasedOnPermissions(items, user, ApplicationContext.Current.Services.UserService);
         }
 
         internal void FilterBasedOnStartNode(IList items, IUser user)
@@ -95,6 +98,31 @@ namespace Umbraco.Web.WebApi.Filters
             foreach (var item in toRemove)
             {
                 items.Remove(item);
+            }
+        }
+
+        internal virtual void FilterBasedOnPermissions(IList items, IUser user, IUserService userService)
+        {
+            var args = new Umbraco.Core.Events.GettingPermissionsEventArgs(user, null, items.Cast<dynamic>().Select(i => (int)i.Id).ToArray());
+            Umbraco.Web.Editors.MediaController.RaiseGettingPermissionsEvent(args);
+
+            if (args.Permissions != null)
+            {
+                var dict = args.Permissions.ToDictionary(p => p.EntityId);
+                var toRemove = new List<dynamic>();
+                foreach (dynamic item in items)
+                {
+                    EntityPermission perm;
+                    if (!dict.TryGetValue(item.Id, out perm) || !perm.AssignedPermissions.Contains("A"))
+                    {
+                        toRemove.Add(item);
+                    }
+                }
+
+                foreach (var item in toRemove)
+                {
+                    items.Remove(item);
+                }
             }
         }
 
