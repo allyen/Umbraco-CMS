@@ -1,14 +1,18 @@
 //used for the media picker dialog
 angular.module("umbraco")
     .controller("Umbraco.Dialogs.MediaPickerController",
-        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies, $element, $timeout) {
+        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies, $element, $timeout, editorState) {
 
             var dialogOptions = $scope.dialogOptions;
 
             $scope.onlyImages = dialogOptions.onlyImages;
             $scope.showDetails = dialogOptions.showDetails;
             $scope.multiPicker = (dialogOptions.multiPicker && dialogOptions.multiPicker !== "0") ? true : false;
-            $scope.startNodeId = dialogOptions.startNodeId ? dialogOptions.startNodeId : -1;
+            $scope.startNodeId = editorState.current.metaData.mediaPickerStartNodeId
+                ? editorState.current.metaData.mediaPickerStartNodeId
+                : dialogOptions.startNodeId
+                    ? dialogOptions.startNodeId : -1;
+
             $scope.cropSize = dialogOptions.cropSize;
             
             $scope.filesUploading = 0;
