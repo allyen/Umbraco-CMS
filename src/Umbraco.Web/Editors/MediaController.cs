@@ -556,7 +556,7 @@ namespace Umbraco.Web.Editors
                                               Constants.System.RecycleBinMedia)
                                           : user.HasPathAccess(media);
 
-            if (!hasPathAccess || media == null)
+            if (!hasPathAccess)
             {
                 return false;
             }
