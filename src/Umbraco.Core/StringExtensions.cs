@@ -218,7 +218,7 @@ namespace Umbraco.Core
 
             foreach (var part in parts)
             {
-                var encrpytedBlock = FormsAuthentication.Encrypt(new FormsAuthenticationTicket(0, string.Empty, DateTime.Now, DateTime.MaxValue, false, part));
+                var encrpytedBlock = Convert.ToBase64String(MachineKey.Protect(System.Text.Encoding.Unicode.GetBytes(part), null));
                 encrpytedValue.AppendLine(encrpytedBlock);
             }
 
@@ -241,7 +241,7 @@ namespace Umbraco.Core
 
             foreach (var part in parts)
             {
-                decryptedValue.Append(FormsAuthentication.Decrypt(part.TrimEnd()).UserData);
+                decryptedValue.Append(System.Text.Encoding.Unicode.GetString(MachineKey.Unprotect(Convert.FromBase64String(part))));
             }
 
             return decryptedValue.ToString();
