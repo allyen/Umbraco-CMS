@@ -1063,6 +1063,7 @@ To manage your website, simply open the umbraco back office and start adding con
   </area>
   <area alias="wc-actions">
     <key alias="permissions">Oprávnění k editaci</key>
+    <key alias="entityProtection">Ochrana uzlu</key>
   </area>
   <area alias="wc-grid">
     <key alias="placeholderTitle">Nadpis...</key>
