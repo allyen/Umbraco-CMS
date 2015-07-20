@@ -1,11 +1,19 @@
 // Panel
 // -------------------------
-.umb-panel{
+.umb-panel {
           background: white;
-          position: absolute; 
-          top: 0px; bottom: 0px; left: 0px; right: 0px;}
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+}
 
-.umb-panel-nobody{padding-top: 100px; overflow: auto;}
+.umb-panel-nobody {
+    padding-top: 100px;
+    overflow: auto;
+}
+
 .umb-panel-header {
   background: @grayLighter;
   border-bottom: 1px solid @grayLight;
@@ -25,6 +33,7 @@
     clear: both;
     overflow: auto;
 }
+
 .umb-panel-body.no-header {
     top: 20px;
 }
@@ -49,16 +58,16 @@
   border: 1px solid @grayLighter;
 }
 
-.umb-panel-header .umb-headline:focus,.umb-panel-header .umb-headline:active  {
+.umb-panel-header .umb-headline:focus, .umb-panel-header .umb-headline:active {
   border: 1px solid @grayLight;
   background-color: @white;
 }
 
-.umb-headline-editor-wrapper{
+.umb-headline-editor-wrapper {
   position: relative;
 }
 
-.umb-headline-editor-wrapper .help-inline{
+.umb-headline-editor-wrapper .help-inline {
   top: 3px;
   position: absolute;
   font-size: 10px;
@@ -69,7 +78,7 @@
   line-height: 15px;
 }
 
-.umb-panel-header .umb-nav-tabs{
+.umb-panel-header .umb-nav-tabs {
   bottom: -1px;
   position: absolute;
   padding: 0px 0px 0px 20px;
@@ -77,10 +86,10 @@
 
 
 .umb-panel-header p {
-  margin:0px 20px;
+    margin: 0px 20px;
 }
 
-.umb-btn-toolbar .dimmed, .umb-dimmed{
+.umb-btn-toolbar .dimmed, .umb-dimmed {
   opacity: 0.6;
 }
 
@@ -93,15 +102,27 @@
   line-height: normal;
   border: 1px solid transparent;
   color: @black;
-  letter-spacing: -0.01em
+    letter-spacing: -0.01em;
 }
+
 .umb-headline-editor-wrapper input.ng-invalid  {
   color: @red;
 }
 
-.umb-headline-editor-wrapper input.ng-invalid::-webkit-input-placeholder {color: @red; line-height: 22px;}
-.umb-headline-editor-wrapper input.ng-invalid::-moz-placeholder {color: @red; line-height: 22px;}
-.umb-headline-editor-wrapper input.ng-invalid:-ms-input-placeholder {color: @red; line-height: 22px;}
+.umb-headline-editor-wrapper input.ng-invalid::-webkit-input-placeholder {
+    color: @red;
+    line-height: 22px;
+}
+
+.umb-headline-editor-wrapper input.ng-invalid::-moz-placeholder {
+    color: @red;
+    line-height: 22px;
+}
+
+.umb-headline-editor-wrapper input.ng-invalid:-ms-input-placeholder {
+    color: @red;
+    line-height: 22px;
+}
 
 .umb-panel-header i {
   font-size: 13px;
@@ -134,22 +155,22 @@
   left: auto;
   border-radius: @tabsBorderRadius;
   box-shadow: none;
-  padding: 0
- }
+    padding: 0;
+}
 
- .umb-btn-toolbar .dropdown-menu small {
+.umb-btn-toolbar .dropdown-menu small {
   background: #fef9db;
   display: block;
   padding: 10px 20px;
- }
+}
 
- .umb-btn-toolbar .dropdown-menu .btn {
+.umb-btn-toolbar .dropdown-menu .btn  {
     margin: 20px 29px;
-    width: 80px
- }
+    width: 80px;
+}
 
 /* tab buttons */
-.umb-bottom-bar{
+.umb-bottom-bar {
     background: white;
     -webkit-box-shadow: 0px -18px 20px rgba(255, 255, 255, 1);
     -moz-box-shadow:    0px -18px 20px rgba(255, 255, 255, 1);
@@ -157,26 +178,37 @@
     border-top: 1px solid @grayLighter;
     padding: 10px 0 10px 0;
     position: fixed;
-    bottom: 0px;
+    bottom: 0;
     left: 100px;
+    right: 40px;
     z-index: 6010;
-}
 
-.umb-tab-buttons{
-    padding-left: 0px;
-}
-
-@media (min-width: 1101px) {
-    .umb-bottom-bar {
+    @media (min-width: 1101px) {
         left: 460px;
-    }    
+    }
 }
 
-.umb-tab-pane{padding-bottom: 90px}
+.umb-tab-buttons {
+    padding-left: 0;
 
-.tab-content{overflow: visible; }
+    > .btn-group:not([style*="display:none"]):not([style*="display: none"]) {
+        margin-left: 0;
+    }
 
-.umb-panel-footer-nav{
+    @media (min-width: 768px) {
+        padding-left: 180px;
+    }
+}
+
+.umb-tab-pane {
+    padding-bottom: 90px;
+}
+
+.tab-content {
+    overflow: visible;
+}
+
+.umb-panel-footer-nav {
     position: absolute;
     bottom: 0px;
     height: 30px;
@@ -198,85 +230,109 @@
   text-align: center;
   padding: 8px 0px 8px 30px;
   position: relative;
-  margin: 0 1px 0 0; 
+    margin: 0 1px 0 0;
   text-decoration: none;
   color: @gray;
   font-size: 11px;
 }
 
 .umb-panel-footer-nav li a:after {
-  content: "";  
+    content: "";
   border-top: 16px solid transparent;
   border-bottom: 16px solid transparent;
   border-left: 16px solid @grayLighter;
-  position: absolute; right: -16px; top: 0;
+    position: absolute;
+    right: -16px;
+    top: 0;
   z-index: 1;
 }
-      
+
 .umb-panel-footer-nav li a:before {
-  content: "";  
+    content: "";
   border-top: 16px solid transparent;
   border-bottom: 16px solid transparent;
   border-left: 16px solid @grayLight;
-  position: absolute; left: 0; top: 0;
+    position: absolute;
+    left: 0;
+    top: 0;
 }
 
-.umb-panel-footer-nav li:first-child a{
-  padding-left: 20px; 
+.umb-panel-footer-nav li:first-child a {
+    padding-left: 20px;
 }
 
 .umb-panel-footer-nav li:first-child a:before {
-  display: none; 
+    display: none;
 }
 
 .umb-panel-footer-nav li:last-child a:after {
-  display: none; 
+    display: none;
 }
 
 
 
 
- // Utility classes
+// Utility classes
 
- //SD: Had to add these because if we want to use the bootstrap text colors
- // in a panel/editor they'll all show up as white on white - so we need to use the 
- // form styles
+//SD: Had to add these because if we want to use the bootstrap text colors
+// in a panel/editor they'll all show up as white on white - so we need to use the
+// form styles
 .umb-dialog .muted,
-.umb-panel .muted               { color: @grayLight; }
+.umb-panel .muted {
+    color: @grayLight;
+}
 
 .umb-dialog a.muted:hover,
 .umb-dialog a.muted:focus,
 .umb-panel a.muted:hover,
-.umb-panel a.muted:focus        { color: darken(@grayLight, 10%); }
+.umb-panel a.muted:focus {
+    color: darken(@grayLight, 10%);
+}
 
 .umb-dialog .text-warning,
-.umb-panel .text-warning        { color: @formWarningText; }
+.umb-panel .text-warning {
+    color: @formWarningText;
+}
 
 .umb-dialog a.text-warning:hover,
 .umb-dialog a.text-warning:focus,
 .umb-panel a.text-warning:hover,
-.umb-panel a.text-warning:focus { color: darken(@formWarningText, 10%); }
+.umb-panel a.text-warning:focus {
+    color: darken(@formWarningText, 10%);
+}
 
 .umb-dialog .text-error,
-.umb-panel .text-error          { color: @formErrorText; }
+.umb-panel .text-error {
+    color: @formErrorText;
+}
 
 .umb-dialog a.text-error:hover,
 .umb-dialog a.text-error:focus,
 .umb-panel a.text-error:hover,
-.umb-panel a.text-error:focus   { color: darken(@formErrorText, 10%); }
+.umb-panel a.text-error:focus {
+    color: darken(@formErrorText, 10%);
+}
 
 .umb-dialog .text-info,
-.umb-panel .text-info           { color: @formInfoText; }
+.umb-panel .text-info {
+    color: @formInfoText;
+}
 
 .umb-dialog a.text-info:hover,
 .umb-dialog a.text-info:focus,
 .umb-panel a.text-info:hover,
-.umb-panel a.text-info:focus    { color: darken(@formInfoText, 10%); }
+.umb-panel a.text-info:focus {
+    color: darken(@formInfoText, 10%);
+}
 
 .umb-dialog .text-success,
-.umb-panel .text-success        { color: @formSuccessText; }
+.umb-panel .text-success {
+    color: @formSuccessText;
+}
 
 .umb-dialog a.text-success:hover,
 .umb-dialog a.text-success:focus,
 .umb-panel a.text-success:hover,
-.umb-panel a.text-success:focus { color: darken(@formSuccessText, 10%); }
+.umb-panel a.text-success:focus {
+    color: darken(@formSuccessText, 10%);
+}

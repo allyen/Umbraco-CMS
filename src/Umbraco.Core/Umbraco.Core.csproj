@@ -64,7 +64,7 @@
     </Reference>
     <Reference Include="MySql.Data">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\MySql.Data.6.9.6\lib\net45\MySql.Data.dll</HintPath>
+      <HintPath>..\packages\MySql.Data.6.9.7\lib\net45\MySql.Data.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -313,10 +313,12 @@
     <Compile Include="Events\SaveEventArgs.cs" />
     <Compile Include="Events\SendToPublishEventArgs.cs" />
     <Compile Include="Exceptions\InvalidCompositionException.cs" />
+    <Compile Include="Exceptions\UmbracoStartupFailedException.cs" />
     <Compile Include="HideFromTypeFinderAttribute.cs" />
     <Compile Include="HttpContextExtensions.cs" />
     <Compile Include="IApplicationEventHandler.cs" />
     <Compile Include="IDisposeOnRequestEnd.cs" />
+    <Compile Include="MainDom.cs" />
     <Compile Include="Manifest\GridEditorConverter.cs" />
     <Compile Include="Media\Exif\BitConverterEx.cs" />
     <Compile Include="Media\Exif\ExifBitConverter.cs" />
@@ -1215,6 +1217,7 @@
     <Compile Include="UriExtensions.cs" />
     <Compile Include="SystemUtilities.cs" />
     <Compile Include="UrlHelperExtensions.cs" />
+    <Compile Include="WaitHandleExtensions.cs" />
     <Compile Include="WriteLock.cs" />
     <Compile Include="XmlExtensions.cs" />
     <Compile Include="XmlHelper.cs" />
