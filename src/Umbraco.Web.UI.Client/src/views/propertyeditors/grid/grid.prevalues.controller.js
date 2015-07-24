@@ -161,7 +161,7 @@ angular.module("umbraco")
         };
 
         $scope.percentage = function(spans){
-            return ((spans / $scope.model.value.columns) * 100).toFixed(1);
+            return Math.floor((spans / $scope.model.value.columns) * 100).toFixed(1);
         };
 
         $scope.zeroWidthFilter = function (cell) {
