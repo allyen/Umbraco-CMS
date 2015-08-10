@@ -144,6 +144,12 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
                         : "/content/content/edit/" + data.parentId;
                 }
 
+                // Added in order to make it work with WebCentrum.ListView
+                if ($routeParams.listcontent && $routeParams.listproperty && data.trashed === false) {
+                    $scope.listViewPath = "/content/content/edit/" + $routeParams.listcontent +
+                        "?listproperty=" + $routeParams.listproperty + "&page=" + $routeParams.page;
+                }
+
                 init($scope.content);
 
                 //in one particular special case, after we've created a new item we redirect back to the edit
