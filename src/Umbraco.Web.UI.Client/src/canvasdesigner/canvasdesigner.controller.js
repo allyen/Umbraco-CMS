@@ -453,9 +453,9 @@ var app = angular.module("Umbraco.canvasdesigner", ['colorpicker', 'ui.slider', 
     /*****************************************************************************/
 
     // Preload of the google font
-    $http.get(apiController + 'GetGoogleFont').success(function (data) {
+    /*$http.get(apiController + 'GetGoogleFont').success(function (data) {
         $scope.googleFontFamilies = data;
-    });
+    });*/
 
     // watch framLoaded, only if iframe page have enableCanvasdesigner()
     $scope.$watch("enableCanvasdesigner", function () {
