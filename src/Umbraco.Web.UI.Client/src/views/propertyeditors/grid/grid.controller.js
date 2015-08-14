@@ -287,7 +287,7 @@ angular.module("umbraco")
 
             dialogService.open(
                 {
-                    template: "views/propertyeditors/grid/dialogs/config.html",
+                    template: (itemType == 'row' ? $scope.model.config.items.rowSettingsView : $scope.model.config.items.cellSettingsView) || "views/propertyeditors/grid/dialogs/config.html",
                     gridItem: gridItem,
                     config: $scope.model.config,
                     itemType: itemType,
