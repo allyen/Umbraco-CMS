@@ -120,16 +120,44 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
     }
 
     if ($routeParams.create) {
-        //we are creating so get an empty content item
-        contentResource.getScaffold($routeParams.id, $routeParams.doctype)
-            .then(function (data) {
-                $scope.loaded = true;
-                $scope.content = data;
+        if ($routeParams.copyFrom) {
+            contentResource.getById($routeParams.copyFrom)
+                .then(function (data) {
+                    $scope.loaded = true;
+                    data.name = $routeParams.name || data.name;
+                    data.id = 0;
 
-                init($scope.content);                
+                    // possible to fill property values by alias from JSON in URL param "properties"
+                    if ($routeParams.properties) {
+                        var props = angular.fromJson($routeParams.properties);
+                        _.each(props, function (value, alias) {
+                            _.each(data.tabs, function (tab) {
+                                var prop = _.findWhere(tab.properties, { alias: alias });
+                                if (prop) {
+                                    prop.value = value;
+                                }
+                            });
+                        });
+                    }
 
-                resetLastListPageNumber($scope.content);
-            });
+                    $scope.content = data;
+
+                    init($scope.content);
+
+                    resetLastListPageNumber($scope.content);
+                });
+        } else {
+            //we are creating so get an empty content item
+            contentResource.getScaffold($routeParams.id, $routeParams.doctype)
+                .then(function (data) {
+                    $scope.loaded = true;
+                    $scope.content = data;
+
+                    init($scope.content);
+
+                    resetLastListPageNumber($scope.content);
+                });
+        }
     }
     else {
         //we are editing so get the content item from the server
