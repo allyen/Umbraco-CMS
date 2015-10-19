@@ -19,6 +19,8 @@ function load() {
     UmbClientMgr.setUmbracoPath('"##UmbracoPath##"');
 
     jQuery(document).ready(function () {
+
         angular.bootstrap(document, ['umbraco']);
+
     });
 }

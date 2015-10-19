@@ -1,7 +1,7 @@
 //used for the media picker dialog
 angular.module("umbraco")
     .controller("Umbraco.Dialogs.MediaPickerController",
-        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies, $element, $timeout, editorState) {
+        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies, $element, $timeout, editorState, notificationsService) {
 
             var dialogOptions = $scope.dialogOptions;
 
@@ -101,6 +101,12 @@ angular.module("umbraco")
                         $scope.progress = 0;
                         $scope.gotoFolder($scope.currentFolder);
                     });
+                }
+                //Show notifications!!!!
+                if (data.result && data.result.notifications && angular.isArray(data.result.notifications)) {
+                    for (var n = 0; n < data.result.notifications.length; n++) {
+                        notificationsService.showNotification(data.result.notifications[n]);
+                    }
                 }
             });
 

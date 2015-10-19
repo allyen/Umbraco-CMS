@@ -8,6 +8,7 @@ using Umbraco.Core.Services;
 using Umbraco.Core.Models;
 using Umbraco.Web.Models;
 using Umbraco.Web.Routing;
+using Umbraco.Web.Security;
 
 namespace Umbraco.Web.Mvc
 {
@@ -20,22 +21,28 @@ namespace Umbraco.Web.Mvc
 	{
 
 		public RenderMvcController()
+            : base()
 		{
 			ActionInvoker = new RenderActionInvoker();
 		}
 
+        public RenderMvcController(UmbracoContext umbracoContext, UmbracoHelper umbracoHelper)
+            : base(umbracoContext, umbracoHelper)
+        {
+        }
+
         public RenderMvcController(UmbracoContext umbracoContext)
             : base(umbracoContext)
         {
-            
+
         }
-		
+
 		private PublishedContentRequest _publishedContentRequest;
 
         /// <summary>
         /// Returns the current UmbracoContext
         /// </summary>
-        protected new UmbracoContext UmbracoContext
+        public override UmbracoContext UmbracoContext
         {
             get { return PublishedContentRequest.RoutingContext.UmbracoContext; }
         }
@@ -48,11 +55,10 @@ namespace Umbraco.Web.Mvc
 	        get { return PublishedContentRequest.PublishedContent; }
 	    }
 
-		//TODO: make this protected once we make PublishedContentRequest not internal after we figure out what it should actually contain
 		/// <summary>
 		/// Returns the current PublishedContentRequest
 		/// </summary>
-		internal PublishedContentRequest PublishedContentRequest
+        protected internal virtual PublishedContentRequest PublishedContentRequest
 		{
 			get
 			{
@@ -62,11 +68,11 @@ namespace Umbraco.Web.Mvc
 				{
 					throw new InvalidOperationException("DataTokens must contain an 'umbraco-doc-request' key with a PublishedContentRequest object");
 				}
-				_publishedContentRequest = (PublishedContentRequest) RouteData.DataTokens["umbraco-doc-request"];
+                _publishedContentRequest = (PublishedContentRequest)RouteData.DataTokens["umbraco-doc-request"];
 				return _publishedContentRequest;
 			}
 		}
-		
+
 		/// <summary>
 		/// Checks to make sure the physical view file exists on disk
 		/// </summary>
@@ -75,7 +81,7 @@ namespace Umbraco.Web.Mvc
 		protected bool EnsurePhsyicalViewExists(string template)
 		{
             var result = ViewEngines.Engines.FindView(ControllerContext, template, null);
-            if(result.View == null)
+            if (result.View == null)
             {
                 LogHelper.Warn<RenderMvcController>("No physical template file was found for template " + template);
                 return false;
@@ -95,10 +101,8 @@ namespace Umbraco.Web.Mvc
 		protected ActionResult CurrentTemplate<T>(T model)
 		{
 			var template = ControllerContext.RouteData.Values["action"].ToString();
-			if (!EnsurePhsyicalViewExists(template))
-			{
-				return Content("");
-			}
+            if (EnsurePhsyicalViewExists(template) == false)
+                throw new Exception("No physical template file was found for template " + template);
 			return View(template, model);
 		}
 

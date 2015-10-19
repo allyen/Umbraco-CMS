@@ -68,6 +68,9 @@ angular.module("umbraco.directives")
                                               r.classes = rule.selector.substring(1);
                                           }
                                           else if (rule.selector[0] === "#") {
+                                              //Even though this will render in the style drop down, it will not actually be applied
+                                              // to the elements, don't think TinyMCE even supports this and it doesn't really make much sense
+                                              // since only one element can have one id.
                                               r.inline = "span";
                                               r.attributes = { id: rule.selector.substring(1) };
                                           }
@@ -246,7 +249,7 @@ angular.module("umbraco.directives")
                                 });
 
                                 editor.on('ObjectResized', function (e) {
-                                    var qs = "?width=" + e.width + "px&height=" + e.height + "px";
+                                    var qs = "?width=" + e.width + "&height=" + e.height;
                                     var srcAttr = $(e.target).attr("src");
                                     var path = srcAttr.split("?")[0];
                                     $(e.target).attr("data-mce-src", path + qs);

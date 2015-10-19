@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using System.Web;
 using System.Web.Hosting;
-using System.Web.Mvc;
-using StackExchange.Profiling;
-using Umbraco.Core.Configuration;
+using log4net;
 using Umbraco.Core.Logging;
 using Umbraco.Core.ObjectResolution;
 
@@ -33,9 +34,6 @@ namespace Umbraco.Core
         /// </summary>
         internal void StartApplication(object sender, EventArgs e)
         {
-            //don't output the MVC version header (security)
-            MvcHandler.DisableMvcResponseHeader = true;
-
             //take care of unhandled exceptions - there is nothing we can do to 
             // prevent the entire w3wp process to go down but at least we can try
             // and log the exception
@@ -164,8 +162,8 @@ namespace Umbraco.Core
             {
                 return;
             }
-
-            LogHelper.Error<UmbracoApplicationBase>("An unhandled exception occurred", exc);
+            
+            Logger.Error<UmbracoApplicationBase>("An unhandled exception occurred", exc);
 
             OnApplicationError(sender, e);
         }
@@ -184,12 +182,112 @@ namespace Umbraco.Core
         {
             if (SystemUtilities.GetCurrentTrustLevel() == AspNetHostingPermissionLevel.Unrestricted)
             {
-                LogHelper.Info<UmbracoApplicationBase>("Application shutdown. Reason: " + HostingEnvironment.ShutdownReason);
+                //Try to log the detailed shutdown message (typical asp.net hack: http://weblogs.asp.net/scottgu/433194)
+                try
+                {
+                    var runtime = (HttpRuntime)typeof(HttpRuntime).InvokeMember("_theRuntime",
+                                BindingFlags.NonPublic
+                                | BindingFlags.Static
+                                | BindingFlags.GetField,
+                                null,
+                                null,
+                                null);
+                    if (runtime == null)
+                        return;
+
+                    var shutDownMessage = (string)runtime.GetType().InvokeMember("_shutDownMessage",
+                        BindingFlags.NonPublic
+                        | BindingFlags.Instance
+                        | BindingFlags.GetField,
+                        null,
+                        runtime,
+                        null);
+
+                    var shutDownStack = (string)runtime.GetType().InvokeMember("_shutDownStack",
+                        BindingFlags.NonPublic
+                        | BindingFlags.Instance
+                        | BindingFlags.GetField,
+                        null,
+                        runtime,
+                        null);
+
+                    var shutdownMsg = string.Format("{0}\r\n\r\n_shutDownMessage={1}\r\n\r\n_shutDownStack={2}",
+                        HostingEnvironment.ShutdownReason,
+                        shutDownMessage,
+                        shutDownStack);
+
+                    Logger.Info<UmbracoApplicationBase>("Application shutdown. Details: " + shutdownMsg);
+                }
+                catch (Exception)
+                {
+                    //if for some reason that fails, then log the normal output
+                    Logger.Info<UmbracoApplicationBase>("Application shutdown. Reason: " + HostingEnvironment.ShutdownReason);
+                }
             }
             OnApplicationEnd(sender, e);
+
+            //Last thing to do is shutdown log4net
+            LogManager.Shutdown();
         }
 
         protected abstract IBootManager GetBootManager();
 
+        protected ILogger Logger
+        {
+            get
+            {
+                // LoggerResolver can resolve before resolution is frozen
+                if (LoggerResolver.HasCurrent && LoggerResolver.Current.HasValue)
+                {
+                    return LoggerResolver.Current.Logger;
+                }
+                return new HttpTraceLogger();
+            }
+        }
+
+        private class HttpTraceLogger : ILogger
+        {
+            public void Error(Type callingType, string message, Exception exception)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Warn(callingType.ToString(), message + Environment.NewLine + exception);
+            }
+
+            public void Warn(Type callingType, string message, params Func<object>[] formatItems)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Warn(callingType.ToString(), string.Format(message, formatItems.Select(x => x())));
+            }
+
+            public void WarnWithException(Type callingType, string message, Exception e, params Func<object>[] formatItems)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Warn(callingType.ToString(), string.Format(message + Environment.NewLine + e, formatItems.Select(x => x())));
+            }
+
+            public void Info(Type callingType, Func<string> generateMessage)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Write(callingType.ToString(), generateMessage());
+            }
+
+            public void Info(Type type, string generateMessageFormat, params Func<object>[] formatItems)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Write(type.ToString(), string.Format(generateMessageFormat, formatItems.Select(x => x())));
+            }
+
+            public void Debug(Type callingType, Func<string> generateMessage)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Write(callingType.ToString(), generateMessage());
+            }
+
+            public void Debug(Type type, string generateMessageFormat, params Func<object>[] formatItems)
+            {
+                if (HttpContext.Current == null) return;
+                HttpContext.Current.Trace.Write(type.ToString(), string.Format(generateMessageFormat, formatItems.Select(x => x())));
+            }
+        }
     }
 }
