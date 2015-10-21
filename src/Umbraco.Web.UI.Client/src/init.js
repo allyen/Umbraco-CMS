@@ -62,11 +62,12 @@ app.run(['userService', '$log', '$rootScope', '$location', 'navigationService', 
 
         /** For debug mode, always clear template cache to cut down on 
             dev frustration and chrome cache on templates */
-        if(Umbraco.Sys.ServerVariables.isDebuggingEnabled){
+        // no - clears also files added via $templateCache manually
+        /*if(Umbraco.Sys.ServerVariables.isDebuggingEnabled){
             $rootScope.$on('$viewContentLoaded', function() {
               $templateCache.removeAll();
             });
-        }
+        }*/
         
         /* this will initialize the navigation service once the application has started */
         navigationService.init();
