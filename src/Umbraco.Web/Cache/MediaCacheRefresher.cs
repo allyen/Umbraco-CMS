@@ -7,11 +7,9 @@ using Umbraco.Core.Cache;
 using Umbraco.Core.Events;
 using Umbraco.Core.IO;
 using Umbraco.Core.Models;
-
 using Umbraco.Core.Persistence.Repositories;
 using umbraco.interfaces;
 using System.Linq;
-using Umbraco.Core.Persistence.Caching;
 using Umbraco.Web.PublishedCache.XmlPublishedCache;
 
 namespace Umbraco.Web.Cache
@@ -192,9 +190,6 @@ namespace Umbraco.Web.Cache
                     // published cache...
                     PublishedMediaCache.ClearCache(payload.Id);
                 });
-
-            InMemoryCacheProvider.Current.Clear();
-            RuntimeCacheProvider.Current.Clear();
         }
     }
 }
