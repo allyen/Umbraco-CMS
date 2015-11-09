@@ -305,6 +305,7 @@ angular.module("umbraco.directives")
                             // element might still be there even after the modal has been hidden.
                             scope.$on('$destroy', function () {
                                 unsubscribe();
+                                tinyMceEditor.remove();
                             });
 
                         });
