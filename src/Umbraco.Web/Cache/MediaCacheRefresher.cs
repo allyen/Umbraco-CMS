@@ -23,7 +23,7 @@ namespace Umbraco.Web.Cache
     public class MediaCacheRefresher : JsonCacheRefresherBase<MediaCacheRefresher>
     {
         #region Static helpers
-    
+
         /// <summary>
         /// Converts the json to a JsonPayload object
         /// </summary>
@@ -142,13 +142,13 @@ namespace Umbraco.Web.Cache
         }
 
         public override void Remove(int id)
-        {            
+        {
             ClearCache(FromMedia(ApplicationContext.Current.Services.MediaService.GetById(id),
                 //NOTE: we'll just default to trashed for this one.    
                 OperationType.Trashed));
             base.Remove(id);
         }
-        
+
         private static void ClearCache(params JsonPayload[] payloads)
         {
             if (payloads == null) return;
@@ -159,6 +159,7 @@ namespace Umbraco.Web.Cache
 
             payloads.ForEach(payload =>
                 {
+                var mediaCache = ApplicationContext.Current.ApplicationCache.IsolatedRuntimeCache.GetCache<IMedia>();
 
                     //if there's no path, then just use id (this will occur on permanent deletion like emptying recycle bin)
                     if (payload.Path.IsNullOrWhiteSpace())
@@ -171,10 +172,9 @@ namespace Umbraco.Web.Cache
                         foreach (var idPart in payload.Path.Split(','))
                         {
                             int idPartAsInt;
-                            if (int.TryParse(idPart, out idPartAsInt))
+                        if (int.TryParse(idPart, out idPartAsInt) && mediaCache)
                             {
-                                ApplicationContext.Current.ApplicationCache.RuntimeCache.ClearCacheItem(
-                                    RepositoryBase.GetCacheIdKey<IMedia>(idPartAsInt));
+                            mediaCache.Result.ClearCacheItem(RepositoryBase.GetCacheIdKey<IMedia>(idPartAsInt));
                             }
 
                             ApplicationContext.Current.ApplicationCache.RuntimeCache.ClearCacheByKeySearch(
@@ -184,12 +184,14 @@ namespace Umbraco.Web.Cache
                             if (idPart == payload.Id.ToString(CultureInfo.InvariantCulture))
                                 ApplicationContext.Current.ApplicationCache.RuntimeCache.ClearCacheByKeySearch(
                                     string.Format("{0}_{1}", CacheKeys.MediaCacheKey, payload.Id));
-                        }   
                     }
+                }
 
                     // published cache...
                     PublishedMediaCache.ClearCache(payload.Id);
                 });
+
+
         }
     }
 }
