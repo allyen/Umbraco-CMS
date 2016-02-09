@@ -11,7 +11,7 @@ using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
 using Umbraco.Core.Models.Rdbms;
 using Umbraco.Core.Persistence;
-
+using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.Repositories;
 using Umbraco.Core.Persistence.UnitOfWork;
 using Umbraco.Tests.TestHelpers;
@@ -209,6 +209,35 @@ namespace Umbraco.Tests.Persistence.Repositories
         }
 
         [Test]
+        public void Can_Perform_Query_On_ContentTypeRepository_Sort_By_Name()
+        {
+            // Arrange
+            var provider = new PetaPocoUnitOfWorkProvider(Logger);
+            var unitOfWork = provider.GetUnitOfWork();
+            using (var repository = CreateRepository(unitOfWork))
+            {
+                var contentType = repository.Get(NodeDto.NodeIdSeed + 1);
+                var child1 = MockedContentTypes.CreateSimpleContentType("aabc", "aabc", contentType, randomizeAliases: true);
+                repository.AddOrUpdate(child1);
+                var child3 = MockedContentTypes.CreateSimpleContentType("zyx", "zyx", contentType, randomizeAliases: true);
+                repository.AddOrUpdate(child3);
+                var child2 = MockedContentTypes.CreateSimpleContentType("a123", "a123", contentType, randomizeAliases: true);
+                repository.AddOrUpdate(child2);                
+                unitOfWork.Commit();
+
+                // Act
+                var contentTypes = repository.GetByQuery(new Query<IContentType>().Where(x => x.ParentId == contentType.Id));
+
+                // Assert
+                Assert.That(contentTypes.Count(), Is.EqualTo(3));
+                Assert.AreEqual("a123", contentTypes.ElementAt(0).Name);
+                Assert.AreEqual("aabc", contentTypes.ElementAt(1).Name);
+                Assert.AreEqual("zyx", contentTypes.ElementAt(2).Name);
+            }
+            
+        }
+
+        [Test]
         public void Can_Perform_Get_On_ContentTypeRepository()
         {
             // Arrange
@@ -297,7 +326,7 @@ namespace Umbraco.Tests.Persistence.Repositories
                 var allGuidIds = repository.GetAll().Select(x => x.Key).ToArray();
 
                 // Act
-                var contentTypes = repository.GetAll(allGuidIds);
+                var contentTypes = ((IReadRepository<Guid, IContentType>)repository).GetAll(allGuidIds);
                 int count =
                     DatabaseContext.Database.ExecuteScalar<int>(
                         "SELECT COUNT(*) FROM umbracoNode WHERE nodeObjectType = @NodeObjectType",

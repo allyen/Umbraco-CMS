@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Umbraco.Core.Cache;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
@@ -27,46 +28,54 @@ namespace Umbraco.Core.Persistence.Repositories
             _templateRepository = templateRepository;
         }
 
-        #region Overrides of RepositoryBase<int,IContentType>
-        
+        private FullDataSetRepositoryCachePolicyFactory<IContentType, int> _cachePolicyFactory;
+        protected override IRepositoryCachePolicyFactory<IContentType, int> CachePolicyFactory
+        {
+            get
+            {
+                //Use a FullDataSet cache policy - this will cache the entire GetAll result in a single collection
+                return _cachePolicyFactory ?? (_cachePolicyFactory = new FullDataSetRepositoryCachePolicyFactory<IContentType, int>(
+                    RuntimeCache, GetEntityId, () => PerformGetAll(), 
+                    //allow this cache to expire
+                    expires:true));
+            }
+        }
+
         protected override IContentType PerformGet(int id)
         {
-            var contentTypes = ContentTypeQueryMapper.GetContentTypes(
-                new[] {id}, Database, SqlSyntax, this, _templateRepository);
-            
-            var contentType = contentTypes.SingleOrDefault();
-            return contentType;
+            //use the underlying GetAll which will force cache all content types
+            return GetAll().FirstOrDefault(x => x.Id == id);
         }
 
         protected override IEnumerable<IContentType> PerformGetAll(params int[] ids)
         {
             if (ids.Any())
             {
-                return ContentTypeQueryMapper.GetContentTypes(ids, Database, SqlSyntax, this, _templateRepository);
+                //NOTE: This logic should never be executed according to our cache policy
+                return ContentTypeQueryMapper.GetContentTypes(Database, SqlSyntax, this, _templateRepository)
+                    .Where(x => ids.Contains(x.Id));
             }
-            else
-            {
-                var sql = new Sql().Select("id").From<NodeDto>().Where<NodeDto>(dto => dto.NodeObjectType == NodeObjectTypeId);
-                var allIds = Database.Fetch<int>(sql).ToArray();
-                return ContentTypeQueryMapper.GetContentTypes(allIds, Database, SqlSyntax, this, _templateRepository);
-            }
+
+            return ContentTypeQueryMapper.GetContentTypes(Database, SqlSyntax, this, _templateRepository);
         }
 
         protected override IEnumerable<IContentType> PerformGetByQuery(IQuery<IContentType> query)
         {
             var sqlClause = GetBaseQuery(false);
             var translator = new SqlTranslator<IContentType>(sqlClause, query);
-            var sql = translator.Translate()
-                .OrderBy<NodeDto>(x => x.Text);
+            var sql = translator.Translate();                
 
             var dtos = Database.Fetch<DocumentTypeDto, ContentTypeDto, NodeDto>(sql);
-            return dtos.Any()
-                ? GetAll(dtos.DistinctBy(x => x.ContentTypeDto.NodeId).Select(x => x.ContentTypeDto.NodeId).ToArray())
-                : Enumerable.Empty<IContentType>();
+
+            return
+                //This returns a lookup from the GetAll cached looup
+                (dtos.Any()
+                    ? GetAll(dtos.DistinctBy(x => x.ContentTypeDto.NodeId).Select(x => x.ContentTypeDto.NodeId).ToArray())
+                    : Enumerable.Empty<IContentType>())
+                    //order the result by name
+                    .OrderBy(x => x.Name);
         }
-
-        #endregion
-
+        
         /// <summary>
         /// Gets all entities of the specified <see cref="PropertyType"/> query
         /// </summary>
@@ -244,25 +253,33 @@ namespace Umbraco.Core.Persistence.Repositories
 
         protected override IContentType PerformGet(Guid id)
         {
-            var contentTypes = ContentTypeQueryMapper.GetContentTypes(
-                new[] { id }, Database, SqlSyntax, this, _templateRepository);
+            //use the underlying GetAll which will force cache all content types
+            return GetAll().FirstOrDefault(x => x.Key == id);
+        }
 
-            var contentType = contentTypes.SingleOrDefault();
-            return contentType;
+        protected override IContentType PerformGet(string alias)
+        {
+            //use the underlying GetAll which will force cache all content types
+            return GetAll().FirstOrDefault(x => x.Alias.InvariantEquals(alias));
         }
 
         protected override IEnumerable<IContentType> PerformGetAll(params Guid[] ids)
         {
+            //use the underlying GetAll which will force cache all content types
+
             if (ids.Any())
             {
-                return ContentTypeQueryMapper.GetContentTypes(ids, Database, SqlSyntax, this, _templateRepository);
+                return GetAll().Where(x => ids.Contains(x.Key));
             }
             else
             {
-                var sql = new Sql().Select("id").From<NodeDto>(SqlSyntax).Where<NodeDto>(dto => dto.NodeObjectType == NodeObjectTypeId);
-                var allIds = Database.Fetch<int>(sql).ToArray();
-                return ContentTypeQueryMapper.GetContentTypes(allIds, Database, SqlSyntax, this, _templateRepository);
+                return GetAll();
             }
+        }
+
+        protected override bool PerformExists(Guid id)
+        {
+            return GetAll().FirstOrDefault(x => x.Key == id) != null;
         }
     }
 }
