@@ -1,14 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Xml;
 using System.Xml.Linq;
 using Umbraco.Core.Configuration;
+using Umbraco.Core.Events;
 using Umbraco.Core.Models;
-using Umbraco.Core.Persistence.Repositories;
 using Umbraco.Core.PropertyEditors;
 using Umbraco.Core.Strings;
-using umbraco.interfaces;
 
 namespace Umbraco.Core.Services
 {
@@ -17,8 +16,18 @@ namespace Umbraco.Core.Services
     /// <summary>
     /// A helper class to serialize entities to XML
     /// </summary>
-    internal class EntityXmlSerializer
+    public class EntityXmlSerializer
     {
+        public class SerializingXmlNodeEventArgs : EventArgs
+        {
+            public XElement Node { get; set; }
+
+            public IContent Content { get; set; }
+
+            public IContentService ContentService { get; set; }
+        }
+        public static event TypedEventHandler<EntityXmlSerializer, SerializingXmlNodeEventArgs> SerializingXmlNode;
+
         /// <summary>
         /// Exports an <see cref="IContent"/> item to xml as an <see cref="XElement"/>
         /// </summary>
@@ -40,13 +49,15 @@ namespace Umbraco.Core.Services
             xml.Add(new XAttribute("writerID", content.WriterId));
             xml.Add(new XAttribute("template", content.Template == null ? "0" : content.Template.Id.ToString(CultureInfo.InvariantCulture)));
             xml.Add(new XAttribute("nodeTypeAlias", content.ContentType.Alias));
-
+            
             if (deep)
             {
                 var descendants = contentService.GetDescendants(content).ToArray();
                 var currentChildren = descendants.Where(x => x.ParentId == content.Id);
                 AddChildXml(contentService, dataTypeService, userService, descendants, currentChildren, xml);
             }
+
+            SerializingXmlNode.RaiseEvent(new SerializingXmlNodeEventArgs() { Node = xml, Content = content, ContentService = contentService }, this);
 
             return xml;
         }
