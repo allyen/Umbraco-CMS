@@ -7,13 +7,13 @@ using Umbraco.Core.Logging;
 
 namespace Umbraco.Web.Templates
 {
-	//NOTE: I realize there is only one class in this namespace but I'm pretty positive that there will be more classes in 
-	//this namespace once we start migrating and cleaning up more code.
+    //NOTE: I realize there is only one class in this namespace but I'm pretty positive that there will be more classes in 
+    //this namespace once we start migrating and cleaning up more code.
 
-	/// <summary>
-	/// Utility class used for templates
-	/// </summary>
-	public static class TemplateUtilities
+    /// <summary>
+    /// Utility class used for templates
+    /// </summary>
+    public static class TemplateUtilities
 	{
         //TODO: Pass in an Umbraco context!!!!!!!! Don't rely on the singleton so things are more testable
         internal static string ParseInternalLinks(string text, bool preview)
@@ -42,6 +42,9 @@ namespace Umbraco.Web.Templates
 	    /// <returns></returns>
 	    public static string ParseInternalLinks(string text)
 		{
+            if (text == null)
+                return "";
+
             //TODO: Pass in an Umbraco context!!!!!!!! Don't rely on the singleton so things are more testable, better yet, pass in urlprovider, routing context, separately
 
 			//don't attempt to proceed without a context as we cannot lookup urls without one
