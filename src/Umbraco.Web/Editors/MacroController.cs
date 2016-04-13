@@ -35,7 +35,7 @@ namespace Umbraco.Web.Editors
                 throw new HttpResponseException(HttpStatusCode.NotFound);
             }
 
-            return Mapper.Map<IEnumerable<MacroParameter>>(macro).OrderBy(m => m.SortOrder);
+            return Mapper.Map<IEnumerable<MacroParameter>>(macro).OrderBy(x => x.SortOrder);
         }
 
         /// <summary>

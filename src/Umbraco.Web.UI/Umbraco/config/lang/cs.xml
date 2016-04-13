@@ -391,6 +391,7 @@
     <key alias="showPageOnSend">Zobrazit stránku po stisknutí Odeslat</key>
     <key alias="size">Velikost</key>
     <key alias="sort">Setřídit</key>
+    <key alias="submit">Submit</key> <!-- TODO: Translate this -->
     <key alias="type">Typ</key>
     <key alias="typeToSearch">Zadejte výraz pro vyhledávání...</key>
     <key alias="up">Nahoru</key>
@@ -407,6 +408,8 @@
     <key alias="yes">Ano</key>
     <key alias="folder">Složka</key>
     <key alias="searchResults">Nalezené výsledky</key>
+    <key alias="reorder">Reorder</key>
+    <key alias="reorderDone">I am done reordering</key>
   </area>
   <area alias="graphicheadline">
     <key alias="backgroundcolor">Barva pozadí</key>
@@ -777,9 +780,12 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="createMatchingTemplate">Vytvořit i šablonu</key>
   </area>
   <area alias="sort">
+    <key alias="sortOrder">Pořadí</key>
     <key alias="sortDone">Řazení bylo dokončeno.</key>
     <key alias="sortHelp"><![CDATA[Pořadí položek můžete určit jejich přetahováním nahoru či dolů. Případně je také možno kliknout na záhlaví některého sloupce, čímž se uspořádají všechny položky]]></key>
+    <key alias="sortCreationDate">Creation date</key>
     <key alias="sortPleaseWait"><![CDATA[ Počkejte prosím. Probíhá řazení položek, což může chvíli trvat.<br/> <br/> Nezavírejte toto okno během třízení]]></key>
+    <key alias="sortDone">Třídění bylo ukončeno.</key>
   </area>
   <area alias="speechBubbles">
     <key alias="contentPublishedFailedByEvent">Publikování bylo zrušeno kvůli zásahu třetí strany.</key>
@@ -857,9 +863,15 @@ To manage your website, simply open the umbraco back office and start adding con
   </area>
   <area alias="grid">
     <key alias="insertControl">Výběr nového elementu</key>
+    <key alias="chooseLayout">Choose a layout</key>
     <key alias="addRows">Vyberte rozložení stránky</key>
     <key alias="addElement"><![CDATA[Kliknutím na ikonku <i class="icon icon-add blue"></i> vložíte další elementy]]></key>
     
+    <key alias="dropElement">Drop content</key>
+    <key alias="settingsApplied">Settings applied</key>
+
+    <key alias="contentNotAllowed">This content is not allowed here</key>
+    <key alias="contentAllowed">This content is allowed here</key>
     <key alias="clickToEmbed">Klikněte pro výběr obsahu</key>
     <key alias="clickToInsertImage">Klikněte pro výběr obrázku</key>
     <key alias="placeholderImageCaption">Nadpis obrázku...</key>
@@ -882,20 +894,15 @@ To manage your website, simply open the umbraco back office and start adding con
 
     <key alias="columns">Columns</key>
     <key alias="columnsDetails">Total combined number of columns in the grid layout</key>
-    
     <key alias="settings">Settings</key>
     <key alias="settingsDetails">Configure what settings editors can change</key>
-
-
     <key alias="styles">Styles</key>
     <key alias="stylesDetails">Configure what styling editors can change</key>
-
     <key alias="settingDialogDetails">Settings will only save if the entered json configuration is valid</key>
-
     <key alias="allowAllEditors">Allow all editors</key>
     <key alias="allowAllRowConfigurations">Allow all row configurations</key>
   </area>
-  <area alias="templateEditor">   
+  <area alias="templateEditor">
     <key alias="alternativeField">Alternativní pole</key>
     <key alias="alternativeText">Alternativení text</key>
     <key alias="casing">Casing</key>  <!-- Neprelozeno -->
@@ -975,7 +982,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="cacheBrowser">Vyrovnávací paměť prohlížeče</key>
     <key alias="contentRecycleBin">Odpadkový koš</key>
     <key alias="createdPackages">Vytvořené balíčky</key>
-    <key alias="datatype">Datové typy</key>
+    <key alias="dataTypes">Datové typy</key>
     <key alias="dictionary">Slovník</key>
     <key alias="installedPackages">Instalované balíčky</key>
     <key alias="installSkin">Instalovat vzhled</key>
@@ -985,9 +992,9 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="macros">Makra</key>
     <key alias="mediaTypes">Media typy</key>
     <key alias="member">Členové</key>
-    <key alias="memberGroup">Skupiny členů</key>
+    <key alias="memberGroups">Skupiny členů</key>
     <key alias="memberRoles">Role</key>
-    <key alias="memberType">Typy uživatelů</key>
+    <key alias="memberTypes">Typy členů</key>
     <key alias="nodeTypes">Dokumentové typy</key>
     <key alias="packager">Balíčky</key>
     <key alias="packages">Balíčky</key>

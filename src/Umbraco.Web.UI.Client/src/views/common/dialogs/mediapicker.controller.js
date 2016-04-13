@@ -1,7 +1,7 @@
 //used for the media picker dialog
 angular.module("umbraco")
     .controller("Umbraco.Dialogs.MediaPickerController",
-        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies, $element, $timeout, editorState, notificationsService) {
+        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $cookies, $element, $timeout, editorState) {
 
             var dialogOptions = $scope.dialogOptions;
 
@@ -14,20 +14,7 @@ angular.module("umbraco")
                     ? dialogOptions.startNodeId : -1;
 
             $scope.cropSize = dialogOptions.cropSize;
-            
-            $scope.filesUploading = 0;
-            $scope.dropping = false;
-            $scope.progress = 0;
 
-            $scope.options = {
-                url: umbRequestHelper.getApiUrl("mediaApiBaseUrl", "PostAddFile") + "?origin=blueimp",
-                autoUpload: true,
-                dropZone: $element.find(".umb-dialogs-mediapicker.browser"),
-                fileInput: $element.find("input.uploader"),
-                formData: {
-                    currentFolder: -1
-                }
-            };
 
             //preload selected item
             $scope.target = undefined;
@@ -35,12 +22,24 @@ angular.module("umbraco")
                 $scope.target = dialogOptions.currentTarget;
             }
 
+            $scope.upload = function(v){
+               angular.element(".umb-file-dropzone-directive .file-select").click();
+            };
+
+            $scope.dragLeave = function(el, event){
+                $scope.activeDrag = false;
+            };
+
+            $scope.dragEnter = function(el, event){
+                $scope.activeDrag = true;
+            };
+
             $scope.submitFolder = function(e) {
                 if (e.keyCode === 13) {
                     e.preventDefault();
                     
                     mediaResource
-                        .addFolder($scope.newFolderName, $scope.options.formData.currentFolder)
+                        .addFolder($scope.newFolderName, $scope.currentFolder.id)
                         .then(function(data) {
                             $scope.showFolderInput = false;
                             $scope.newFolderName = "";
@@ -82,51 +81,10 @@ angular.module("umbraco")
                         $scope.images = data.items ? data.items : [];
                     });
 
-                $scope.options.formData.currentFolder = folder.id;
                 $scope.currentFolder = folder;      
             };
             
-            //This executes prior to the whole processing which we can use to get the UI going faster,
-            //this also gives us the start callback to invoke to kick of the whole thing
-            $scope.$on('fileuploadadd', function (e, data) {
-                $scope.$apply(function () {
-                    $scope.filesUploading++;
-                });
-            });
-
-            //when one is finished
-            $scope.$on('fileuploaddone', function (e, data) {
-                $scope.filesUploading--;
-                if ($scope.filesUploading == 0) {
-                    $scope.$apply(function () {
-                        $scope.progress = 0;
-                        $scope.gotoFolder($scope.currentFolder);
-                    });
-                }
-                //Show notifications!!!!
-                if (data.result && data.result.notifications && angular.isArray(data.result.notifications)) {
-                    for (var n = 0; n < data.result.notifications.length; n++) {
-                        notificationsService.showNotification(data.result.notifications[n]);
-                    }
-                }
-            });
-
-            // All these sit-ups are to add dropzone area and make sure it gets removed if dragging is aborted! 
-            $scope.$on('fileuploaddragover', function (e, data) {
-                if (!$scope.dragClearTimeout) {
-                    $scope.$apply(function () {
-                        $scope.dropping = true;
-                    });
-                }
-                else {
-                    $timeout.cancel($scope.dragClearTimeout);
-                }
-                $scope.dragClearTimeout = $timeout(function () {
-                    $scope.dropping = null;
-                    $scope.dragClearTimeout = null;
-                }, 300);
-            });
-
+          
             $scope.clickHandler = function(image, ev, select) {
                 ev.preventDefault();
                 
@@ -156,7 +114,13 @@ angular.module("umbraco")
                 $scope.target = undefined;
             };
 
-           
+            $scope.onUploadComplete = function () {
+                $scope.gotoFolder($scope.currentFolder);
+            };
+
+            $scope.onFilesQueue = function(){
+                $scope.activeDrag = false;
+            };
 
             //default root item
             if(!$scope.target){
