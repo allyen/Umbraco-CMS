@@ -21,6 +21,14 @@ namespace Umbraco.Core.Persistence.Migrations.Upgrades.TargetVersionSevenFourZer
         
         public override void Up()
         {
+            var tables = SqlSyntax.GetTablesInSchema(Context.Database).ToArray();
+            if (!tables.InvariantContains("umbracoTmpDocTypeGuid"))
+            {
+                Create.Table("umbracoTmpDocTypeGuid")
+                    .WithColumn("oldGuid").AsGuid().NotNullable()
+                    .WithColumn("newGuid").AsGuid().NotNullable();
+            }
+
             var objectTypes = new[]
             {
                 Constants.ObjectTypes.DocumentTypeGuid,
@@ -29,7 +37,7 @@ namespace Umbraco.Core.Persistence.Migrations.Upgrades.TargetVersionSevenFourZer
             };
 
             var sql = new Sql()
-                .Select("umbracoNode.id,cmsContentType.alias,umbracoNode.nodeObjectType")
+                .Select("umbracoNode.id,cmsContentType.alias,umbracoNode.uniqueID,umbracoNode.nodeObjectType")
                 .From<NodeDto>(SqlSyntax)
                 .InnerJoin<ContentTypeDto>(SqlSyntax)
                 .On<NodeDto, ContentTypeDto>(SqlSyntax, dto => dto.NodeId, dto => dto.NodeId)
@@ -46,6 +54,9 @@ namespace Umbraco.Core.Persistence.Migrations.Upgrades.TargetVersionSevenFourZer
 
                 // set the Unique Id to the one we've generated
                 Update.Table("umbracoNode").Set(new { uniqueID = guid }).Where(new { id = row.id });
+
+                // keep old Id for reference where conversion needed
+                Insert.IntoTable("umbracoTmpDocTypeGuid").Row(new { oldGuid = (Guid)row.uniqueID, newGuid = guid });
             }
         }
 
