@@ -19,17 +19,24 @@ namespace Umbraco.Web.Templates
         internal static string ParseInternalLinks(string text, bool preview)
 	    {
             // save and set for url provider
-            var inPreviewMode = UmbracoContext.Current.InPreviewMode;
-            UmbracoContext.Current.InPreviewMode = preview;
+            if (UmbracoContext.Current != null)
+            {
+                var inPreviewMode = UmbracoContext.Current.InPreviewMode;
+                UmbracoContext.Current.InPreviewMode = preview;
 
-            try
+                try
+                {
+                    text = ParseInternalLinks(text);
+                }
+                finally
+                {
+                    // restore
+                    UmbracoContext.Current.InPreviewMode = inPreviewMode;
+                }
+            }
+            else
             {
                 text = ParseInternalLinks(text);
-            }
-            finally
-            {
-                // restore
-                UmbracoContext.Current.InPreviewMode = inPreviewMode;
             }
 
             return text;
