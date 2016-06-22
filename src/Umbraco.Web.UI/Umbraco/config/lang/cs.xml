@@ -36,6 +36,7 @@
     <key alias="translate">Přeložit</key>
     <key alias="update">Aktualizovat</key>
     <key alias="defaultValue">Implicitní hodnota</key>
+    <key alias="restore" version="7.3.0">Restore</key>
   </area>
   <area alias="assignDomain">
     <key alias="permissionDenied">Přístup odepřen</key>
@@ -92,6 +93,8 @@
     <key alias="styleChoose">Zvolit styl</key>
     <key alias="styleShow">Zobrazit styly</key>
     <key alias="tableInsert">Vložit tabulku</key>
+    <key alias="saveListView">Save list view</key>
+    <key alias="generateModels">Generate models</key>
   </area>
   <area alias="changeDocType">
     <key alias="changeDocTypeInstruction">Pro změnu dokumentového typu nejprve vyberte platné typy pro toto místo</key>
@@ -162,22 +165,31 @@
     <key alias="childItems" version="7.0">Potomci</key>
     <key alias="target" version="7.0">Cíl</key>
     <key alias="altTextOptional">Alternativní text (nepovinný)</key>
+    <key alias="noItemsToShow">There are no items to show</key>
   </area>
   <area alias="media">
     <key alias="clickToUpload">Klikněte pro nahrání</key>
     <key alias="dropFilesHere">Ponechat soubor zde...</key>
+    <key alias="orClickHereToUpload">nebo klikněte pro pro výběr souborů</key>
+    <key alias="onlyAllowedFiles">Only allowed file types are</key>
+    <key alias="maxFileSize">Max file size is</key>
   </area>
-  <area alias="create"> 
-    <key alias="chooseNode">Kde chcete vytvořit nový %0%</key> 
+  <area alias="member">
+    <key alias="createNewMember">Create a new member</key>
+    <key alias="allMembers">All Members</key>
+  </area>
+  <area alias="create">
+    <key alias="chooseNode">Kde chcete vytvořit nový %0%</key>
     <key alias="createUnder">Vytvořit v</key>
     <key alias="updateData">Zvolte typ a zadejte název</key>
-    <key alias="noDocumentTypes" version="7.0"><![CDATA[Není zde povolený žádný dokumentový typ. V sekci nastavení pod <strong>"document types"</strong> musíte nastavit povolené typy.]]></key>  
-    <key alias="noMediaTypes" version="7.0"><![CDATA[Není zde povolený žádný uzel typu media. V sekci nastavení pod <strong>"media types"</strong> musíte nastavit povolené typy.]]></key> 
+    <key alias="noDocumentTypes" version="7.0"><![CDATA[Není zde povolený žádný dokumentový typ. V sekci nastavení pod <strong>"document types"</strong> musíte nastavit povolené typy.]]></key>
+    <key alias="noMediaTypes" version="7.0"><![CDATA[Není zde povolený žádný uzel typu media. V sekci nastavení pod <strong>"media types"</strong> musíte nastavit povolené typy.]]></key>
+    <key alias="documentTypeWithoutTemplate">Document Type without a template</key>
   </area>
   <area alias="dashboard">
     <key alias="browser">Procházet Váš web</key>
     <key alias="dontShowAgain">- Schovat</key>
-    <key alias="nothinghappens">Pokud se Vám Umbraco nezobrazí, bude zřejmě nutné povolit vyskakovací okna pro tuto stránku.</key> 
+    <key alias="nothinghappens">Pokud se Vám Umbraco nezobrazí, bude zřejmě nutné povolit vyskakovací okna pro tuto stránku.</key>
     <key alias="openinnew">bylo otevřeno v novém okně</key>
     <key alias="restart">Restartovat</key>
     <key alias="visit">Navštívit</key>
@@ -215,7 +227,7 @@
     <key alias="recycleBinIsEmpty">Koš je nyní prázdný</key>
     <key alias="recycleBinWarning">Pokud smažete položky z koše, budou odstraněny trvale</key>
     <key alias="regexSearchError"><![CDATA[Weobvá služba <a target='_blank' href='http://regexlib.com'>regexlib.com</a> je v současné době nedostupná. Velmi se omlouváme za způsobené nepříjemnosti]]></key>
-    <key alias="regexSearchHelp">Vyhledat regulární výraz pro přidání validace formulářových prvků. Například: 'email, 'url'</key> 
+    <key alias="regexSearchHelp">Vyhledat regulární výraz pro přidání validace formulářových prvků. Například: 'email, 'url'</key>
     <key alias="removeMacro">Odstranit makro</key>
     <key alias="requiredField">Povinné pole</key>
     <key alias="sitereindexed">Web je přeindexovaný</key>
@@ -224,12 +236,38 @@
     <key alias="tableColumns">Počet sloupců</key>
     <key alias="tableRows">Počet řádků</key>
     <key alias="templateContentAreaHelp"><![CDATA[<strong>Set a placeholder id</strong> by setting an ID on your placeholder you can inject content into this template from child templates,
-      by referring this ID using a <code>&lt;asp:content /&gt;</code> element.]]></key>     <!-- Neprelozeno -->
+      by referring this ID using a <code>&lt;asp:content /&gt;</code> element.]]></key>
     <key alias="templateContentPlaceHolderHelp"><![CDATA[<strong>Select a placeholder id</strong> from the list below. You can only
-      choose Id's from the current template's master.]]></key>      <!-- Neprelozeno -->
+      choose Id's from the current template's master.]]></key>
     <key alias="thumbnailimageclickfororiginal">Klikněte na obrázek pro zobrazení plné velikosti</key>
     <key alias="treepicker">Vybrat položku</key>
     <key alias="viewCacheItem">Zobrazit položku cache</key>
+    <key alias="createFolder">Create folder...</key>
+    <key alias="relateToOriginalLabel">Relate to original</key>
+    <key alias="theFriendliestCommunity">The friendliest community</key>
+    <key alias="linkToPage">Link to page</key>
+    <key alias="openInNewWindow">Opens the linked document in a new window or tab</key>
+    <key alias="openInFullBody">Opens the linked document in the full body of the window</key>
+    <key alias="openInParentFrame">Opens the linked document in the parent frame</key>
+    <key alias="linkToMedia">Link to media</key>
+    <key alias="selectMedia">Select media</key>
+    <key alias="selectIcon">Select icon</key>
+    <key alias="selectItem">Select item</key>
+    <key alias="selectLink">Select link</key>
+    <key alias="selectMacro">Select macro</key>
+    <key alias="selectContent">Select content</key>
+    <key alias="selectMember">Select member</key>
+    <key alias="selectMemberGroup">Select member group</key>
+    <key alias="noIconsFound">No icons were found</key>
+    <key alias="noMacroParams">There are no parameters for this macro</key>
+    <key alias="externalLoginProviders">External login providers</key>
+    <key alias="exceptionDetail">Exception Details</key>
+    <key alias="stacktrace">Stacktrace</key>
+    <key alias="innerException">Inner Exception</key>
+    <key alias="linkYour">Link your</key>
+    <key alias="unLinkYour">Un-Link your</key>
+    <key alias="account">account</key>
+    <key alias="selectEditor">Select editor</key>
   </area>
   <area alias="dictionaryItem">
     <key alias="description"><![CDATA[
@@ -245,6 +283,8 @@
     <key alias="search">Hledaný typ...</key>
     <key alias="filter">Filtrovat podle typu...</key>
     <key alias="enterTags">Zápisem přidáte značky (zmáčkněte enter za každou značkou)...</key>
+    <key alias="label">Label...</key>
+    <key alias="enterDescription">Enter a description...</key>
   </area>
   <area alias="editcontenttype">
     <key alias="allowAtRoot" version="7.2">Allow at root</key>
@@ -264,7 +304,7 @@
     <key alias="createListView" version="7.2">Create custom list view</key>
     <key alias="removeListView" version="7.2">Remove custom list view</key>
   </area>
-  <area alias="editdatatype"> 
+  <area alias="editdatatype">
     <key alias="addPrevalue">Přidat předvolenou hodnotu</key>
     <key alias="dataBaseDatatype">Databazový datový typ</key>
     <key alias="guid">Property editor GUID</key>
@@ -290,24 +330,31 @@
     <key alias="errorRegExp" version="2.1">"%0%" v "%1%" není korektně formátováno</key>
     <key alias="errorRegExpWithoutTab" version="2.1">"%0%" není korektně formátováno</key>
   </area>
-  <area alias="errors">    
+  <area alias="errors">
     <key alias="dissallowedMediaType">Typ souboru byl zakázán administrátorem</key>
     <key alias="codemirroriewarning">UPOZORNĚNÍ! Ačkoliv je CodeMirror v konfiguraci povolený, je zablokovaný prohlížečem Internet Explorer kvůli možným potížím.</key>
-    <key alias="contentTypeAliasAndNameNotNull">Prosím, vyplňte jak alias, tak jméno nového typu property!</key>  
+    <key alias="contentTypeAliasAndNameNotNull">Prosím, vyplňte jak alias, tak jméno nového typu property!</key>
     <key alias="filePermissionsError">Vyskytl se problém se čtením/zápisem do složky či souboru</key>
     <key alias="missingTitle">Zadejte prosím název</key>
     <key alias="missingType">Zvolte prosím typ</key>
     <key alias="pictureResizeBiggerThanOrg">Chystáte se změnit velikost obrázku tak, že bude větší, než vložený originál. Chcete v tomto pokračovat?</key>
-    <key alias="pythonErrorHeader">Chyba ve skriptu python</key>  
-    <key alias="pythonErrorText">Skript python nebyl uložen z důvodu výskytu jedné či více chyb</key>    
+    <key alias="pythonErrorHeader">Chyba ve skriptu python</key>
+    <key alias="pythonErrorText">Skript python nebyl uložen z důvodu výskytu jedné či více chyb</key>
     <key alias="startNodeDoesNotExists">Byl smazán vstupní uzel, kontaktujte prosím svého administrátora</key>
     <key alias="stylesMustMarkBeforeSelect">Před změnou stylu prosím označte obsah, na který chcete změnu aplikovat</key>
     <key alias="stylesNoStylesOnPage">Nejsou k dispozici žádné aktivní styly</key>
     <key alias="tableColMergeLeft">Umístěte prosím kurzor na levou ze dvojice buněk, které chcete sloučit</key>
     <key alias="tableSplitNotSplittable">Není možno rozdělit buňku, která nebyla sloučena.</key>
-    <key alias="xsltErrorHeader">Chyba v XSLT</key> 
+    <key alias="xsltErrorHeader">Chyba v XSLT</key>
     <key alias="xsltErrorText">XSLT nebylo uloženo z důvodu výskytu jedné či více chyb</key>
     <key alias="missingPropertyEditorErrorMessage">Nastala chyba v konfiguraci související s datovým typem property. Prosím, zkontrolujte datový typ</key>
+    <key alias="receivedErrorFromServer">Received an error from the server</key>
+    <key alias="macroErrorLoadingPartialView">Error loading Partial View script (file: %0%)</key>
+    <key alias="macroErrorLoadingUsercontrol">Error loading userControl '%0%'</key>
+    <key alias="macroErrorLoadingCustomControl">Error loading customControl (Assembly: %0%, Type: '%1%')</key>
+    <key alias="macroErrorLoadingMacroEngineScript">Error loading MacroEngine script (file: %0%)</key>
+    <key alias="macroErrorParsingXSLTFile">"Error parsing XSLT file: %0%</key>
+    <key alias="macroErrorReadingXSLTFile">"Error reading XSLT file: %0%</key>
   </area>
   <area alias="general">
     <key alias="about">O aplikaci</key>
@@ -391,7 +438,8 @@
     <key alias="showPageOnSend">Zobrazit stránku po stisknutí Odeslat</key>
     <key alias="size">Velikost</key>
     <key alias="sort">Setřídit</key>
-    <key alias="submit">Submit</key> <!-- TODO: Translate this -->
+    <key alias="submit">Submit</key>
+    <!-- TODO: Translate this -->
     <key alias="type">Typ</key>
     <key alias="typeToSearch">Zadejte výraz pro vyhledávání...</key>
     <key alias="up">Nahoru</key>
@@ -408,8 +456,38 @@
     <key alias="yes">Ano</key>
     <key alias="folder">Složka</key>
     <key alias="searchResults">Nalezené výsledky</key>
-    <key alias="reorder">Reorder</key>
-    <key alias="reorderDone">I am done reordering</key>
+    <key alias="reorder">Přetřídit</key>
+    <key alias="reorderDone">Přetřízení hotovo</key>
+    <key alias="all">All</key>
+    <key alias="back">Back</key>
+    <key alias="invalid">Invalid</key>
+    <key alias="mandatory">Mandatory</key>
+    <key alias="listView">List view</key>
+    <key alias="saving">Saving...</key>
+    <key alias="current">current</key>
+    <key alias="embed">Embed</key>
+  </area>
+  <area alias="colors">
+    <key alias="black">Black</key>
+    <key alias="green">Green</key>
+    <key alias="yellow">Yellow</key>
+    <key alias="orange">Orange</key>
+    <key alias="blue">Blue</key>
+    <key alias="red">Red</key>
+  </area>
+  <area alias="shortcuts">
+    <key alias="addTab">Add tab</key>
+    <key alias="addProperty">Add property</key>
+    <key alias="addEditor">Add editor</key>
+    <key alias="addTemplate">Add template</key>
+    <key alias="addChildNode">Add child node</key>
+    <key alias="addChild">Add child</key>
+    <key alias="editDataType">Edit data type</key>
+    <key alias="navigateSections">Navigate sections</key>
+    <key alias="shortcut">Shortcuts</key>
+    <key alias="showShortcuts">show shortcuts</key>
+    <key alias="toggleListView">Toggle list view</key>
+    <key alias="toggleAllowAsRoot">Toggle allow as root</key>
   </area>
   <area alias="graphicheadline">
     <key alias="backgroundcolor">Barva pozadí</key>
@@ -421,7 +499,8 @@
   <area alias="headers">
     <key alias="page">Stránka</key>
   </area>
-  <area alias="installer">    <!-- Neprelozena cela oblast -->
+  <area alias="installer">
+    <!-- Neprelozena cela oblast -->
     <key alias="databaseErrorCannotConnect">The installer cannot connect to the database.</key>
     <key alias="databaseErrorWebConfig">Could not save the web.config file. Please modify the connection string manually.</key>
     <key alias="databaseFound">Your database has been found and is identified as</key>
@@ -626,7 +705,8 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="mailSubject">[%0%] Upozornění na akci "%1%" provedenou na stránce "%2%"</key>
     <key alias="notifications">Upozorňování</key>
   </area>
-  <area alias="packager">    <!-- Neprelozena cela oblast -->
+  <area alias="packager">
+    <!-- Neprelozena cela oblast -->
     <key alias="chooseLocalPackageText"><![CDATA[
       Choose Package from your machine, by clicking the Browse<br />
          button and locating the package. umbraco packages usually have a ".umb" or ".zip" extension.
@@ -665,7 +745,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="removeSpecialFormattering">Vložit, ale odstranit formátování (Doporučeno)</key>
   </area>
   <area alias="publicAccess">
-    <key alias="paAdvanced" version="2.1">Role based protection (ochrana na základě přiřazených rolí)</key> 
+    <key alias="paAdvanced" version="2.1">Role based protection (ochrana na základě přiřazených rolí)</key>
     <key alias="paAdvancedHelp" version="2.1"><![CDATA[Pokud chcete kontrolovat přístup ke stránce na základě uživatelských rolí, <br /> pomocí skupin registrovaných osob v systému Umbraco.]]></key>
     <key alias="paAdvancedNoGroups" version="4.0"><![CDATA[Role based authentication lze použít až po vytvoření <br />nějaké skupiny registrovaných osob.]]></key>
     <key alias="paErrorPage" version="2.1">Chybová stránka</key>
@@ -679,15 +759,13 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="paSelectPages" version="4.0">Zvolte stránka, které obsahují přihlašovací formulář a hlášení o chybě</key>
     <key alias="paSelectRoles" version="4.0">Vyberte role, které mají mít přístup k této stránce</key>
     <key alias="paSetLogin" version="4.0">Nastavte login a heslo pro tuto stránku</key>
-    <key alias="paSimple" version="2.1">Single user protection (práva přiřazeny zvlášť pro každého uživatele)</key> 
+    <key alias="paSimple" version="2.1">Single user protection (práva přiřazeny zvlášť pro každého uživatele)</key>
     <key alias="paSimpleHelp" version="4.0">Jednoduché omezení přístupu, využívá jeden společný login a heslo</key>
   </area>
   <area alias="publish">
-    <key alias="contentPublishedFailedAwaitingRelease">       
-      <![CDATA[
+    <key alias="contentPublishedFailedAwaitingRelease"><![CDATA[
       %0% nelze publiovat, jelikož je zde nastaven plán zveřejnění.
-    ]]>
-    </key>
+    ]]></key>
     <key alias="contentPublishedFailedInvalid"><![CDATA[
       %0% nelze publikovat, jelikož tyto properties:  %1%  neprošly validační kontrolou.
     ]]></key>
@@ -706,11 +784,14 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="publishHelp" version="4.0"><![CDATA[Kliknutím na <em>ok</em> publikujete <strong>%0%</strong> a tím veřejně zpřístupníte tuto stránku.<br/><br />
       Můžete zveřejnit tuto stránku a všechny její podstránky zatrhnutím <em>zveřejnit všechny podstránky</em> níže.
       ]]></key>
+    <key alias="contentPublishedFailedExpired"><![CDATA[
+      %0% could not be published because the item has expired.
+    ]]></key>
   </area>
-  <area alias="colorpicker">  
-    <key alias="noColors">Nemáte nakonfigurované žádné barvy</key> 
+  <area alias="colorpicker">
+    <key alias="noColors">Nemáte nakonfigurované žádné barvy</key>
   </area>
-  <area alias="relatedlinks"> 
+  <area alias="relatedlinks">
     <key alias="addExternal">Přidat externí odkaz</key>
     <key alias="addInternal">Přidat interní odkaz</key>
     <key alias="addlink">Přidat</key>
@@ -743,9 +824,9 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="editscript">Editovat soubor se skriptem</key>
   </area>
   <area alias="sections">
-    <key alias="concierge">Concierge</key>   <!-- Neprelozeno, nazev pluginu -->
+    <key alias="concierge">Concierge</key>
     <key alias="content">Obsah</key>
-    <key alias="courier">Courier</key>      <!-- Neprelozeno, nazev pluginu -->
+    <key alias="courier">Courier</key>
     <key alias="developer">Vývojář</key>
     <key alias="installer">Umbraco Configuration Wizard</key>
     <key alias="media">Media</key>
@@ -758,11 +839,18 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="help" version="7.0">Nápověda</key>
     <key alias="forms">Formuláře</key>
     <key alias="analytics">Analytika</key>
+    <key alias="Webpack">Webpack</key>
+  </area>
+  <area alias="help">
+    <key alias="goTo">go to</key>
+    <key alias="helpTopicsFor">Help topics for</key>
+    <key alias="videoChaptersFor">Video chapters for</key>
+    <key alias="theBestUmbracoVideoTutorials">The best Umbraco video tutorials</key>
   </area>
   <area alias="settings">
     <key alias="defaulttemplate">Výchozí šablona</key>
     <key alias="dictionary editor egenskab" version="2.1">Slovníkový klíč</key>
-    <key alias="importDocumentTypeHelp" version="3.0">K importu dokumentového typu je nutné nalézt soubor s příponou ".udt" v počítači kliknutím na tlačítko "Procházet" a následně kliknutím na "Importortovat" (budete požádání o potvrzení na následující obrazovce)</key> 
+    <key alias="importDocumentTypeHelp" version="3.0">K importu dokumentového typu je nutné nalézt soubor s příponou ".udt" v počítači kliknutím na tlačítko "Procházet" a následně kliknutím na "Importortovat" (budete požádání o potvrzení na následující obrazovce)</key>
     <key alias="newtabname">Nový název záložky</key>
     <key alias="nodetype">Typ uzlu</key>
     <key alias="objecttype">Typ</key>
@@ -772,12 +860,13 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="tab">Záložka</key>
     <key alias="tabname">Název záložky</key>
     <key alias="tabs">Záložky</key>
-    <key alias="contentTypeEnabled">Povolen nadřazený obsahovový typ</key> 
+    <key alias="contentTypeEnabled">Povolen nadřazený obsahovový typ</key>
     <key alias="contentTypeUses">Tento obsahový typ je použit</key>
     <key alias="asAContentMasterType">jako nadřazený obsahový typ. Záložky z nadřazeného typu nejsou zobrazeny a mohou být editovány pouze přímo na nadřazeném uzlu</key>
     <key alias="noPropertiesDefinedOnTab">Na záložce nejsou definovány žádné properties. Klikněte na "Přidat novou property" na horní straně stránky pro vytvoření nové property.</key>
     <key alias="masterDocumentType">Nadřazený obsahový typ</key>
     <key alias="createMatchingTemplate">Vytvořit i šablonu</key>
+    <key alias="addIcon">Add icon</key>
   </area>
   <area alias="sort">
     <key alias="sortOrder">Pořadí</key>
@@ -791,58 +880,71 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="contentPublishedFailedByEvent">Publikování bylo zrušeno kvůli zásahu třetí strany.</key>
     <key alias="contentTypeDublicatePropertyType">Tento typ property již existuje</key>
     <key alias="contentTypePropertyTypeCreated">Typ property byl vytvořen</key>
-    <key alias="contentTypePropertyTypeCreatedText"><![CDATA[Název: %0% <br /> Datový typ: %1%]]></key> 
-    <key alias="contentTypePropertyTypeDeleted">Typ property smazán</key> 
+    <key alias="contentTypePropertyTypeCreatedText"><![CDATA[Název: %0% <br /> Datový typ: %1%]]></key>
+    <key alias="contentTypePropertyTypeDeleted">Typ property smazán</key>
     <key alias="contentTypeSavedHeader">Dokumentový typ uložen</key>
     <key alias="contentTypeTabCreated">Záložka byla vytvořena</key>
     <key alias="contentTypeTabDeleted">Záložka byla smazána</key>
     <key alias="contentTypeTabDeletedText">Záložka s id %0% byla smazána</key>
-    <key alias="cssErrorHeader">Šablona nebyla uložena</key> 
-    <key alias="cssSavedHeader">Šablona byla uložena</key>  
+    <key alias="cssErrorHeader">Šablona nebyla uložena</key>
+    <key alias="cssSavedHeader">Šablona byla uložena</key>
     <key alias="cssSavedText">Šablona byla uloženy bez výskytu chyb</key>
-    <key alias="dataTypeSaved">Datový typ byl uložen</key>   
+    <key alias="dataTypeSaved">Datový typ byl uložen</key>
     <key alias="dictionaryItemSaved">Položka ve slovníku byla uložena</key>
     <key alias="editContentPublishedFailedByParent">Publikování selhalo, protože rodičovská stránka není publikována</key>
     <key alias="editContentPublishedHeader">Obsah byl publikován</key>
     <key alias="editContentPublishedText">a je viditelný na webové stránce</key>
     <key alias="editContentSavedHeader">Obsah byl uložen</key>
     <key alias="editContentSavedText">Nezapomeňte stisknout "Publikovat", aby se změny projevily na Vaší webové stránce</key>
-    <key alias="editContentSendToPublish">Poslat ke schválení</key>      
-    <key alias="editContentSendToPublishText">Změny byly odeslány ke schválení</key>    
-    <key alias="editMediaSaved">Media uložena</key> 
+    <key alias="editContentSendToPublish">Poslat ke schválení</key>
+    <key alias="editContentSendToPublishText">Změny byly odeslány ke schválení</key>
+    <key alias="editMediaSaved">Media uložena</key>
     <key alias="editMediaSavedText">Media uložena bez výskytu chyby</key>
-    <key alias="editMemberSaved">Člen uložen</key> 
-    <key alias="editStylesheetPropertySaved">Vlastnost stylu uložena</key> 
-    <key alias="editStylesheetSaved">Styl uložen</key> 
+    <key alias="editMemberSaved">Člen uložen</key>
+    <key alias="editStylesheetPropertySaved">Vlastnost stylu uložena</key>
+    <key alias="editStylesheetSaved">Styl uložen</key>
     <key alias="editTemplateSaved">Šablona uložena</key>
-    <key alias="editUserError">Chyba při ukládání uživatele(zalogováno)</key> 
-    <key alias="editUserSaved">Uživatel byl uložen</key>    
-    <key alias="editUserTypeSaved">Typ uživatele byl uložen</key> 
+    <key alias="editUserError">Chyba při ukládání uživatele(zalogováno)</key>
+    <key alias="editUserSaved">Uživatel byl uložen</key>
+    <key alias="editUserTypeSaved">Typ uživatele byl uložen</key>
     <key alias="fileErrorHeader">Soubor nebyl uložen</key>
     <key alias="fileErrorText">nebylo možno uložit. Zkontrolujte prosím oprávnění k souboru</key>
     <key alias="fileSavedHeader">Soubor byl uložen</key>
     <key alias="fileSavedText">Soubor byl uložen bez chyb</key>
-    <key alias="languageSaved">Jazyk byl uložen</key> 
-    <key alias="pythonErrorHeader">Skript python nebyl uložen</key>  
+    <key alias="languageSaved">Jazyk byl uložen</key>
+    <key alias="pythonErrorHeader">Skript python nebyl uložen</key>
     <key alias="pythonErrorText">Skript python nebyl uložen kvůli výskytu chyby</key>
-    <key alias="pythonSavedHeader">Skript python byl uložen</key>    
+    <key alias="pythonSavedHeader">Skript python byl uložen</key>
     <key alias="pythonSavedText">Nevyskytly se žádné chyby ve skriptu python</key>
-    <key alias="templateErrorHeader">Šablona nebyla uložena</key> 
+    <key alias="templateErrorHeader">Šablona nebyla uložena</key>
     <key alias="templateErrorText">Ujistěte se prosím, že nemáte 2 šablony se shodným aliasem</key>
     <key alias="templateSavedHeader">Šablona byla uložena</key>
-    <key alias="templateSavedText">Šablona byla uložena bez výskytu chyb!</key> 
-    <key alias="xsltErrorHeader">XSLT nebylo uloženo</key>             
-    <key alias="xsltErrorText">XSLT obsahuje chyby</key>  
-    <key alias="xsltPermissionErrorText">XSLT nebylo uloženo, zkontrolujte přístupová práva souboru</key> 
-    <key alias="xsltSavedHeader">XSLT bylo uloženo</key>  
-    <key alias="xsltSavedText">V XSLT se neobjevily žádné chyby</key> 
-    <key alias="contentUnpublished">Obsah byl zneveřejněn</key>  
+    <key alias="templateSavedText">Šablona byla uložena bez výskytu chyb!</key>
+    <key alias="xsltErrorHeader">XSLT nebylo uloženo</key>
+    <key alias="xsltErrorText">XSLT obsahuje chyby</key>
+    <key alias="xsltPermissionErrorText">XSLT nebylo uloženo, zkontrolujte přístupová práva souboru</key>
+    <key alias="xsltSavedHeader">XSLT bylo uloženo</key>
+    <key alias="xsltSavedText">V XSLT se neobjevily žádné chyby</key>
+    <key alias="contentUnpublished">Obsah byl zneveřejněn</key>
     <key alias="partialViewSavedHeader">Partial view byl uloženo</key>
-    <key alias="partialViewSavedText">Partial view bylo uloženo bez výskytu chyb!</key> 
-    <key alias="partialViewErrorHeader">Partial view nebylo uloženo</key> 
-    <key alias="partialViewErrorText">Objevila se chyba při ukládání souboru.</key> 
+    <key alias="partialViewSavedText">Partial view bylo uloženo bez výskytu chyb!</key>
+    <key alias="partialViewErrorHeader">Partial view nebylo uloženo</key>
+    <key alias="partialViewErrorText">Objevila se chyba při ukládání souboru.</key>
+    <key alias="validationFailedHeader">Validation</key>
+    <key alias="validationFailedMessage">Validation errors must be fixed before the item can be saved</key>
+    <key alias="operationFailedHeader">Failed</key>
+    <key alias="invalidUserPermissionsText">Insufficient user permissions, could not complete the operation</key>
+    <key alias="operationCancelledHeader">Cancelled</key>
+    <key alias="operationCancelledText">Operation was cancelled by a 3rd party add-in</key>
+    <key alias="mediaTypeSavedHeader">Media Type saved</key>
+    <key alias="memberTypeSavedHeader">Member Type saved</key>
+    <key alias="scriptSavedHeader">Script view saved</key>
+    <key alias="scriptSavedText">Script view saved without any errors!</key>
+    <key alias="scriptErrorHeader">Script view not saved</key>
+    <key alias="scriptErrorText">An error occurred saving the file.</key>
+    <key alias="cssErrorText">An error occurred saving the file.</key>
   </area>
-  <area alias="stylesheet"> 
+  <area alias="stylesheet">
     <key alias="aliasHelp">Použít css syntaxi - např.: h1, .redHeader, .blueTex</key>
     <key alias="editstylesheet">Editovat styl</key>
     <key alias="editstylesheetproperty">Editovat vlastnost stylu</key>
@@ -850,7 +952,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="preview">Náhled</key>
     <key alias="styles">Styly</key>
   </area>
-  <area alias="template">  
+  <area alias="template">
     <key alias="edittemplate">Upravit šablonu</key>
     <key alias="insertContentArea">Vložit obsahovou oblast</key>
     <key alias="insertContentAreaPlaceHolder">Vložit placeholder pro obsahovou oblast</key>
@@ -866,32 +968,25 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="chooseLayout">Choose a layout</key>
     <key alias="addRows">Vyberte rozložení stránky</key>
     <key alias="addElement"><![CDATA[Kliknutím na ikonku <i class="icon icon-add blue"></i> vložíte další elementy]]></key>
-    
     <key alias="dropElement">Drop content</key>
     <key alias="settingsApplied">Settings applied</key>
-
     <key alias="contentNotAllowed">This content is not allowed here</key>
     <key alias="contentAllowed">This content is allowed here</key>
-    <key alias="clickToEmbed">Klikněte pro výběr obsahu</key>
+    <key alias="clickToEmbed">Klikněte pro výběr videa</key>
     <key alias="clickToInsertImage">Klikněte pro výběr obrázku</key>
     <key alias="placeholderImageCaption">Nadpis obrázku...</key>
     <key alias="placeholderWriteHere">Sem můžete psát...</key>
-    
-    <key alias="clickToEmbed">Klikněte pro vložení</key>
     <key alias="clickToInsertImage">Klikněte pro vložení obrázku</key>
     <key alias="placeholderImageCaption">Nadpis obrázku...</key>
     <key alias="placeholderWriteHere">Sem můžete psát...</key>
-
     <key alias="gridLayouts">Grid layouts</key>
     <key alias="gridLayoutsDetail">Layouts are the overall work area for the grid editor, usually you only need one or two differnt layouts</key>
     <key alias="addGridLayout">Add grid layout</key>
     <key alias="addGridLayoutDetail">Adjust the layout by setting column widths and adding additional sections</key>
-    
     <key alias="rowConfigurations">Row configurations</key>
     <key alias="rowConfigurationsDetail">Rows are predefined cells arranged horizontally</key>
     <key alias="addRowConfiguration">Add row configuration</key>
     <key alias="addRowConfigurationDetail">Adjust the row by setting cell widths and adding additional cells</key>
-
     <key alias="columns">Columns</key>
     <key alias="columnsDetails">Total combined number of columns in the grid layout</key>
     <key alias="settings">Settings</key>
@@ -901,11 +996,59 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="settingDialogDetails">Settings will only save if the entered json configuration is valid</key>
     <key alias="allowAllEditors">Allow all editors</key>
     <key alias="allowAllRowConfigurations">Allow all row configurations</key>
+    <key alias="setAsDefault">Set as default</key>
+    <key alias="chooseExtra">Choose extra</key>
+    <key alias="chooseDefault">Choose default</key>
+    <key alias="areAdded">are added</key>
+  </area>
+  <area alias="contentTypeEditor">
+    <key alias="compositions">Compositions</key>
+    <key alias="noTabs">You have not added any tabs</key>
+    <key alias="addNewTab">Add new tab</key>
+    <key alias="addAnotherTab">Add another tab</key>
+    <key alias="inheritedFrom">Inherited from</key>
+    <key alias="addProperty">Add property</key>
+    <key alias="requiredLabel">Required label</key>
+    <key alias="enableListViewHeading">Enable list view</key>
+    <key alias="enableListViewDescription">Configures the content item to show a sortable and searchable list of its children, the children will not be shown in the tree</key>
+    <key alias="allowedTemplatesHeading">Allowed Templates</key>
+    <key alias="allowedTemplatesDescription">Choose which templates editors are allowed to use on content of this type</key>
+    <key alias="allowAsRootHeading">Allow as root</key>
+    <key alias="allowAsRootDescription">Allow editors to create content of this type in the root of the content tree</key>
+    <key alias="allowAsRootCheckbox">Yes - allow content of this type in the root</key>
+    <key alias="childNodesHeading">Allowed child node types</key>
+    <key alias="childNodesDescription">Allow content of the specified types to be created underneath content of this type</key>
+    <key alias="chooseChildNode">Choose child node</key>
+    <key alias="compositionsDescription">Inherit tabs and properties from an existing document type. New tabs will be added to the current document type or merged if a tab with an identical name exists.</key>
+    <key alias="compositionInUse">This content type is used in a composition, and therefore cannot be composed itself.</key>
+    <key alias="noAvailableCompositions">There are no content types available to use as a composition.</key>
+    <key alias="availableEditors">Available editors</key>
+    <key alias="reuse">Reuse</key>
+    <key alias="editorSettings">Editor settings</key>
+    <key alias="configuration">Configuration</key>
+    <key alias="yesDelete">Yes, delete</key>
+    <key alias="movedUnderneath">was moved underneath</key>
+    <key alias="copiedUnderneath">was copied underneath</key>
+    <key alias="folderToMove">Select the folder to move</key>
+    <key alias="folderToCopy">Select the folder to copy</key>
+    <key alias="structureBelow">to in the tree structure below</key>
+    <key alias="allDocumentTypes">All Document types</key>
+    <key alias="allDocuments">All Documents</key>
+    <key alias="allMediaItems">All media items</key>
+    <key alias="usingThisDocument">using this document type will be deleted permanently, please confirm you want to delete these as well.</key>
+    <key alias="usingThisMedia">using this media type will be deleted permanently, please confirm you want to delete these as well.</key>
+    <key alias="usingThisMember">using this member type will be deleted permanently, please confirm you want to delete these as well</key>
+    <key alias="andAllDocuments">and all documents using this type</key>
+    <key alias="andAllMediaItems">and all media items using this type</key>
+    <key alias="andAllMembers">and all members using this type</key>
+    <key alias="thisEditorUpdateSettings">using this editor will get updated with the new settings</key>
+    <key alias="memberCanEdit">Member can edit</key>
+    <key alias="showOnMemberProfile">Show on member profile</key>
   </area>
   <area alias="templateEditor">
     <key alias="alternativeField">Alternativní pole</key>
     <key alias="alternativeText">Alternativení text</key>
-    <key alias="casing">Casing</key>  <!-- Neprelozeno -->
+    <key alias="casing">Casing</key>
     <key alias="encoding">Kódování</key>
     <key alias="chooseField">Vybrat pole</key>
     <key alias="convertLineBreaks">Konverze zalomování řádků</key>
@@ -941,9 +1084,9 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="closeTask">zavřít úlohu</key>
     <key alias="details">Detaily překladu</key>
     <key alias="downloadAllAsXml">Stáhnout všechny úlohy jako xml</key>
-    <key alias="downloadTaskAsXml">Stáhnout xml</key>   
-    <key alias="DownloadXmlDTD">Stáhnout xml DTD</key>  
-    <key alias="fields">Pole</key>  
+    <key alias="downloadTaskAsXml">Stáhnout xml</key>
+    <key alias="DownloadXmlDTD">Stáhnout xml DTD</key>
+    <key alias="fields">Pole</key>
     <key alias="includeSubpages">Včetně podstránek</key>
     <key alias="mailBody">Dobrý den, %0%!
 
@@ -964,19 +1107,19 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="ownedTasksHelp"><![CDATA[ Následující seznam ukazuje <strong>Vámi vytvořené</strong> úlohy. Pro zobrazení detailu včetně komentářů, 
      klikněte na tlačítko "Detaily" nebo název stránky. Můžete také stráhnout stránku ve formátu XML kliknutím na odkaz "Stáhnout XML" . 
      Pokud chcete překlady zavřít, pokračujte na stránku detailů a klikněte na tlačítko "Zavřít".
-    ]]></key> 
+    ]]></key>
     <key alias="pageHasBeenSendToTranslation">Stránka "%0%" byla zaslána k přeložení</key>
     <key alias="sendToTranslate">Poslat stránku "%0%" k přeložení</key>
-    <key alias="taskAssignedBy">Přidělil(a)</key>  
-    <key alias="taskOpened">Úloha je otevřena</key> 
+    <key alias="taskAssignedBy">Přidělil(a)</key>
+    <key alias="taskOpened">Úloha je otevřena</key>
     <key alias="totalWords">Počet slov</key>
     <key alias="translateTo">Přeložit do jazyka</key>
-    <key alias="translationDone">Překlad dokončen.</key> 
+    <key alias="translationDone">Překlad dokončen.</key>
     <key alias="translationDoneHelp">Můžete zobrazit náhledy stránky, které jste přeložil(a) kliknutím na následující tlačítko. Pokud bude původní stránka nalezena, odstanete vzájemné porovnání obou stránek.</key>
     <key alias="translationFailed">Překlad skončil chybou, xml může být poškozen</key>
-    <key alias="translationOptions">Nastavení překladů</key> 
+    <key alias="translationOptions">Nastavení překladů</key>
     <key alias="translator">Překladatel</key>
-    <key alias="uploadTranslationXml">Nahrát překlady ve formátu xml</key> 
+    <key alias="uploadTranslationXml">Nahrát překlady ve formátu xml</key>
   </area>
   <area alias="treeHeaders">
     <key alias="cacheBrowser">Vyrovnávací paměť prohlížeče</key>
@@ -1009,8 +1152,11 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="xslt">XSLT soubory</key>
     <key alias="webCentrumUsers">Uživatelé</key>
     <key alias="analytics">Analytika</key>
+    <key alias="documentTypes">Document Types</key>
+    <key alias="relationTypes">Relation Types</key>
   </area>
-  <area alias="update">     <!-- Neprelozena cela oblast -->
+  <area alias="update">
+    <!-- Neprelozena cela oblast -->
     <key alias="updateAvailable">New update ready</key>
     <key alias="updateDownloadText">%0% is ready, click here for download</key>
     <key alias="updateNoServer">No connection to server</key>
@@ -1024,9 +1170,9 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="confirmNewPassword">Potvrzení nového hesla</key>
     <key alias="changePasswordDescription">Své heslo do systému Umbraco můžete změnit vyplněním následujícího formuláře a stisknutím tačítka 'Změnit heslo'</key>
     <key alias="contentChannel">Obsahové kanály</key>
-    <key alias="descriptionField">Popis pole</key>  
+    <key alias="descriptionField">Popis pole</key>
     <key alias="disabled">Zneplatnit uživatele</key>
-    <key alias="documentType">Dokumentový typ</key>   
+    <key alias="documentType">Dokumentový typ</key>
     <key alias="editors">Editor</key>
     <key alias="excerptField">Výňatek pole</key>
     <key alias="language">Jazyk</key>
@@ -1054,9 +1200,19 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="usertype">Typ uživatele</key>
     <key alias="userTypes">Typy uživatelů</key>
     <key alias="writer">Tvůrce textů</key>
-    <key alias="yourProfile" version="7.0">Váš profil</key>   
-    <key alias="yourHistory" version="7.0">Nedávná historie</key>  
+    <key alias="yourProfile" version="7.0">Váš profil</key>
+    <key alias="yourHistory" version="7.0">Nedávná historie</key>
     <key alias="sessionExpires" version="7.0">Čas do automatického odhlášení</key>
+    <key alias="oldPassword">Old password</key>
+    <key alias="change">Change</key>
+  </area>
+  <area alias="validation">
+    <key alias="validation">Validation</key>
+    <key alias="validateAsEmail">Validate as email</key>
+    <key alias="validateAsNumber">Validate as a number</key>
+    <key alias="validateAsUrl">Validate as a Url</key>
+    <key alias="enterCustomValidation">...or enter a custom validation</key>
+    <key alias="fieldIsMandatory">Field is mandatory</key>
   </area>
   <area alias="wc-users">
     <key alias="userType-user">Běžný uživatel</key>
@@ -1071,13 +1227,19 @@ To manage your website, simply open the umbraco back office and start adding con
   <area alias="wc-actions">
     <key alias="permissions">Oprávnění k editaci</key>
     <key alias="entityProtection">Ochrana uzlu</key>
+    <key alias="uploadZip">Nahrát zip</key>
   </area>
   <area alias="wc-grid">
     <key alias="placeholderTitle">Nadpis...</key>
     <key alias="placeholderSubtitle">Podnadpis...</key>
     <key alias="placeholderPerex">Popisek...</key>
+    <key alias="placeholderName">Jméno...</key>
+    <key alias="placeholderQuote">Citace...</key>
   </area>
   <area alias="wc-general">
     <key alias="noValue">Žádná hodnota</key>
+  </area>
+  <area alias="markers">
+    <key alias="remove">Odstranit bod</key>
   </area>
 </language>
