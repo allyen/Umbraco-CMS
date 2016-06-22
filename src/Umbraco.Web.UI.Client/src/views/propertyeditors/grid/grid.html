@@ -3,6 +3,9 @@
     <umb-editor-sub-header>
 
         <umb-editor-sub-header-content-right>
+            <ng-include ng-if="model.config.items.gridToolbarView"
+                        src="model.config.items.gridToolbarView"></ng-include>
+
             <umb-button
                 ng-if="showReorderButton()"
                 type="button"
@@ -90,9 +93,12 @@
                                <!-- Row tool -->
                                <div class="umb-tools row-tools" ng-show="row.active && !sortMode">
 
-                                   <div class="cell-tools-edit row-tool" ng-if="hasSettings">
-                                       <i class="icon icon-settings" title="@grid_settings" localize="title" ng-click="editGridItemSettings(row, 'row')"></i>
-                                   </div>
+                                    <ng-include ng-if="model.config.items.rowToolbarView"
+                                                src="model.config.items.rowToolbarView"></ng-include>
+
+                                    <div class="cell-tools-edit row-tool" ng-if="hasSettings && !model.config.items.rowToolbarView">
+                                        <i class="icon icon-settings" title="@grid_settings" localize="title" ng-click="editGridItemSettings(row, 'row')"></i>
+                                    </div>
 
                                     <div class="cell-tools-remove row-tool">
                                         <i class="icon-trash" ng-click="togglePrompt(row)"></i>
@@ -153,7 +159,11 @@
                                                       </div>
 
                                                       <div class="cell-tools" ng-if="area.active && !sortMode">
-                                                         <div class="cell-tool" ng-click="editGridItemSettings(area, 'cell')">
+                                                         <ng-include ng-if="model.config.items.cellToolbarView"
+                                                                     src="model.config.items.cellToolbarView"></ng-include>
+
+                                                         <div class="cell-tool" ng-click="editGridItemSettings(area, 'cell')"
+                                                              ng-if="!model.config.items.cellToolbarView">
                                                             <i class="icon-settings"></i>
                                                          </div>
                                                       </div>
