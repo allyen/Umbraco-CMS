@@ -60,7 +60,7 @@ Use this directive to render a value with a lock next to it. When the lock is cl
 			    // if regex validation is not defined as an attr set default state
                 // if this is set to an empty string then regex validation can be ignored.
 				if (scope.regexValidation === undefined || scope.regexValidation === null) {
-				    scope.regexValidation = "^[a-zA-Z]\\w.*$";
+				    scope.regexValidation = "^[_a-zA-Z]\\w.*$";
 				}
 
 				if (scope.serverValidationField === undefined || scope.serverValidationField === null) {

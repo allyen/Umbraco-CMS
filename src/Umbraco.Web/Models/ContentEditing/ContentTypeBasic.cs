@@ -5,7 +5,6 @@ using System.Runtime.Serialization;
 using Umbraco.Core;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
-using Umbraco.Core.Models.Validation;
 
 namespace Umbraco.Web.Models.ContentEditing
 {
@@ -22,7 +21,7 @@ namespace Umbraco.Web.Models.ContentEditing
         /// Overridden to apply our own validation attributes since this is not always required for other classes
         /// </summary>        
         [Required]
-        [RegularExpression(@"^([a-zA-Z]\w.*)$", ErrorMessage = "Invalid alias")]
+        [RegularExpression(@"^([_a-zA-Z]\w.*)$", ErrorMessage = "Invalid alias")]
         [DataMember(Name = "alias")]
         public override string Alias { get; set; }
 
