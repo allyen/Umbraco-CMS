@@ -1,6 +1,6 @@
 angular.module("umbraco")
     .controller("Umbraco.PropertyEditors.GridController",
-    function ($scope, $http, assetsService, localizationService, $rootScope, dialogService, gridService, mediaResource, imageHelper, $timeout, umbRequestHelper, angularHelper) {
+    function ($scope, $http, assetsService, localizationService, $rootScope, dialogService, gridService, mediaResource, imageHelper, $timeout, umbRequestHelper, angularHelper, eventsService, editorState) {
 
         // Grid status variables
         var placeHolder = "";
@@ -112,7 +112,7 @@ angular.module("umbraco")
             },
 
             over: function (event, ui) {
-                var allowedEditors = $(event.target).scope().area.allowed;
+                var allowedEditors = _.map($(event.target).scope().area.$allowedEditors, function (e) { return e.alias; });
 
                 if ($.inArray(ui.item.scope().control.editor.alias, allowedEditors) < 0 && allowedEditors) {
 
@@ -253,7 +253,7 @@ angular.module("umbraco")
         // *********************************************
        $scope.openEditorOverlay = function(event, area, index, key) {
           $scope.editorOverlay = {
-              view: "itempicker",
+              view: $scope.model.config.items.addGridEditorView || "itempicker",
               filter: false,
               title: localizationService.localize("grid_insertControl"),
               availableItems: area.$allowedEditors,
@@ -375,7 +375,7 @@ angular.module("umbraco")
             }
 
             $scope.gridItemSettingsDialog = {};
-            $scope.gridItemSettingsDialog.view = (itemType == 'row' ? $scope.model.config.items.rowSettingsView : $scope.model.config.items.cellSettingsView) || "views/propertyeditors/grid/dialogs/config.html";
+            $scope.gridItemSettingsDialog.view = "views/propertyeditors/grid/dialogs/config.html";
             $scope.gridItemSettingsDialog.title = "Settings";
             $scope.gridItemSettingsDialog.styles = styles;
             $scope.gridItemSettingsDialog.config = config;
@@ -739,6 +739,14 @@ angular.module("umbraco")
                             }
                         }
 
+                        var eventData = {
+                            allowedEditors: area.$allowedEditors,
+                            columns: area.grid
+                        };
+                        eventsService.emit("grid.getAreaAllowedEditors", eventData);
+
+                        area.$allowedEditors = eventData.allowedEditors;
+
                         //copy over existing controls into the new areas
                         if (row.areas.length > areaIndex && row.areas[areaIndex].controls) {
                             area.controls = currentArea.controls;
@@ -819,7 +827,10 @@ angular.module("umbraco")
         };
 
 
-        gridService.getGridEditors().then(function (response) {
+        var eventData = {};
+        eventsService.emit("grid.getGridEditors", eventData);
+
+        (eventData.promise || gridService.getGridEditors()).then(function (response) {
             $scope.availableEditors = response.data;
 
             $scope.contentReady = true;
