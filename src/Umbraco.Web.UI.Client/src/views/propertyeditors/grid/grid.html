@@ -203,7 +203,10 @@
 
                                                                       <div class="umb-tools" ng-if="control.active">
 
-                                                                          <div class="umb-control-tool" ng-if="control.editor.config.settings">
+                                                                          <ng-include ng-if="model.config.items.controlToolbarView"
+                                                                                      src="model.config.items.controlToolbarView"></ng-include>
+
+                                                                          <div class="umb-control-tool" ng-if="control.editor.config.settings && !model.config.items.controlToolbarView">
                                                                               <i class="umb-control-tool-icon icon-settings" ng-click="editGridItemSettings(control, 'control')"></i>
                                                                           </div>
 
