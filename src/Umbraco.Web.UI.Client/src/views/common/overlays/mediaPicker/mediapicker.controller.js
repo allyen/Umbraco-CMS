@@ -1,7 +1,7 @@
 //used for the media picker dialog
 angular.module("umbraco")
     .controller("Umbraco.Overlays.MediaPickerController",
-        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $element, $timeout, $cookies, $cookieStore, localizationService) {
+        function ($scope, mediaResource, umbRequestHelper, entityResource, $log, mediaHelper, eventsService, treeService, $element, $timeout, $cookies, $cookieStore, localizationService, editorState) {
 
             if(!$scope.model.title) {
                 $scope.model.title = localizationService.localize("defaultdialogs_selectMedia");
@@ -13,7 +13,10 @@ angular.module("umbraco")
             $scope.onlyImages = dialogOptions.onlyImages;
             $scope.showDetails = dialogOptions.showDetails;
             $scope.multiPicker = (dialogOptions.multiPicker && dialogOptions.multiPicker !== "0") ? true : false;
-            $scope.startNodeId = dialogOptions.startNodeId ? dialogOptions.startNodeId : -1;
+            $scope.startNodeId = editorState.current.metaData.mediaPickerStartNodeId
+                ? editorState.current.metaData.mediaPickerStartNodeId
+                : dialogOptions.startNodeId
+                    ? dialogOptions.startNodeId : -1;
             $scope.cropSize = dialogOptions.cropSize;
             $scope.lastOpenedNode = $cookieStore.get("umbLastOpenedMediaNodeId");
             if($scope.onlyImages){
