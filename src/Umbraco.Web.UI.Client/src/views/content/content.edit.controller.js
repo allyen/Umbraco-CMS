@@ -132,6 +132,9 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
         }
     }
 
+    // possibility to prevent editing content name
+    $scope.allowEditingName = !$routeParams.name && $routeParams.allowChangeName != "false";
+
     if ($routeParams.create) {
         if ($routeParams.copyFrom) {
             contentResource.getById($routeParams.copyFrom)
@@ -165,6 +168,8 @@ function ContentEditController($scope, $rootScope, $routeParams, $q, $timeout, $
             //we are creating so get an empty content item
             contentResource.getScaffold($routeParams.id, $routeParams.doctype)
                 .then(function (data) {
+
+                    data.name = $routeParams.name || data.name;
 
                     $scope.content = data;
 
