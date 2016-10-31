@@ -744,10 +744,22 @@ namespace Umbraco.Web
                                                IDictionary<string, object> htmlAttributes,
                                                FormMethod method)
         {
+            return html.BeginUmbracoForm(action, controllerName, area, null, new Dictionary<string, object>(), FormMethod.Post, true);
+        }
+
+        public static MvcForm BeginUmbracoForm(this HtmlHelper html, string action, string controllerName, string area,
+                                               object additionalRouteVals,
+                                               IDictionary<string, object> htmlAttributes,
+                                               FormMethod method,
+                                               bool keepQuery)
+        {
             Mandate.ParameterNotNullOrEmpty(action, "action");
             Mandate.ParameterNotNullOrEmpty(controllerName, "controllerName");
 
-            var formAction = UmbracoContext.Current.OriginalRequestUrl.PathAndQuery;
+            var formAction = keepQuery
+                ? UmbracoContext.Current.OriginalRequestUrl.PathAndQuery
+                : UmbracoContext.Current.OriginalRequestUrl.AbsolutePath;
+
             return html.RenderForm(formAction, method, htmlAttributes, controllerName, action, area, additionalRouteVals);
         }
 
