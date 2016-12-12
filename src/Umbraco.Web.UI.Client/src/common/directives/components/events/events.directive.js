@@ -179,6 +179,11 @@ angular.module('umbraco.directives')
                     return;
                 }
 
+                // ignore clicks on elements removed from DOM
+                if ($(document).has($(event.target)).length == 0) {
+                    return;
+                }
+
                 scope.$apply(attrs.onOutsideClick);
         }
 
