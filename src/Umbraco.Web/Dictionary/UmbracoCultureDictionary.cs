@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Globalization;
 using System.Linq;
-using System.Web;
-using Umbraco.Core.Logging;
-using umbraco.cms.businesslogic;
-using umbraco.cms.businesslogic.language;
 using Umbraco.Core;
 using Umbraco.Core.Cache;
 using Umbraco.Core.Models;
@@ -137,8 +132,8 @@ namespace Umbraco.Web.Dictionary
             {
                 //ensure it's stored/retrieved from request cache
                 //NOTE: This is no longer necessary since these are cached at the runtime level, but we can leave it here for now.
-                return _requestCacheProvider.GetCacheItem<ILanguage>(typeof (DefaultCultureDictionary).Name + "Culture",
-                    () => _localizationService.GetLanguageByIsoCode(Culture.Name));
+                // NOTE: Cache removed, because the key didn't contain culture and it wasn't possible to switch more cultures in one request!
+                return _localizationService.GetLanguageByIsoCode(Culture.Name);
             }
 		}
 	}
