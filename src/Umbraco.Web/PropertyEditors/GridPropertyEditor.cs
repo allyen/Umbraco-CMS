@@ -1,24 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Examine;
+﻿using Examine;
 using Lucene.Net.Documents;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Linq;
+using System.Text;
 using Umbraco.Core;
-using Umbraco.Core.Logging;
-using Umbraco.Core.Models;
 using Umbraco.Core.PropertyEditors;
-using Umbraco.Core.Services;
 using UmbracoExamine;
 
 namespace Umbraco.Web.PropertyEditors
 {
     [PropertyEditor(Core.Constants.PropertyEditors.GridAlias, "Grid layout", "grid", HideLabel = true, IsParameterEditor = false, ValueType = PropertyEditorValueTypes.Json, Group="rich content", Icon="icon-layout")]
     public class GridPropertyEditor : PropertyEditor, IApplicationEventHandler
-    {        
+    {
+        public delegate PropertyValueEditor CreatingValueEditorEventHandler<TEventArgs>(TEventArgs e);
+
+        public static event CreatingValueEditorEventHandler<CreatingValueEditorEventArgs> CreatingValueEditor;
+
+        public class CreatingValueEditorEventArgs
+        {
+            public PropertyValueEditor Base { get; set; }
+        }
 
         private static void DocumentWriting(object sender, Examine.LuceneEngine.DocumentWritingEventArgs e)
         {
@@ -105,7 +108,12 @@ namespace Umbraco.Web.PropertyEditors
         protected override PropertyValueEditor CreateValueEditor()
         {
             var baseEditor = base.CreateValueEditor();
-            return new GridPropertyValueEditor(baseEditor);
+
+            PropertyValueEditor result = null;
+            if (CreatingValueEditor != null)
+                result = CreatingValueEditor(new CreatingValueEditorEventArgs() { Base = baseEditor });
+
+            return result ?? new GridPropertyValueEditor(baseEditor);
         }
 
         protected override PreValueEditor CreatePreValueEditor()
