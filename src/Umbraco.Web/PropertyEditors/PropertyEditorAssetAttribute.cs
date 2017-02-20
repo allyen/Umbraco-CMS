@@ -1,5 +1,5 @@
-using System;
 using ClientDependency.Core;
+using System;
 
 namespace Umbraco.Web.PropertyEditors
 {
@@ -24,8 +24,8 @@ namespace Umbraco.Web.PropertyEditors
             get
             {
                 return Priority == int.MinValue
-                           ? new BasicFile(AssetType) {FilePath = FilePath}
-                           : new BasicFile(AssetType) {FilePath = FilePath, Priority = Priority};
+                           ? new BasicFile(AssetType) {FilePath = FilePath, ForceProvider = "BackOfficeClientDependencyRenderer" }
+                           : new BasicFile(AssetType) {FilePath = FilePath, Priority = Priority, ForceProvider = "BackOfficeClientDependencyRenderer" };
 
             }
         }

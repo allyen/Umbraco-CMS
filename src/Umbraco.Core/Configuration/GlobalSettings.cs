@@ -4,7 +4,6 @@ using System.Configuration;
 using System.Linq;
 using System.Web;
 using System.Web.Configuration;
-using System.Web.Hosting;
 using System.Web.Routing;
 using System.Web.Security;
 using System.Xml;
@@ -648,6 +647,20 @@ namespace Umbraco.Core.Configuration
             get
             {
                 return Umbraco.Core.Configuration.UmbracoVersion.CurrentComment;
+            }
+        }
+
+        /// <summary>
+        /// Gets the ClientDependency handler path. Backoffice needs it to be in the same domain,
+        /// in case that the global CD uses some CD DNS name.
+        /// </summary>
+        public static string ClientDependencyBackOfficePath
+        {
+            get
+            {
+                return ConfigurationManager.AppSettings.ContainsKey("umbracoClientDependencyPath")
+                    ? ConfigurationManager.AppSettings["umbracoClientDependencyPath"]
+                    : null;
             }
         }
 

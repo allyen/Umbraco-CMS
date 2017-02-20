@@ -1,12 +1,11 @@
-﻿using System;
+﻿using ClientDependency.Core;
+using ClientDependency.Core.Config;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Web;
-using ClientDependency.Core;
-using ClientDependency.Core.Config;
-using Newtonsoft.Json.Linq;
 using Umbraco.Core.PropertyEditors;
 using Umbraco.Web.PropertyEditors;
 
@@ -70,7 +69,7 @@ namespace Umbraco.Web.UI.JavaScript
                     if (Uri.IsWellFormedUriString(asString, UriKind.Relative))
                     {
                         var absolute = new Uri(httpContext.Request.Url, asString);
-                        return (IClientDependencyFile)new BasicFile(cdfType) { FilePath = absolute.AbsolutePath };
+                        return (IClientDependencyFile)new BasicFile(cdfType) { FilePath = absolute.AbsolutePath, ForceProvider = "BackOfficeClientDependencyRenderer" };
                     }
                 }
                 return cdfType == ClientDependencyType.Javascript

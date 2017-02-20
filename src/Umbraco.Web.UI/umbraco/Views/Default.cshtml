@@ -27,10 +27,10 @@
     }
 
     Html
-        .RequiresCss("assets/css/umbraco.css", "Umbraco")
-        .RequiresCss("tree/treeicons.css", "UmbracoClient")
-        .RequiresCss("lib/bootstrap-social/bootstrap-social.css", "Umbraco")
-        .RequiresCss("lib/font-awesome/css/font-awesome.min.css", "Umbraco");
+        .RequiresCss(new CssFile("assets/css/umbraco.css") { PathNameAlias = "Umbraco", ForceProvider = "BackOfficeClientDependencyRenderer" })
+        .RequiresCss(new CssFile("tree/treeicons.css") { PathNameAlias = "UmbracoClient", ForceProvider = "BackOfficeClientDependencyRenderer" })
+        .RequiresCss(new CssFile("lib/bootstrap-social/bootstrap-social.css") { PathNameAlias = "Umbraco", ForceProvider = "BackOfficeClientDependencyRenderer" })
+        .RequiresCss(new CssFile("lib/font-awesome/css/font-awesome.min.css") { PathNameAlias = "Umbraco", ForceProvider = "BackOfficeClientDependencyRenderer" });
 }
 
 <!DOCTYPE html>
@@ -46,7 +46,7 @@
 
     <title ng-bind="$root.locationTitle">Umbraco</title>
 
-    @Html.RenderCssHere(
+    @Html.RenderCssHere("BackOfficeClientDependencyRenderer",
         new BasicPath("Umbraco", IOHelper.ResolveUrl(SystemDirectories.Umbraco)),
         new BasicPath("UmbracoClient", IOHelper.ResolveUrl(SystemDirectories.UmbracoClient)))
 
