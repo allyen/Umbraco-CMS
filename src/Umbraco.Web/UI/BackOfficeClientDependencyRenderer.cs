@@ -15,7 +15,7 @@ namespace Umbraco.Web.UI
         {
             // Assign the provider a default name if it doesn't have one
             if (string.IsNullOrEmpty(name))
-                name = nameof(BackOfficeClientDependencyRenderer);
+                name = "BackOfficeClientDependencyRenderer";
 
             base.Initialize(name, config);
         }

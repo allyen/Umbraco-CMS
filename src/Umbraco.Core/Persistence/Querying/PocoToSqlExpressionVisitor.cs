@@ -10,7 +10,7 @@ namespace Umbraco.Core.Persistence.Querying
     /// based on Umbraco's DTOs.
     /// </summary>
     /// <remarks>This object is stateful and cannot be re-used to parse an expression.</remarks>
-    internal class PocoToSqlExpressionVisitor<T> : ExpressionVisitorBase
+    public class PocoToSqlExpressionVisitor<T> : ExpressionVisitorBase
     {
         private readonly Database.PocoData _pd;
 
