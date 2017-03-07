@@ -191,11 +191,12 @@ angular.module("umbraco.directives")
                                     // set padding in top of mce so the content does not "jump" up
                                     _tinyMceEditArea.css("padding-top", toolbarHeight);
 
-                                    if (tinyMceTop < 160 && ((160 + toolbarHeight) < tinyMceBottom)) {
+                                    _toolbar.css("z-index", "99999999999");
+                                    if (tinyMceTop < 100 && ((100 + toolbarHeight) < tinyMceBottom)) {
                                         _toolbar
                                             .css("visibility", "visible")
                                             .css("position", "fixed")
-                                            .css("top", "160px")
+                                            .css("top", "100px")
                                             .css("margin-top", "0")
                                             .css("width", tinyMceWidth);
                                     } else {
