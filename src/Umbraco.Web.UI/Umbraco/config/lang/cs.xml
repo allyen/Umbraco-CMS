@@ -1023,7 +1023,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="addRowConfigurationDetail">Adjust the row by setting cell widths and adding additional cells</key>
     <key alias="columns">Columns</key>
     <key alias="columnsDetails">Total combined number of columns in the grid layout</key>
-    <key alias="settings">Settings</key>
+    <key alias="settings">Nastavení</key>
     <key alias="settingsDetails">Configure what settings editors can change</key>
     <key alias="styles">Styles</key>
     <key alias="stylesDetails">Configure what styling editors can change</key>
@@ -1265,6 +1265,7 @@ To manage your website, simply open the umbraco back office and start adding con
   </area>
   <area alias="wc-grid">
     <key alias="placeholderTitle">Nadpis...</key>
+    <key alias="placeholderDescription">Popis...</key>
     <key alias="placeholderSubtitle">Podnadpis...</key>
     <key alias="placeholderPerex">Popisek...</key>
     <key alias="placeholderName">Jméno...</key>

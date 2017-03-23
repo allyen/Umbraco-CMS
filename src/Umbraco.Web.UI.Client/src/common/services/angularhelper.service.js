@@ -62,7 +62,7 @@ function angularHelper($log, $q) {
          * @description
          * Returns the current form object applied to the scope or null if one is not found
          */
-        getCurrentForm: function (scope) {
+        getCurrentForm: function (scope, tryParentScopes) {
 
             //NOTE: There isn't a way in angular to get a reference to the current form object since the form object
             // is just defined as a property of the scope when it is named but you'll always need to know the name which
@@ -86,24 +86,32 @@ function angularHelper($log, $q) {
                 });
             }
 
-            for (var p in scope) {
+            while (scope !== undefined && form == null) {
+                for (var p in scope) {
 
-                if (_.isObject(scope[p]) && p !== "this" && p.substr(0, 1) !== "$") {
-                    //get the keys of the property names for the current property
-                    var props = _.keys(scope[p]);
-                    //if the length isn't correct, try the next prop
-                    if (props.length < requiredFormProps.length) {
-                        continue;
-                    }
+                    if (_.isObject(scope[p]) && p !== "this" && p.substr(0, 1) !== "$") {
+                        //get the keys of the property names for the current property
+                        var props = _.keys(scope[p]);
+                        //if the length isn't correct, try the next prop
+                        if (props.length < requiredFormProps.length) {
+                            continue;
+                        }
 
-                    //ensure that every required property name exists on the current scope property
-                    var containProperty = propertyExists(props);
+                        //ensure that every required property name exists on the current scope property
+                        var containProperty = propertyExists(props);
 
-                    if (containProperty) {
-                        form = scope[p];
-                        break;
+                        if (containProperty) {
+                            form = scope[p];
+                            break;
+                        }
                     }
                 }
+
+                if (!tryParentScopes) {
+                    break;
+                }
+
+                scope = scope.$parent;
             }
 
             return form;

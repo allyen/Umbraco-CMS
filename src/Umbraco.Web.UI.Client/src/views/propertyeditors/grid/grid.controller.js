@@ -4,7 +4,7 @@ angular.module("umbraco")
 
         // Grid status variables
         var placeHolder = "";
-        var currentForm = angularHelper.getCurrentForm($scope);
+        var currentForm = angularHelper.getCurrentForm($scope, true);
 
         $scope.currentRow = null;
         $scope.currentCell = null;
