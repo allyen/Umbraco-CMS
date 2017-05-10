@@ -25,10 +25,35 @@ app.run(['userService', '$log', '$rootScope', '$location', 'navigationService', 
 
         /** execute code on each successful route */
         $rootScope.$on('$routeChangeSuccess', function(event, current, previous) {
-
-            if(current.params.section){
+            var deployConfig = Umbraco.Sys.ServerVariables.deploy;
+            var deployEnv, deployEnvTitle;
+            if (deployConfig) {
+                deployEnv = Umbraco.Sys.ServerVariables.deploy.CurrentWorkspace;
+                deployEnvTitle = "(" + deployEnv + ") ";
                 $rootScope.locationTitle = current.params.section + " - " + $location.$$host;
+
+            if(current.params.section) {
+
+                //Uppercase the current section, content, media, settings, developer, forms
+                var currentSection = current.params.section.charAt(0).toUpperCase() + current.params.section.slice(1);
+
+                var baseTitle = currentSection + " - " + $location.$$host;
+
+                //Check deploy for Global Umbraco.Sys obj workspace
+                if(deployEnv){
+                    $rootScope.locationTitle = deployEnvTitle + baseTitle;
+                }
+                else {
+                    $rootScope.locationTitle = baseTitle;
+                }
+                
             }
+            }
+
+                if(deployEnv) {
+                     $rootScope.locationTitle = deployEnvTitle + "Umbraco - " + $location.$$host;
+                }
+
             else {
                 $rootScope.locationTitle = "Umbraco - " + $location.$$host;
             }
@@ -68,4 +93,3 @@ app.run(['userService', '$log', '$rootScope', '$location', 'navigationService', 
         //var touchDevice = ("ontouchstart" in window || window.touch || window.navigator.msMaxTouchPoints === 5 || window.DocumentTouch && document instanceof DocumentTouch);
         var touchDevice =  /android|webos|iphone|ipad|ipod|blackberry|iemobile|touch/i.test(navigator.userAgent.toLowerCase());
         appState.setGlobalState("touchDevice", touchDevice);
-    }]);

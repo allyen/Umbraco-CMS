@@ -32,7 +32,7 @@ namespace Umbraco.Core.Persistence.Repositories
         private readonly ContentPreviewRepository<IContent> _contentPreviewRepository;
         private readonly ContentXmlRepository<IContent> _contentXmlRepository;
 
-        public ContentRepository(IDatabaseUnitOfWork work, CacheHelper cacheHelper, ILogger logger, ISqlSyntaxProvider syntaxProvider, IContentTypeRepository contentTypeRepository, ITemplateRepository templateRepository, ITagRepository tagRepository, IContentSection contentSection)
+        public ContentRepository(IScopeUnitOfWork work, CacheHelper cacheHelper, ILogger logger, ISqlSyntaxProvider syntaxProvider, IContentTypeRepository contentTypeRepository, ITemplateRepository templateRepository, ITagRepository tagRepository, IContentSection contentSection)
             : base(work, cacheHelper, logger, syntaxProvider, contentSection)
         {
             if (contentTypeRepository == null) throw new ArgumentNullException("contentTypeRepository");
@@ -42,8 +42,8 @@ namespace Umbraco.Core.Persistence.Repositories
             _templateRepository = templateRepository;
             _tagRepository = tagRepository;
             _cacheHelper = cacheHelper;
-            _contentPreviewRepository = new ContentPreviewRepository<IContent>(work, CacheHelper.CreateDisabledCacheHelper(), logger, syntaxProvider);
-            _contentXmlRepository = new ContentXmlRepository<IContent>(work, CacheHelper.CreateDisabledCacheHelper(), logger, syntaxProvider);
+            _contentPreviewRepository = new ContentPreviewRepository<IContent>(work, CacheHelper.NoCache, logger, syntaxProvider);
+            _contentXmlRepository = new ContentXmlRepository<IContent>(work, CacheHelper.NoCache, logger, syntaxProvider);
 
             EnsureUniqueNaming = true;
         }
@@ -513,11 +513,13 @@ namespace Umbraco.Core.Persistence.Repositories
                 dto.DocumentPublishedReadOnlyDto = new DocumentPublishedReadOnlyDto
                 {
                     VersionId = dto.VersionId,
+                    VersionDate = dto.UpdateDate,
                     Newest = true,
                     NodeId = dto.NodeId,
-                    Published = true
+                    Published = true               
                 };
-                ((Content)entity).PublishedVersionGuid = dto.VersionId;
+                ((Content) entity).PublishedVersionGuid = dto.VersionId;
+                ((Content) entity).PublishedDate = dto.UpdateDate;
             }
 
             entity.ResetDirtyProperties();
@@ -543,7 +545,8 @@ namespace Umbraco.Core.Persistence.Repositories
             }
             else
             {
-                entity.UpdateDate = DateTime.Now;
+                if (entity.IsPropertyDirty("UpdateDate") == false || entity.UpdateDate == default(DateTime))
+                    entity.UpdateDate = DateTime.Now;
             }
 
             //Ensure unique name on the same level
@@ -687,22 +690,26 @@ namespace Umbraco.Core.Persistence.Repositories
                 dto.DocumentPublishedReadOnlyDto = new DocumentPublishedReadOnlyDto
                 {
                     VersionId = dto.VersionId,
+                    VersionDate = dto.UpdateDate,
                     Newest = true,
                     NodeId = dto.NodeId,
                     Published = true
                 };
-                ((Content)entity).PublishedVersionGuid = dto.VersionId;
+                ((Content) entity).PublishedVersionGuid = dto.VersionId;
+                ((Content) entity).PublishedDate = dto.UpdateDate;
             }
             else if (publishedStateChanged)
             {
                 dto.DocumentPublishedReadOnlyDto = new DocumentPublishedReadOnlyDto
                 {
-                    VersionId = default(Guid),
+                    VersionId = default (Guid),
+                    VersionDate = default (DateTime),
                     Newest = false,
                     NodeId = dto.NodeId,
                     Published = false
                 };
-                ((Content)entity).PublishedVersionGuid = default(Guid);
+                ((Content) entity).PublishedVersionGuid = default(Guid);
+                ((Content) entity).PublishedDate = default (DateTime);
             }
 
             entity.ResetDirtyProperties();
@@ -974,7 +981,7 @@ order by umbracoNode.{2}, umbracoNode.parentID, umbracoNode.sortOrder",
             }            
 
             //order by update date DESC, if there is corrupted published flags we only want the latest!
-            var publishedSql = new Sql(@"SELECT cmsDocument.nodeId, cmsDocument.published, cmsDocument.versionId, cmsDocument.newest
+            var publishedSql = new Sql(@"SELECT cmsDocument.nodeId, cmsDocument.published, cmsDocument.versionId, cmsDocument.updateDate, cmsDocument.newest
 FROM cmsDocument INNER JOIN cmsContentVersion ON cmsContentVersion.VersionId = cmsDocument.versionId
 WHERE cmsDocument.published = 1 AND cmsDocument.nodeId IN 
 (" + parsedOriginalSql + @")
@@ -1011,7 +1018,7 @@ ORDER BY cmsContentVersion.id DESC
                 // if the cache contains the published version, use it
                 if (withCache)
                 {
-                    var cached = RuntimeCache.GetCacheItem<IContent>(GetCacheIdKey<IContent>(dto.NodeId));
+                    var cached = IsolatedCache.GetCacheItem<IContent>(GetCacheIdKey<IContent>(dto.NodeId));
                     //only use this cached version if the dto returned is also the publish version, they must match and be teh same version
                     if (cached != null && cached.Version == dto.VersionId && cached.Published && dto.Published)
                     {

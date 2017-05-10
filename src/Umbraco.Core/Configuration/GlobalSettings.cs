@@ -211,7 +211,7 @@ namespace Umbraco.Core.Configuration
         {
             get
             {
-                var settings = ConfigurationManager.ConnectionStrings[UmbracoConnectionName];
+                var settings = ConfigurationManager.ConnectionStrings[Constants.System.UmbracoConnectionName];
                 var connectionString = string.Empty;
 
                 if (settings != null)
@@ -240,10 +240,7 @@ namespace Umbraco.Core.Configuration
                 }
             }
         }
-
-        //TODO: Move these to constants!
-        public const string UmbracoConnectionName = "umbracoDbDSN";
-        public const string UmbracoMigrationName = "Umbraco";
+        
 
         /// <summary>
         /// Gets or sets the configuration status. This will return the version number of the currently installed umbraco instance.
