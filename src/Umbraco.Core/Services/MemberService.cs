@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading;
 using System.Web.Security;
 using System.Xml.Linq;
@@ -13,7 +14,6 @@ using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 using Umbraco.Core.Persistence.Querying;
 using Umbraco.Core.Persistence.UnitOfWork;
-using System.Linq;
 using Umbraco.Core.Security;
 
 namespace Umbraco.Core.Services
@@ -956,7 +956,6 @@ namespace Umbraco.Core.Services
 
             var args = new DeleteEventArgs<IMember>(member, false);
             uow.Events.Dispatch(Deleted, this, args);
-        }
         }
 
         /// <summary>

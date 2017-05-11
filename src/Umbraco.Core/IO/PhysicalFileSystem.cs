@@ -391,14 +391,6 @@ namespace Umbraco.Core.IO
                 File.Move(physicalPath, fullPath);
         }
 
-        public long GetSize(string path)
-        {
-            using (var file = OpenFile(path))
-            {
-                return file.Length;
-            }
-        }
-
         #region Helper Methods
 
         protected virtual void EnsureDirectory(string path)
