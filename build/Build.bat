@@ -20,6 +20,7 @@ REM process args
 SET INTEGRATION=0
 SET nuGetFolder=%CD%\..\src\packages
 SET SKIPNUGET=0
+SET CONFIG=Release
 
 :processArgs
 
@@ -44,6 +45,8 @@ IF '%SWITCH%'=='/nugetfolder' GOTO argNugetFolder
 IF '%SWITCH%'=='-nugetfolder' GOTO argNugetFolder
 IF '%SWITCH%'=='/skipnuget' GOTO argSkipNuget
 IF '%SWITCH%'=='-skipnuget' GOTO argSkipNuget
+IF '%SWITCH%'=='/debug' GOTO argDebug
+IF '%SWITCH%'=='-debug' GOTO argDebug
 ECHO "Invalid switch %SWITCH%"
 GOTO error
 
@@ -71,6 +74,11 @@ GOTO processArgs
 
 :argSkipNuget
 SET SKIPNUGET=1
+SHIFT
+GOTO processArgs
+
+:argDebug
+SET CONFIG=Debug
 SHIFT
 GOTO processArgs
 
@@ -177,7 +185,7 @@ ECHO This takes a few minutes and logging is set to report warnings
 ECHO and errors only so it might seems like nothing is happening for a while. 
 ECHO You can check the msbuild.log file for progress.
 ECHO.
-%MSBUILD% "Build.proj" /p:BUILD_RELEASE=%RELEASE% /p:BUILD_COMMENT=%COMMENT% /p:NugetPackagesDirectory="%nuGetFolder%" /p:VSWherePath=%VSWherePath% /consoleloggerparameters:Summary;ErrorsOnly /fileLogger
+%MSBUILD% "Build.proj" /p:BUILD_RELEASE=%RELEASE% /p:BUILD_COMMENT=%COMMENT% /p:NugetPackagesDirectory="%nuGetFolder%" /p:VSWherePath=%VSWherePath% /consoleloggerparameters:Summary;ErrorsOnly /fileLogger /p:BUILD_CONFIG=%CONFIG%
 IF ERRORLEVEL 1 GOTO error
 
 ECHO.
