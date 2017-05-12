@@ -713,28 +713,28 @@ namespace Umbraco.Core.Services
                 }
 
                 // If no reults far, try getting from a json value stored in the ntext column query
-                if (propertyDataDto == null)
-                {
-                    var ntextQuery = new Sql().Select("*")
-                        .From<PropertyDataDto>()
-                        .InnerJoin<PropertyTypeDto>()
-                        .On<PropertyDataDto, PropertyTypeDto>(left => left.PropertyTypeId, right => right.Id)
-                        .Where<PropertyTypeDto>(x => x.Alias == "umbracoFile")
-                        .Where("dataNtext LIKE @0", "%" + umbracoFileValue + "%");
-                    propertyDataDto = uow.Database.Fetch<PropertyDataDto, PropertyTypeDto>(ntextQuery).FirstOrDefault();
-                }
+                //if (propertyDataDto == null)
+                //{
+                //    var ntextQuery = new Sql().Select("*")
+                //        .From<PropertyDataDto>()
+                //        .InnerJoin<PropertyTypeDto>()
+                //        .On<PropertyDataDto, PropertyTypeDto>(left => left.PropertyTypeId, right => right.Id)
+                //        .Where<PropertyTypeDto>(x => x.Alias == "umbracoFile")
+                //        .Where("dataNtext LIKE @0", "%" + umbracoFileValue + "%");
+                //    propertyDataDto = uow.Database.Fetch<PropertyDataDto, PropertyTypeDto>(ntextQuery).FirstOrDefault();
+                //}
 
                 // If still no results, try getting from a json value stored in the nvarchar column
-                if (propertyDataDto == null)
-                {
-                    var nvarcharQuery = new Sql().Select("*")
-                        .From<PropertyDataDto>()
-                        .InnerJoin<PropertyTypeDto>()
-                        .On<PropertyDataDto, PropertyTypeDto>(left => left.PropertyTypeId, right => right.Id)
-                        .Where<PropertyTypeDto>(x => x.Alias == "umbracoFile")
-                        .Where("dataNvarchar LIKE @0", "%" + umbracoFileValue + "%");
-                    propertyDataDto = uow.Database.Fetch<PropertyDataDto, PropertyTypeDto>(nvarcharQuery).FirstOrDefault();
-                }
+                //if (propertyDataDto == null)
+                //{
+                //    var nvarcharQuery = new Sql().Select("*")
+                //        .From<PropertyDataDto>()
+                //        .InnerJoin<PropertyTypeDto>()
+                //        .On<PropertyDataDto, PropertyTypeDto>(left => left.PropertyTypeId, right => right.Id)
+                //        .Where<PropertyTypeDto>(x => x.Alias == "umbracoFile")
+                //        .Where("dataNvarchar LIKE @0", "%" + umbracoFileValue + "%");
+                //    propertyDataDto = uow.Database.Fetch<PropertyDataDto, PropertyTypeDto>(nvarcharQuery).FirstOrDefault();
+                //}
 
                 return propertyDataDto == null ? null : GetById(propertyDataDto.NodeId);
             }
