@@ -25,6 +25,15 @@
 
     <div class="umb-control-group">
         <h5>
+            <localize key="defaultdialogs_linkToMedia">Link to media</localize>
+        </h5>
+        <a href ng-click="switchToMediaPicker()" class="btn">
+            <localize key="defaultdialogs_selectMedia">Select media</localize>
+        </a>
+    </div>
+
+    <div class="umb-control-group">
+        <h5>
             <localize key="defaultdialogs_linkToPage">Link to page</localize>
         </h5>
 
@@ -69,14 +78,7 @@
 
     </div>
 
-    <div class="umb-control-group">
-        <h5>
-            <localize key="defaultdialogs_linkToMedia">Link to media</localize>
-        </h5>
-        <a href ng-click="switchToMediaPicker()" class="btn">
-            <localize key="defaultdialogs_selectMedia">Select media</localize>
-        </a>
-    </div>
+    
 
     <umb-overlay
         ng-if="mediaPickerOverlay.show"
