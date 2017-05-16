@@ -159,7 +159,7 @@
     <key alias="updateDate">Datum poslední editace</key>
     <key alias="updateDateDesc" version="7.0">Datum/čas editace dokumentu</key>
     <key alias="uploadClear">Odstranit soubor</key>
-    <key alias="urls">Odkaz na dokument</key>
+    <key alias="urls">URL adresa odkazu</key>
     <key alias="memberof">Člen skupin/skupin</key>
     <key alias="notmemberof">Nečlen skupiny/skupiny</key>
     <key alias="childItems" version="7.0">Potomci</key>
@@ -170,7 +170,7 @@
   <area alias="media">
     <key alias="clickToUpload">Klikněte pro nahrání</key>
     <key alias="dropFilesHere">Ponechat soubor zde...</key>
-    <key alias="orClickHereToUpload">nebo klikněte pro pro výběr souborů</key>
+    <key alias="orClickHereToUpload">nebo klikněte pro výběr souborů</key>
     <key alias="onlyAllowedFiles">Only allowed file types are</key>
     <key alias="maxFileSize">Max file size is</key>
   </area>
@@ -276,18 +276,19 @@
     <key alias="thumbnailimageclickfororiginal">Klikněte na obrázek pro zobrazení plné velikosti</key>
     <key alias="treepicker">Vybrat položku</key>
     <key alias="viewCacheItem">Zobrazit položku cache</key>
-    <key alias="createFolder">Create folder...</key>
-    <key alias="relateToOriginalLabel">Relate to original</key>
+    <key alias="createFolder">Vytvořit složku...</key>
+    <key alias="relateToOriginalLabel">Vytvořit vazbu na původní obsah</key>
+    <key alias="includeDescendants">Zahrnout i potomky vybrané stránky</key>
     <key alias="theFriendliestCommunity">The friendliest community</key>
-    <key alias="linkToPage">Link to page</key>
-    <key alias="openInNewWindow">Opens the linked document in a new window or tab</key>
+    <key alias="linkToPage">Vybrat stránku pro odkazování</key>
+    <key alias="openInNewWindow">Otevřít odkaz v nové záložce</key>
     <key alias="openInFullBody">Opens the linked document in the full body of the window</key>
     <key alias="openInParentFrame">Opens the linked document in the parent frame</key>
-    <key alias="linkToMedia">Link to media</key>
-    <key alias="selectMedia">Select media</key>
+    <key alias="linkToMedia">Vybrat soubor pro odkazování</key>
+    <key alias="selectMedia">Výběr souboru</key>
     <key alias="selectIcon">Select icon</key>
     <key alias="selectItem">Select item</key>
-    <key alias="selectLink">Select link</key>
+    <key alias="selectLink">Nastavení odkazu</key>
     <key alias="selectMacro">Select macro</key>
     <key alias="selectContent">Select content</key>
     <key alias="selectMember">Select member</key>
@@ -1262,6 +1263,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="permissions">Oprávnění k editaci</key>
     <key alias="entityProtection">Ochrana uzlu</key>
     <key alias="uploadZip">Nahrát zip</key>
+    <key alias="updateLinks">Aktualizovat odkazy na zkopírované stránky</key>
   </area>
   <area alias="wc-grid">
     <key alias="placeholderTitle">Nadpis...</key>
