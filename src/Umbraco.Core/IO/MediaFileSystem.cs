@@ -375,12 +375,20 @@ namespace Umbraco.Core.IO
             }
 
             //we have no choice but to try to read in via GDI
-            using (var image = Image.FromStream(stream))
+            try
             {
+                using (var image = Image.FromStream(stream))
+                {
 
-                var fileWidth = image.Width;
-                var fileHeight = image.Height;
-                return new Size(fileWidth, fileHeight);
+                    var fileWidth = image.Width;
+                    var fileHeight = image.Height;
+                    return new Size(fileWidth, fileHeight);
+                }
+            }
+            catch (Exception e)
+            {
+                LogHelper.Error<MediaFileSystem>("The stream is not an image, cannot read dimensions", e);
+                return new Size(0, 0);
             }
         }
 
