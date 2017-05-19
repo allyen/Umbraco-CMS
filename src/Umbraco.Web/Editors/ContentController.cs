@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -691,14 +690,13 @@ namespace Umbraco.Web.Editors
                 }
 
                 //check if the item is allowed under this one
-                // not suitable for webcentrum workflow where allowed doctypes are dynamic
-                //if (parent.ContentType.AllowedContentTypes.Select(x => x.Id).ToArray()
-                //        .Any(x => x.Value == toMove.ContentType.Id) == false)
-                //{
-                //    throw new HttpResponseException(
-                //            Request.CreateNotificationValidationErrorResponse(
-                //                    Services.TextService.Localize("moveOrCopy/notAllowedByContentType")));
-                //}
+                if (parent.ContentType.AllowedContentTypes.Select(x => x.Id).ToArray()
+                        .Any(x => x.Value == toMove.ContentType.Id) == false)
+                {
+                    throw new HttpResponseException(
+                            Request.CreateNotificationValidationErrorResponse(
+                                    Services.TextService.Localize("moveOrCopy/notAllowedByContentType")));
+                }
 
                 // Check on paths
                 if ((string.Format(",{0},", parent.Path)).IndexOf(string.Format(",{0},", toMove.Id), StringComparison.Ordinal) > -1)
