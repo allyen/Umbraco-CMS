@@ -49,7 +49,7 @@ namespace Umbraco.Web.Templates
         /// <param name="text"></param>
         /// <param name="urlProvider"></param>
         /// <returns></returns>
-        public static string ParseInternalLinks(string text, UrlProvider urlProvider)
+        public static string ParseInternalLinks(string text, UrlProvider urlProvider, bool absolute = false)
         {
             if (urlProvider == null) throw new ArgumentNullException("urlProvider");
             if (text == null)
@@ -70,14 +70,14 @@ namespace Umbraco.Web.Templates
                         var guidUdi = udi as GuidUdi;
                         if (guidUdi != null)
                         {
-                            var newLink = urlProvider.GetUrl(guidUdi.Guid);
+                            var newLink = urlProvider.GetUrl(guidUdi.Guid, absolute);
                             text = text.Replace(tag.Value, "href=\"" + newLink);
                         }
                     }
                     int intId;
                     if (int.TryParse(id, out intId))
                     {
-                        var newLink = urlProvider.GetUrl(intId);
+                        var newLink = urlProvider.GetUrl(intId, absolute);
                         text = text.Replace(tag.Value, "href=\"" + newLink);
                     }                    
                 }
