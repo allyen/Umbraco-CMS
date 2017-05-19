@@ -1,6 +1,6 @@
+using Microsoft.AspNet.Identity;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNet.Identity;
 using Umbraco.Core.Events;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models.Identity;
@@ -27,7 +27,7 @@ namespace Umbraco.Core.Services
             using (var uow = UowProvider.GetUnitOfWork())
             {
                 var repo = RepositoryFactory.CreateExternalLoginRepository(uow);
-                var ret = repo.GetByQuery(new Query<IIdentityUserLogin>().Where(x => x.UserId == userId));
+                var ret = repo.GetByQuery(new Query<IIdentityUserLogin>().Where(x => x.UserId == userId)).ToArray();
                 uow.Commit();
                 return ret;
             }
@@ -44,7 +44,7 @@ namespace Umbraco.Core.Services
             using (var uow = UowProvider.GetUnitOfWork())
             {
                 var repo = RepositoryFactory.CreateExternalLoginRepository(uow);
-                var ret = repo.GetByQuery(new Query<IIdentityUserLogin>().Where(x => x.ProviderKey == login.ProviderKey && x.LoginProvider == login.LoginProvider));
+                var ret = repo.GetByQuery(new Query<IIdentityUserLogin>().Where(x => x.ProviderKey == login.ProviderKey && x.LoginProvider == login.LoginProvider)).ToArray();
                 uow.Commit();
                 return ret;
             }
