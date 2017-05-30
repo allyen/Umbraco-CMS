@@ -1,6 +1,6 @@
-using Microsoft.AspNet.Identity;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNet.Identity;
 using Umbraco.Core.Events;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models.Identity;
@@ -14,8 +14,7 @@ namespace Umbraco.Core.Services
     {
         public ExternalLoginService(IDatabaseUnitOfWorkProvider provider, RepositoryFactory repositoryFactory, ILogger logger, IEventMessagesFactory eventMessagesFactory)
             : base(provider, repositoryFactory, logger, eventMessagesFactory)
-        {
-        }
+        { }
 
         /// <summary>
         /// Returns all user logins assigned
@@ -23,30 +22,32 @@ namespace Umbraco.Core.Services
         /// <param name="userId"></param>
         /// <returns></returns>
         public IEnumerable<IIdentityUserLogin> GetAll(int userId)
-        {            
-            using (var uow = UowProvider.GetUnitOfWork())
+        {
+            using (var uow = UowProvider.GetUnitOfWork(readOnly: true))
             {
+                // ToList is important here, must evaluate within uow!
                 var repo = RepositoryFactory.CreateExternalLoginRepository(uow);
-                var ret = repo.GetByQuery(new Query<IIdentityUserLogin>().Where(x => x.UserId == userId)).ToArray();
-                uow.Commit();
-                return ret;
+                return repo.GetByQuery(new Query<IIdentityUserLogin>()
+                    .Where(x => x.UserId == userId))
+                    .ToList();
             }
         }
 
         /// <summary>
-        /// Returns all logins matching the login info - generally there should only be one but in some cases 
+        /// Returns all logins matching the login info - generally there should only be one but in some cases
         /// there might be more than one depending on if an adminstrator has been editing/removing members
         /// </summary>
         /// <param name="login"></param>
         /// <returns></returns>
         public IEnumerable<IIdentityUserLogin> Find(UserLoginInfo login)
         {
-            using (var uow = UowProvider.GetUnitOfWork())
+            using (var uow = UowProvider.GetUnitOfWork(readOnly: true))
             {
+                // ToList is important here, must evaluate within uow!
                 var repo = RepositoryFactory.CreateExternalLoginRepository(uow);
-                var ret = repo.GetByQuery(new Query<IIdentityUserLogin>().Where(x => x.ProviderKey == login.ProviderKey && x.LoginProvider == login.LoginProvider)).ToArray();
-                uow.Commit();
-                return ret;
+                return repo.GetByQuery(new Query<IIdentityUserLogin>()
+                    .Where(x => x.ProviderKey == login.ProviderKey && x.LoginProvider == login.LoginProvider))
+                    .ToList();
             }
         }
 
@@ -78,7 +79,5 @@ namespace Umbraco.Core.Services
                 uow.Commit();
             }
         }
-
-        
     }
 }

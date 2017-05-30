@@ -53,12 +53,14 @@ namespace Umbraco.Web.PropertyEditors.ValueConverters
         /// </returns>
         public override bool IsConverter(PublishedPropertyType propertyType)
         {
-            if (UmbracoConfig.For.UmbracoSettings().Content.EnablePropertyValueConverters)
+            if (propertyType.PropertyEditorAlias.Equals(Constants.PropertyEditors.RelatedLinks2Alias))
+                return true;
+
+            if (UmbracoConfig.For.UmbracoSettings().Content.EnablePropertyValueConverters == false)
             {
-                return propertyType.PropertyEditorAlias.Equals(Constants.PropertyEditors.RelatedLinksAlias)
-                    || propertyType.PropertyEditorAlias.Equals(Constants.PropertyEditors.RelatedLinks2Alias);
+                return propertyType.PropertyEditorAlias.Equals(Constants.PropertyEditors.RelatedLinksAlias);
             }
-            return false;
+            return false;            
         }
 
         /// <summary>
@@ -88,6 +90,10 @@ namespace Umbraco.Web.PropertyEditors.ValueConverters
             var relatedLinksData = JsonConvert.DeserializeObject<IEnumerable<RelatedLink>>(sourceString);
             var relatedLinks = new List<RelatedLink>();
 
+            if (UmbracoContext.Current == null) return source;
+
+            var helper = new UmbracoHelper(UmbracoContext.Current);
+
             foreach (var linkData in relatedLinksData)
             {
                 var relatedLink = new RelatedLink
@@ -111,7 +117,7 @@ namespace Umbraco.Web.PropertyEditors.ValueConverters
                     var udiAttempt = strLinkId.TryConvertTo<Udi>();
                     if (udiAttempt.Success)
                     {
-                        var content = udiAttempt.Result.ToPublishedContent();
+                        var content = helper.TypedContent(udiAttempt.Result);
                         if (content != null)
                         {
                             relatedLink.Id = content.Id;
