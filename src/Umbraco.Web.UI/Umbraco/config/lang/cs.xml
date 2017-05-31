@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <language alias="cs" intName="Czech" localName="česky" lcid="5" culture="cs">
   <creator>
     <name>umbraco</name>
@@ -37,6 +37,9 @@
     <key alias="update">Aktualizovat</key>
     <key alias="defaultValue">Implicitní hodnota</key>
     <key alias="restore" version="7.3.0">Restore</key>
+    <key alias="SetPermissionsForThePage">Set permissions for the page %0%</key>
+    <key alias="chooseWhereToMove">Vyberte, kam obsah</key>
+    <key alias="toInTheTreeStructureBelow">přesunout ve stromové struktuře níže</key>
   </area>
   <area alias="assignDomain">
     <key alias="permissionDenied">Přístup odepřen</key>
@@ -95,6 +98,9 @@
     <key alias="tableInsert">Vložit tabulku</key>
     <key alias="saveListView">Save list view</key>
     <key alias="generateModels">Generate models</key>
+    <key alias="clearSelection">Zrušit výběr</key>
+    <key alias="undo">Zpět</key>
+    <key alias="redo">Opakovat</key>
   </area>
   <area alias="changeDocType">
     <key alias="changeDocTypeInstruction">Pro změnu dokumentového typu nejprve vyberte platné typy pro toto místo</key>
@@ -166,6 +172,10 @@
     <key alias="target" version="7.0">Cíl</key>
     <key alias="altTextOptional">Alternativní text (nepovinný)</key>
     <key alias="noItemsToShow">There are no items to show</key>
+    <key alias="getUrlException">Nelze načíst URL stránky</key>
+    <key alias="routeError">Tato stárnka je zveřejněná, ale její URL adresa koliduje se stránkou %0%</key>
+    <key alias="scheduledPublishServerTime">Což je pro server čas:</key>
+    <key alias="scheduledPublishDocumentation"><![CDATA[<a href="https://our.umbraco.org/documentation/Getting-Started/Data/Scheduled-Publishing/#timezones" target="_blank">Co to znamená?</a>]]></key>
   </area>
   <area alias="media">
     <key alias="clickToUpload">Klikněte pro nahrání</key>
@@ -185,6 +195,15 @@
     <key alias="noDocumentTypes" version="7.0"><![CDATA[Není zde povolený žádný dokumentový typ. V sekci nastavení pod <strong>"document types"</strong> musíte nastavit povolené typy.]]></key>
     <key alias="noMediaTypes" version="7.0"><![CDATA[Není zde povolený žádný uzel typu media. V sekci nastavení pod <strong>"media types"</strong> musíte nastavit povolené typy.]]></key>
     <key alias="documentTypeWithoutTemplate">Document Type without a template</key>
+    <key alias="newFolder">New folder</key>
+    <key alias="newDataType">New data type</key>
+    <key alias="newJavascriptFile">New javascript file</key>
+    <key alias="newEmptyPartialView">New empty partial view</key>
+    <key alias="newPartialViewMacro">New partial view macro</key>
+    <key alias="newPartialViewFromSnippet">New partial view from snippet</key>
+    <key alias="newEmptyPartialViewMacro">New empty partial view macro</key>
+    <key alias="newPartialViewMacroFromSnippet">New partial view macro from snippet</key>
+    <key alias="newPartialViewMacroNoMacro">New partial view macro (without macro)</key>
   </area>
   <area alias="dashboard">
     <key alias="browser">Procházet Váš web</key>
@@ -203,27 +222,22 @@
   </area>
   <area alias="bulk">
     <key alias="done">Done</key>
-
     <key alias="deletedItem">Deleted %0% item</key>
     <key alias="deletedItems">Deleted %0% items</key>
     <key alias="deletedItemOfItem">Deleted %0% out of %1% item</key>
     <key alias="deletedItemOfItems">Deleted %0% out of %1% items</key>
-
     <key alias="publishedItem">Published %0% item</key>
     <key alias="publishedItems">Published %0% items</key>
     <key alias="publishedItemOfItem">Published %0% out of %1% item</key>
     <key alias="publishedItemOfItems">Published %0% out of %1% items</key>
-
     <key alias="unpublishedItem">Unpublished %0% item</key>
     <key alias="unpublishedItems">Unpublished %0% items</key>
     <key alias="unpublishedItemOfItem">Unpublished %0% out of %1% item</key>
     <key alias="unpublishedItemOfItems">Unpublished %0% out of %1% items</key>
-
     <key alias="movedItem">Moved %0% item</key>
     <key alias="movedItems">Moved %0% items</key>
     <key alias="movedItemOfItem">Moved %0% out of %1% item</key>
     <key alias="movedItemOfItems">Moved %0% out of %1% items</key>
-
     <key alias="copiedItem">Copied %0% item</key>
     <key alias="copiedItems">Copied %0% items</key>
     <key alias="copiedItemOfItem">Copied %0% out of %1% item</key>
@@ -303,15 +317,20 @@
     <key alias="unLinkYour">Un-Link your</key>
     <key alias="account">account</key>
     <key alias="selectEditor">Select editor</key>
+    <key alias="noMacros">There are no macros available to insert</key>
   </area>
   <area alias="dictionaryItem">
     <key alias="description"><![CDATA[
       Níže upravte různé jazykové verze položky '<em>%0%</em>'<br/> Další jazyky lze přidat v sekci 'Jazyky' v levém menu
    ]]></key>
     <key alias="displayName">Název jazyka</key>
+    <key alias="changeKey">Edit the key of the dictionary item.</key>
+    <key alias="changeKeyError"><![CDATA[
+      The key '%0%' already exists.
+   ]]></key>
   </area>
   <area alias="placeholders">
-    <key alias="username">Zadejte své uživatelské jméno</key>
+    <key alias="username">Uživatelské jméno</key>
     <key alias="password">Zadejte své heslo</key>
     <key alias="nameentity">Jméno %0%...</key>
     <key alias="entername">Zadejte název...</key>
@@ -320,6 +339,8 @@
     <key alias="enterTags">Zápisem přidáte značky (zmáčkněte enter za každou značkou)...</key>
     <key alias="label">Label...</key>
     <key alias="enterDescription">Enter a description...</key>
+    <key alias="usernameHint">Uživatelské jméno typicky bývá e-mail či příjmení</key>
+    <key alias="confirmPassword">Confirm your password</key>
   </area>
   <area alias="editcontenttype">
     <key alias="allowAtRoot" version="7.2">Allow at root</key>
@@ -439,7 +460,7 @@
     <key alias="layout">Vzhled</key>
     <key alias="loading">Načítání</key>
     <key alias="locked">Zamčené</key>
-    <key alias="login">Login</key>
+    <key alias="login">Přihlásit</key>
     <key alias="logoff">Odhlásit se</key>
     <key alias="logout">Odhlášení</key>
     <key alias="macro">Makro</key>
@@ -483,7 +504,7 @@
     <key alias="upload">Nahrát</key>
     <key alias="url">Url</key>
     <key alias="user">Uživatel</key>
-    <key alias="username">Uživatelské jméno</key>
+    <key alias="username">Lokální Umbraco účet</key>
     <key alias="value">Hodnota</key>
     <key alias="view">Náhled</key>
     <key alias="welcome">Vítejte...</key>
@@ -501,6 +522,9 @@
     <key alias="saving">Saving...</key>
     <key alias="current">current</key>
     <key alias="embed">Embed</key>
+    <key alias="searchNoResult">Bohužel se nepodařilo nic nalézt</key>
+    <key alias="noItemsInList">Žádné položky nebyly přidány</key>
+    <key alias="selected">vybráno</key>
   </area>
   <area alias="colors">
     <key alias="black">Black</key>
@@ -523,6 +547,14 @@
     <key alias="showShortcuts">show shortcuts</key>
     <key alias="toggleListView">Toggle list view</key>
     <key alias="toggleAllowAsRoot">Toggle allow as root</key>
+    <key alias="commentLine">Comment/Uncomment lines</key>
+    <key alias="removeLine">Remove line</key>
+    <key alias="copyLineUp">Copy Lines Up</key>
+    <key alias="copyLineDown">Copy Lines Down</key>
+    <key alias="moveLineUp">Move Lines Up</key>
+    <key alias="moveLineDown">Move Lines Down</key>
+    <key alias="generalHeader">General</key>
+    <key alias="editorHeader">Editor</key>
   </area>
   <area alias="graphicheadline">
     <key alias="backgroundcolor">Barva pozadí</key>
@@ -673,6 +705,16 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="instruction">Přihlášení</key>
     <key alias="timeout">Pro pokračování je nutné se znovu přihlásit</key>
     <key alias="bottomText"><![CDATA[<p style="text-align:right;">&copy; 2001 - %0% <br /><a href="http://umbraco.org" style="text-decoration: none" target="_blank">umbraco.org</a></p> ]]></key>
+    <key alias="signInWith">Sign in with</key>
+    <key alias="forgottenPassword">Forgotten password?</key>
+    <key alias="forgottenPasswordInstruction">An email will be sent to the address specified with a link to reset your password</key>
+    <key alias="requestPasswordResetConfirmation">An email with password reset instructions will be sent to the specified address if it matched our records</key>
+    <key alias="returnToLogin">Return to login form</key>
+    <key alias="setPasswordInstruction">Please provide a new password</key>
+    <key alias="setPasswordConfirmation">Your Password has been updated</key>
+    <key alias="resetCodeExpired">The link you have clicked on is invalid or has expired</key>
+    <key alias="resetPasswordEmailCopySubject">Umbraco: Reset Password</key>
+    <key alias="resetPasswordEmailCopyFormat"><![CDATA[<p>Your username to login to the Umbraco back-office is: <strong>%0%</strong></p><p>Click <a href="%1%"><strong>here</strong></a> to reset your password or copy/paste this URL into your browser:</p><p><em>%1%</em></p>]]></key>
   </area>
   <area alias="main">
     <key alias="dashboard">Rozcestník</key>
@@ -772,6 +814,15 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="packageVersion">Package version</key>
     <key alias="packageVersionHistory">Package version history</key>
     <key alias="viewPackageWebsite">View package website</key>
+    <key alias="packageAlreadyInstalled">Package already installed</key>
+    <key alias="targetVersionMismatch">This package cannot be installed, it requires a minimum Umbraco version of %0%</key>
+    <key alias="installStateUninstalling">Uninstalling...</key>
+    <key alias="installStateDownloading">Downloading...</key>
+    <key alias="installStateImporting">Importing...</key>
+    <key alias="installStateInstalling">Installing...</key>
+    <key alias="installStateRestarting">Restarting, please wait...</key>
+    <key alias="installStateComplete">All done, your browser will now refresh, please wait...</key>
+    <key alias="installStateCompleted">Please click finish to complete installation and reload page.</key>
   </area>
   <area alias="paste">
     <key alias="doNothing">Vložit s původním formátováním (Nedoporučeno)</key>
@@ -997,6 +1048,72 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="mastertemplate">Nadřazená šablona</key>
     <key alias="quickGuide">Rychlý průvodce záložek šablon</key>
     <key alias="template">Šablona</key>
+    <key alias="insertSections">Sections</key>
+    <key alias="insertDesc">Choose what to insert into your template</key>
+    <key alias="insertDictionaryItemDesc">A dictionary item is a placeholder for a translatable piece of text, which makes it easy to create designs for multilingual websites.</key>
+    <key alias="insertMacroDesc">
+      A Macro is a configurable component which is great for
+      reusable parts of your design, where you need the option to provide parameters,
+      such as galleries, forms and lists.
+    </key>
+    <key alias="insertPageFieldDesc">Displays the value of a named field from the current page, with options to modify the value or fallback to alternative values.</key>
+    <key alias="insertPartialView">Partial view</key>
+    <key alias="insertPartialViewDesc">
+      A partial view is a separate template file which can be rendered inside another
+      template, it's great for reusing markup or for separating complex templates into separate files.
+    </key>
+    <key alias="noMastertemplate">No master template</key>
+    <key alias="noMaster">No master</key>
+    <key alias="renderBody">Render child template</key>
+    <key alias="renderBodyDesc"><![CDATA[
+     Renders the contents of a child template, by inserting a
+     <code>@RenderBody()</code> placeholder.
+      ]]></key>
+    <key alias="defineSection">Define a named section</key>
+    <key alias="defineSectionDesc"><![CDATA[
+         Defines a part of your template as a named section by wrapping it in
+          <code>@section { ... }</code>. This can be rendered in a
+          specific area of the parent of this template, by using <code>@RenderSection</code>.
+      ]]></key>
+    <key alias="renderSection">Render a named section</key>
+    <key alias="renderSectionDesc"><![CDATA[
+      Renders a named area of a child template, by inserting a <code>@RenderSection(name)</code> placeholder.
+      This renders an area of a child template which is wrapped in a corresponding <code>@section [name]{ ... }</code> definition.
+      ]]></key>
+    <key alias="sectionName">Section Name</key>
+    <key alias="sectionMandatory">Section is mandatory</key>
+    <key alias="sectionMandatoryDesc">
+      If mandatory, the child template must contain a <code>@section</code> definition, otherwise an error is shown.
+    </key>
+    <key alias="queryBuilder">Query builder</key>
+    <key alias="itemsReturned">items returned, in</key>
+    <key alias="iWant">I want</key>
+    <key alias="allContent">all content</key>
+    <key alias="contentOfType">content of type "%0%"</key>
+    <key alias="from">from</key>
+    <key alias="websiteRoot">my website</key>
+    <key alias="where">where</key>
+    <key alias="and">and</key>
+    <key alias="is">is</key>
+    <key alias="isNot">is not</key>
+    <key alias="before">before</key>
+    <key alias="beforeIncDate">before (including selected date)</key>
+    <key alias="after">after</key>
+    <key alias="afterIncDate">after (including selected date)</key>
+    <key alias="equals">equals</key>
+    <key alias="doesNotEqual">does not equal</key>
+    <key alias="contains">contains</key>
+    <key alias="doesNotContain">does not contain</key>
+    <key alias="greaterThan">greater than</key>
+    <key alias="greaterThanEqual">greater than or equal to</key>
+    <key alias="lessThan">less than</key>
+    <key alias="lessThanEqual">less than or equal to</key>
+    <key alias="id">Id</key>
+    <key alias="createdDate">Created Date</key>
+    <key alias="lastUpdatedDate">Last Updated Date</key>
+    <key alias="orderBy">order by</key>
+    <key alias="ascending">ascending</key>
+    <key alias="descending">descending</key>
   </area>
   <area alias="grid">
     <key alias="insertControl">Výběr nového elementu</key>
@@ -1155,6 +1272,7 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="translationOptions">Nastavení překladů</key>
     <key alias="translator">Překladatel</key>
     <key alias="uploadTranslationXml">Nahrát překlady ve formátu xml</key>
+    <key alias="noLanguageSelected">Please select the language that the content should be translated into</key>
   </area>
   <area alias="treeHeaders">
     <key alias="cacheBrowser">Vyrovnávací paměť prohlížeče</key>
@@ -1189,6 +1307,8 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="analytics">Analytika</key>
     <key alias="documentTypes">Document Types</key>
     <key alias="relationTypes">Relation Types</key>
+    <key alias="partialViews">Partial Views</key>
+    <key alias="partialViewMacros">Partial View Macro Files</key>
   </area>
   <area alias="update">
     <!-- Neprelozena cela oblast -->
@@ -1248,6 +1368,113 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="validateAsUrl">Validate as a Url</key>
     <key alias="enterCustomValidation">...or enter a custom validation</key>
     <key alias="fieldIsMandatory">Field is mandatory</key>
+  </area>
+  <area alias="healthcheck">
+    <!-- The following keys get these tokens passed in:
+	     0: Current value
+		   1: Recommended value
+		   2: XPath
+		   3: Configuration file path
+	  -->
+    <key alias="checkSuccessMessage">Value is set to the recommended value: '%0%'.</key>
+    <key alias="rectifySuccessMessage">Value was set to '%1%' for XPath '%2%' in configuration file '%3%'.</key>
+    <key alias="checkErrorMessageDifferentExpectedValue">Expected value '%1%' for '%2%' in configuration file '%3%', but found '%0%'.</key>
+    <key alias="checkErrorMessageUnexpectedValue">Found unexpected value '%0%' for '%2%' in configuration file '%3%'.</key>
+    <!-- The following keys get these tokens passed in:
+	     0: Current value
+		   1: Recommended value
+	  -->
+    <key alias="customErrorsCheckSuccessMessage">Custom errors are set to '%0%'.</key>
+    <key alias="customErrorsCheckErrorMessage">Custom errors are currently set to '%0%'. It is recommended to set this to '%1%' before go live.</key>
+    <key alias="customErrorsCheckRectifySuccessMessage">Custom errors successfully set to '%0%'.</key>
+    <key alias="macroErrorModeCheckSuccessMessage">MacroErrors are set to '%0%'.</key>
+    <key alias="macroErrorModeCheckErrorMessage">MacroErrors are set to '%0%' which will prevent some or all pages in your site from loading completely if there are any errors in macros. Rectifying this will set the value to '%1%'.</key>
+    <key alias="macroErrorModeCheckRectifySuccessMessage">MacroErrors are now set to '%0%'.</key>
+    <!-- The following keys get these tokens passed in:
+	     0: Current value
+		   1: Recommended value
+		   2: Server version
+	  -->
+    <key alias="trySkipIisCustomErrorsCheckSuccessMessage">Try Skip IIS Custom Errors is set to '%0%' and you're using IIS version '%1%'.</key>
+    <key alias="trySkipIisCustomErrorsCheckErrorMessage">Try Skip IIS Custom Errors is currently '%0%'. It is recommended to set this to '%1%' for your IIS version (%2%).</key>
+    <key alias="trySkipIisCustomErrorsCheckRectifySuccessMessage">Try Skip IIS Custom Errors successfully set to '%0%'.</key>
+    <!-- The following keys get predefined tokens passed in that are not all the same, like above -->
+    <key alias="configurationServiceFileNotFound">File does not exist: '%0%'.</key>
+    <key alias="configurationServiceNodeNotFound"><![CDATA[Unable to find <strong>'%0%'</strong> in config file <strong>'%1%'</strong>.]]></key>
+    <key alias="configurationServiceError">There was an error, check log for full error: %0%.</key>
+    <key alias="xmlDataIntegrityCheckMembers">Members - Total XML: %0%, Total: %1%, Total invalid: %2%</key>
+    <key alias="xmlDataIntegrityCheckMedia">Media - Total XML: %0%, Total: %1%, Total invalid: %2%</key>
+    <key alias="xmlDataIntegrityCheckContent">Content - Total XML: %0%, Total published: %1%, Total invalid: %2%</key>
+    <key alias="httpsCheckValidCertificate">Your site certificate was marked as valid.</key>
+    <key alias="httpsCheckInvalidCertificate">Certificate validation error: '%0%'</key>
+    <key alias="httpsCheckInvalidUrl">Error pinging the URL %0% - '%1%'</key>
+    <key alias="httpsCheckIsCurrentSchemeHttps">You are currently %0% viewing the site using the HTTPS scheme.</key>
+    <key alias="httpsCheckConfigurationRectifyNotPossible">The appSetting 'umbracoUseSSL' is set to 'false' in your web.config file. Once you access this site using the HTTPS scheme, that should be set to 'true'.</key>
+    <key alias="httpsCheckConfigurationCheckResult">The appSetting 'umbracoUseSSL' is set to '%0%' in your web.config file, your cookies are %1% marked as secure.</key>
+    <key alias="httpsCheckEnableHttpsError">Could not update the 'umbracoUseSSL' setting in your web.config file. Error: %0%</key>
+    <!-- The following keys don't get tokens passed in -->
+    <key alias="httpsCheckEnableHttpsButton">Enable HTTPS</key>
+    <key alias="httpsCheckEnableHttpsDescription">Sets umbracoSSL setting to true in the appSettings of the web.config file.</key>
+    <key alias="httpsCheckEnableHttpsSuccess">The appSetting 'umbracoUseSSL' is now set to 'true' in your web.config file, your cookies will be marked as secure.</key>
+    <key alias="rectifyButton">Fix</key>
+    <key alias="cannotRectifyShouldNotEqual">Cannot fix a check with a value comparison type of 'ShouldNotEqual'.</key>
+    <key alias="cannotRectifyShouldEqualWithValue">Cannot fix a check with a value comparison type of 'ShouldEqual' with a provided value.</key>
+    <key alias="valueToRectifyNotProvided">Value to fix check not provided.</key>
+    <key alias="compilationDebugCheckSuccessMessage">Debug compilation mode is disabled.</key>
+    <key alias="compilationDebugCheckErrorMessage">Debug compilation mode is currently enabled. It is recommended to disable this setting before go live.</key>
+    <key alias="compilationDebugCheckRectifySuccessMessage">Debug compilation mode successfully disabled.</key>
+    <key alias="traceModeCheckSuccessMessage">Trace mode is disabled.</key>
+    <key alias="traceModeCheckErrorMessage">Trace mode is currently enabled. It is recommended to disable this setting before go live.</key>
+    <key alias="traceModeCheckRectifySuccessMessage">Trace mode successfully disabled.</key>
+    <key alias="folderPermissionsCheckMessage">All folders have the correct permissions set.</key>
+    <!-- The following keys get these tokens passed in:
+	    0: Comma delimitted list of failed folder paths
+  	-->
+    <key alias="requiredFolderPermissionFailed"><![CDATA[The following folders must be set up with modify permissions but could not be acccessed: <strong>%0%</strong>.]]></key>
+    <key alias="optionalFolderPermissionFailed"><![CDATA[The following folders must be set up with modify permissions for certain Umbraco operations to function but could not be acccessed: <strong>%0%</strong>. If they aren't being written to no action need be taken.]]></key>
+    <key alias="filePermissionsCheckMessage">All files have the correct permissions set.</key>
+    <!-- The following keys get these tokens passed in:
+	    0: Comma delimitted list of failed folder paths
+  	-->
+    <key alias="requiredFilePermissionFailed"><![CDATA[The following files must be set up with write permissions but could not be acccessed: <strong>%0%</strong>.]]></key>
+    <key alias="optionalFilePermissionFailed"><![CDATA[The following files must be set up with write permissions for certain Umbraco operations to function but could not be acccessed: <strong>%0%</strong>. If they aren't being written to no action need be taken.]]></key>
+    <key alias="clickJackingCheckHeaderFound"><![CDATA[The header or meta-tag <strong>X-Frame-Options</strong> used to control whether a site can be IFRAMEd by another was found.]]></key>
+    <key alias="clickJackingCheckHeaderNotFound"><![CDATA[The header or meta-tag <strong>X-Frame-Options</strong> used to control whether a site can be IFRAMEd by another was not found.]]></key>
+    <key alias="clickJackingSetHeaderInConfig">Set Header in Config</key>
+    <key alias="clickJackingSetHeaderInConfigDescription">Adds a value to the httpProtocol/customHeaders section of web.config to prevent the site being IFRAMEd by other websites.</key>
+    <key alias="clickJackingSetHeaderInConfigSuccess">A setting to create a header preventing IFRAMEing of the site by other websites has been added to your web.config file.</key>
+    <key alias="clickJackingSetHeaderInConfigError">Could not update web.config file. Error: %0%</key>
+    <!-- The following key get these tokens passed in:
+	    0: Comma delimitted list of headers found
+  	-->
+    <key alias="excessiveHeadersFound"><![CDATA[The following headers revealing information about the website technology were found: <strong>%0%</strong>.]]></key>
+    <key alias="excessiveHeadersNotFound">No headers revealing information about the website technology were found.</key>
+    <key alias="smtpMailSettingsNotFound">In the Web.config file, system.net/mailsettings could not be found.</key>
+    <key alias="smtpMailSettingsHostNotConfigured">In the Web.config file system.net/mailsettings section, the host is not configured.</key>
+    <key alias="smtpMailSettingsConnectionSuccess">SMTP settings are configured correctly and the service is operating as expected.</key>
+    <key alias="smtpMailSettingsConnectionFail">The SMTP server configured with host '%0%' and port '%1%' could not be reached. Please check to ensure the SMTP settings in the Web.config file system.net/mailsettings are correct.</key>
+    <key alias="notificationEmailsCheckSuccessMessage"><![CDATA[Notification email has been set to <strong>%0%</strong>.]]></key>
+    <key alias="notificationEmailsCheckErrorMessage"><![CDATA[Notification email is still set to the default value of <strong>%0%</strong>.]]></key>
+  </area>
+  <area alias="redirectUrls">
+    <key alias="disableUrlTracker">Disable URL tracker</key>
+    <key alias="enableUrlTracker">Enable URL tracker</key>
+    <key alias="originalUrl">Original URL</key>
+    <key alias="redirectedTo">Redirected To</key>
+    <key alias="noRedirects">No redirects have been made</key>
+    <key alias="noRedirectsDescription">When a published page gets renamed or moved a redirect will automatically be made to the new page.</key>
+    <key alias="removeButton">Remove</key>
+    <key alias="confirmRemove">Are you sure you want to remove the redirect from '%0%' to '%1%'?</key>
+    <key alias="redirectRemoved">Redirect URL removed.</key>
+    <key alias="redirectRemoveError">Error removing redirect URL.</key>
+    <key alias="confirmDisable">Are you sure you want to disable the URL tracker?</key>
+    <key alias="disabledConfirm">URL tracker has now been disabled.</key>
+    <key alias="disableError">Error disabling the URL tracker, more information can be found in your log file.</key>
+    <key alias="enabledConfirm">URL tracker has now been enabled.</key>
+    <key alias="enableError">Error enabling the URL tracker, more information can be found in your log file.</key>
+  </area>
+  <area alias="emptyStates">
+    <key alias="emptyDictionaryTree">No Dictionary items to choose from</key>
   </area>
   <area alias="wc-users">
     <key alias="userType-user">Běžný uživatel</key>
