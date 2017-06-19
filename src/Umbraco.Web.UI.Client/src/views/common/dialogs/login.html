@@ -11,7 +11,7 @@
         <div class="umb-login-container">
 
             <div class="form">
-                <h1>{{greeting}}</h1>
+                <h1>WebCentrum &mdash; <localize key="login_instruction">Log in below</localize></h1>
 
                 <div ng-show="view == 'login'">
                     
@@ -28,19 +28,28 @@
                         <form method="POST" name="externalLoginForm" action="{{externalLoginFormAction}}">
 
                             <div ng-repeat="login in externalLoginProviders">
+                                <ng-switch on="login.caption">
 
-                                <button type="submit" class="btn btn-block btn-social"
-                                        ng-class="login.properties.SocialStyle"
-                                        id="{{login.authType}}" name="provider" value="{{login.authType}}"
-                                        title="Log in using your {{login.caption}} account">
-                                    <i class="fa" ng-class="login.properties.SocialIcon"></i>
-                                    <localize key="login_signInWith">Sign in with</localize> {{login.caption}}
-                                </button>
+                                    <button type="submit" class="muni-login" ng-switch-when="MUNI"
+                                            id="{{login.authType}}" name="provider" value="{{login.authType}}">
+                                    </button>
+
+                                    <button type="submit" class="btn btn-block btn-social" ng-switch-default
+                                            ng-class="login.properties.SocialStyle"
+                                            id="{{login.authType}}" name="provider" value="{{login.authType}}"
+                                            title="Log in using your {{login.caption}} account">
+                                        <i class="fa" ng-class="login.properties.SocialIcon"></i>
+                                        <localize key="login_signInWith">Sign in with</localize> {{login.caption}}
+                                    </button>
+
+                                </ng-switch>
 
                             </div>
                         </form>
 
                     </div>
+
+                    <hr />
 
                     <form method="POST" name="loginForm" ng-submit="loginSubmit(login, password)">
 
