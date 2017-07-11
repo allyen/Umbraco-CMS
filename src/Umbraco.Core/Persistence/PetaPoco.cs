@@ -377,6 +377,11 @@ namespace Umbraco.Core.Persistence
 		public void CompleteTransaction()
 		{
             //TODO what shall we do if transactionDepth is already zero?
+
+            // TODO: CHECK: Bug in Scopes in some cases causes that DisposeLastScope completes already completed transactions
+            if (_transactionDepth == 0)
+                return;
+
             if ((--_transactionDepth) == 0)
 				CleanupTransaction();
 		}
