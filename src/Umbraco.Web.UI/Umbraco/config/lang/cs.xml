@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <language alias="cs" intName="Czech" localName="česky" lcid="5" culture="cs">
   <creator>
     <name>umbraco</name>
@@ -1209,14 +1209,14 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="dateOnly">Ano, pouze datum</key>
     <key alias="formatAsDate">Formátovat jako datum</key>
     <key alias="htmlEncode">HTML kódování</key>
-    <key alias="htmlEncodeHelp">Nahradit speciální znaky HTML ekvivalenty.</key>
-    <key alias="insertedAfter">Bude vložen za hodnotu pole</key>
-    <key alias="insertedBefore">Bude vložen před hodnotu pole</key>
-    <key alias="lowercase">Malými písmeny</key>
-    <key alias="none">Žádný</key>
-    <key alias="postContent">Vložit za pole</key>
-    <key alias="preContent">Vložit před pole</key>
-    <key alias="recursive">Rekurzivně</key>
+    <key alias="htmlEncodeHelp">Nahradí speciální znaky jejich HTML ekvivalentem.</key>
+    <key alias="insertedAfter">Bude vloženo za hodnotou pole</key>
+    <key alias="insertedBefore">Bude vloženo před hodnotou pole</key>
+    <key alias="lowercase">Malá písmena</key>
+    <key alias="none">Nic</key>
+    <key alias="postContent">Vložit za polem</key>
+    <key alias="preContent">Vložit před polem</key>
+    <key alias="recursive">Rekurzivní</key>
     <key alias="removeParagraph">Odstranit tagy odstavců</key>
     <key alias="removeParagraphHelp">Odstranit jakékoliv tagy &amp;lt;P&amp;gt; na začátku a na konci textu</key>
     <key alias="standardFields">Standardní pole</key>

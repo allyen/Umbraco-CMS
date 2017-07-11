@@ -152,13 +152,13 @@ namespace Umbraco.Web.Cache
         private static void ClearCache(params JsonPayload[] payloads)
         {
             if (payloads == null) return;
-
-            ApplicationContext.Current.ApplicationCache.RuntimeCache.ClearCacheByKeySearch(CacheKeys.IdToKeyCacheKey);
-            ApplicationContext.Current.ApplicationCache.RuntimeCache.ClearCacheByKeySearch(CacheKeys.KeyToIdCacheKey);
+            
             ApplicationContext.Current.ApplicationCache.ClearPartialViewCache();
 
-            payloads.ForEach(payload =>
+            foreach (var payload in payloads)
                 {
+                ApplicationContext.Current.Services.IdkMap.ClearCache(payload.Id);
+
                 var mediaCache = ApplicationContext.Current.ApplicationCache.IsolatedRuntimeCache.GetCache<IMedia>();
 
                     //if there's no path, then just use id (this will occur on permanent deletion like emptying recycle bin)
@@ -187,11 +187,9 @@ namespace Umbraco.Web.Cache
                     }
                 }
 
-                    // published cache...
-                    PublishedMediaCache.ClearCache(payload.Id);
-                });
-
-
+                // published cache...
+                PublishedMediaCache.ClearCache(payload.Id);
+            }
         }
     }
 }
