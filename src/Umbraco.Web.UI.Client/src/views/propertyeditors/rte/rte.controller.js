@@ -102,6 +102,7 @@ angular.module("umbraco")
 
             // these languages are available for localization
             var availableLanguages = [
+                'cs',
                 'da',
                 'de',
                 'en',
