@@ -7,7 +7,7 @@
     <!-- navigation container -->
     <div id="navigation" ng-show="showNavigation" class="fill umb-modalcolumn" ng-animate="'slide'" nav-resize>
 
-        <div ng-swipe-left="nav.hideNavigation()" class="navigation-inner-container span6">
+        <div class="navigation-inner-container span6">
 
             <!-- the search -->
             <div ng-controller="Umbraco.SearchController" ng-if="authenticated">
@@ -78,7 +78,7 @@
         <div class="offset6" id="navOffset" style="z-index: 10">
 
             <!-- The context menu -->
-            <div id='contextMenu' class="umb-modalcolumn fill shadow" ng-swipe-left="nav.hideMenu()" ng-show="showContextMenu" ng-animate="'slide'">
+            <div id='contextMenu' class="umb-modalcolumn fill shadow" ng-show="showContextMenu" ng-animate="'slide'">
                 <umb-context-menu
                     menu-dialog-title="{{menuDialogTitle}}"
                     current-section="{{currentSection}}"
@@ -90,7 +90,6 @@
 
             <!-- Tree dialogs -->
             <div id="dialog" class='umb-modalcolumn fill shadow'
-                ng-swipe-left="nav.hideDialog()"
                 ng-show="showContextMenuDialog" ng-animate="'slide'">
                 <div class='umb-modalcolumn-header'>
                     <h1>{{menuDialogTitle}}</h1>
