@@ -72,9 +72,7 @@ namespace Umbraco.Web.UI.JavaScript
                         return (IClientDependencyFile)new BasicFile(cdfType) { FilePath = absolute.AbsolutePath, ForceProvider = "BackOfficeClientDependencyRenderer" };
                     }
                 }
-                return cdfType == ClientDependencyType.Javascript
-                    ? (IClientDependencyFile)new JavascriptFile(asString)
-                    : (IClientDependencyFile)new CssFile(asString);
+                return (IClientDependencyFile)new BasicFile(cdfType) { FilePath = asString, ForceProvider = "BackOfficeClientDependencyRenderer" };
             }).Where(x => x != null).ToList();
 
             //Get the output string for these registrations which will be processed by CDF correctly to stagger the output based
