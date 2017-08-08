@@ -36,7 +36,7 @@
     <key alias="translate">Přeložit</key>
     <key alias="update">Aktualizovat</key>
     <key alias="defaultValue">Implicitní hodnota</key>
-    <key alias="restore" version="7.3.0">Restore</key>
+    <key alias="restore" version="7.3.0">Obnovit</key>
     <key alias="SetPermissionsForThePage">Set permissions for the page %0%</key>
     <key alias="chooseWhereToMove">Vyberte, kam obsah</key>
     <key alias="toInTheTreeStructureBelow">přesunout ve stromové struktuře níže</key>
@@ -504,7 +504,7 @@
     <key alias="upload">Nahrát</key>
     <key alias="url">Url</key>
     <key alias="user">Uživatel</key>
-    <key alias="username">Lokální Umbraco účet</key>
+    <key alias="username">Lokální Umbraco účet – uživatelé mimo MU</key>
     <key alias="value">Hodnota</key>
     <key alias="view">Náhled</key>
     <key alias="welcome">Vítejte...</key>
