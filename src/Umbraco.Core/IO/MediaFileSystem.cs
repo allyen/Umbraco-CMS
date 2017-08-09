@@ -457,7 +457,13 @@ namespace Umbraco.Core.IO
                         // remove the directory if any
                         var dir = Path.GetDirectoryName(file);
                         if (string.IsNullOrWhiteSpace(dir) == false)
-                            DeleteDirectory(dir, true);
+                        {
+                            // check that the directory is not empty (can contain other files, as an umbraco cluster
+                            // with more nodes can put different media files in same folders beacuse id generating
+                            // is not synced)
+                            if (!GetFiles(dir).Any())
+                                DeleteDirectory(dir, true);
+                        }
                     }
                     else
                     {
