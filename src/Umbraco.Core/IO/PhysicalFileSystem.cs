@@ -391,6 +391,11 @@ namespace Umbraco.Core.IO
                 File.Move(physicalPath, fullPath);
         }
 
+        public void Move(string source, string target)
+        {
+            throw new NotImplementedException();
+        }
+
         #region Helper Methods
 
         protected virtual void EnsureDirectory(string path)

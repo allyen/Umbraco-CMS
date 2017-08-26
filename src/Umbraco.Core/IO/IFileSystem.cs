@@ -154,6 +154,8 @@ namespace Umbraco.Core.IO
 
         void AddFile(string path, string physicalPath, bool overrideIfExists = true, bool copy = false);
 
+        void Move(string source, string target);
+
         // TODO: implement these
         //
         //void CreateDirectory(string path);

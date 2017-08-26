@@ -197,5 +197,13 @@ namespace Umbraco.Core.IO
                 throw new NotSupportedException();
             fileSystem2.AddFile(path, physicalPath, overrideIfExists, copy);
         }
+
+        public void Move(string source, string target)
+        {
+            var fileSystem2 = FileSystem as IFileSystem2;
+            if (fileSystem2 == null)
+                throw new NotSupportedException();
+            fileSystem2.Move(source, target);
+        }
     }
 }

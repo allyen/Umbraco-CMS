@@ -128,5 +128,13 @@ namespace Umbraco.Core.IO
                 throw new NotSupportedException();
 	        wrapped2.AddFile(path, physicalPath, overrideIfExists, copy);
 	    }
+
+        public void Move(string source, string target)
+        {
+            var wrapped2 = Wrapped as IFileSystem2;
+            if (wrapped2 == null)
+                throw new NotSupportedException();
+            wrapped2.Move(source, target);
+        }
     }
 }

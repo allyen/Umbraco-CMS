@@ -327,6 +327,14 @@ namespace Umbraco.Core.IO
             Nodes[normPath] = new ShadowNode(false, false);
         }
 
+        public void Move(string source, string target)
+        {
+            var fs2 = _fs as IFileSystem2;
+            if (fs2 == null)
+                throw new NotSupportedException();
+            fs2.Move(source, target);
+        }
+
         // copied from System.Web.Util.Wildcard internal
         internal class WildcardExpression
         {
