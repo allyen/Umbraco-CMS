@@ -52,7 +52,8 @@ namespace Umbraco.Web.UI
             }
             else
             {
-                var comp = ClientDependencySettings.Instance.DefaultCompositeFileProcessingProvider.ProcessCompositeList(jsDependencies, ClientDependencyType.Javascript, http, ClientDependencySettings.Instance.CompositeFileHandlerPath);
+                var cdPath = GlobalSettings.ClientDependencyBackOfficePath ?? ClientDependencySettings.Instance.CompositeFileHandlerPath;
+                var comp = ClientDependencySettings.Instance.DefaultCompositeFileProcessingProvider.ProcessCompositeList(jsDependencies, ClientDependencyType.Javascript, http, cdPath);
                 foreach (var s in comp)
                 {
                     sb.Append(RenderSingleJsFile(s, htmlAttributes));
