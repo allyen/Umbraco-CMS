@@ -158,7 +158,7 @@
                                                          <localize key="grid_settingsApplied" />
                                                       </div>
 
-                                                      <div class="cell-tools" ng-if="area.active && !sortMode">
+                                                      <div class="cell-tools" ng-show="area.active && !sortMode">
                                                          <ng-include ng-if="model.config.items.cellToolbarView"
                                                                      src="model.config.items.cellToolbarView"></ng-include>
 
@@ -201,7 +201,7 @@
                                                                          {{control.editor.name}}
                                                                       </div>
 
-                                                                      <div class="umb-tools" ng-if="control.active">
+                                                                      <div class="umb-tools" ng-show="control.active">
 
                                                                           <ng-include ng-if="model.config.items.controlToolbarView"
                                                                                       src="model.config.items.controlToolbarView"></ng-include>
