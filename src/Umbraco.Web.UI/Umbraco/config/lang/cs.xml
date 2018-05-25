@@ -961,6 +961,8 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="sortCreationDate">Creation date</key>
     <key alias="sortPleaseWait"><![CDATA[ Počkejte prosím. Probíhá řazení položek, což může chvíli trvat.<br/> <br/> Nezavírejte toto okno během třízení]]></key>
     <key alias="sortDone">Třídění bylo ukončeno.</key>
+    <key alias="sortHelp">Abyste nastavili, jak mají být položky seřazeny, přetáhněte jednotlivé z nich nahoru či dolů. Anebo klikněte na hlavičku sloupce pro setřídění celé kolekce</key>
+    <key alias="sortPleaseWait"><![CDATA[ Čekejte, prosím. Položky jsou tříděny a může to chvíli trvat.]]></key>
   </area>
   <area alias="speechBubbles">
     <key alias="contentPublishedFailedByEvent">Publikování bylo zrušeno kvůli zásahu třetí strany.</key>
@@ -1117,6 +1119,13 @@ To manage your website, simply open the umbraco back office and start adding con
   </area>
   <area alias="grid">
     <key alias="insertControl">Výběr nového elementu</key>
+    <key alias="rte">Rich Text Editor</key>
+    <key alias="media">Image</key>
+    <key alias="macro">Macro</key>
+    <key alias="embed">Embed</key>
+    <key alias="headline">Headline</key>
+    <key alias="quote">Quote</key>  
+    <key alias="insertControl">Choose type of content</key>
     <key alias="chooseLayout">Choose a layout</key>
     <key alias="addRows">Vyberte rozložení stránky</key>
     <key alias="addElement"><![CDATA[Kliknutím na ikonku <i class="icon icon-add blue"></i> vložíte další elementy]]></key>
@@ -1352,8 +1361,6 @@ To manage your website, simply open the umbraco back office and start adding con
     <key alias="startnode">Výchozí uzel v Obsahu</key>
     <key alias="username">Uživatelské jméno</key>
     <key alias="userPermissions">Oprávnění uživatele</key>
-    <key alias="usertype">Typ uživatele</key>
-    <key alias="userTypes">Typy uživatelů</key>
     <key alias="writer">Tvůrce textů</key>
     <key alias="yourProfile" version="7.0">Váš profil</key>
     <key alias="yourHistory" version="7.0">Nedávná historie</key>

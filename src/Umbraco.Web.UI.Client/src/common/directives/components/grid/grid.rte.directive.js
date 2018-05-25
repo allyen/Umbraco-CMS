@@ -117,7 +117,9 @@ angular.module("umbraco.directives")
                                 toolbar: toolbar,
                                 content_css: stylesheets,
                                 style_formats: styleFormats,
-                                autoresize_bottom_margin: 0
+                                autoresize_bottom_margin: 0,
+                                //see http://archive.tinymce.com/wiki.php/Configuration:cache_suffix
+                                cache_suffix: "?umb__rnd=" + Umbraco.Sys.ServerVariables.application.cacheBuster
                             };
 
 
@@ -144,6 +146,12 @@ angular.module("umbraco.directives")
                                                 //cannot parse, we'll just leave it
                                             }
                                         }
+                                    }
+                                    if (val === "true") {
+                                        tinyMceConfig.customConfig[i] = true;
+                                    }
+                                    if (val === "false") {
+                                        tinyMceConfig.customConfig[i] = false;
                                     }
                                 }
 
@@ -361,7 +369,7 @@ angular.module("umbraco.directives")
                             var unsubscribe = scope.$on("formSubmitting", function () {
                                 //TODO: Here we should parse out the macro rendered content so we can save on a lot of bytes in data xfer
                                 // we do parse it out on the server side but would be nice to do that on the client side before as well.
-                                scope.value = tinyMceEditor.getContent();
+                                scope.value = tinyMceEditor ? tinyMceEditor.getContent() : null;
                             });
 
                             //when the element is disposed we need to unsubscribe!
@@ -369,7 +377,9 @@ angular.module("umbraco.directives")
                             // element might still be there even after the modal has been hidden.
                             scope.$on('$destroy', function () {
                                 unsubscribe();
-                                tinyMceEditor.remove();
+								if (tinyMceEditor !== undefined && tinyMceEditor != null) {
+									tinyMceEditor.destroy()
+								}
                             });
 
                         });
