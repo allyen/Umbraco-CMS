@@ -3,12 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
-using Umbraco.Core.Models.Membership;
-using Umbraco.Core.Services;
 using umbraco.BusinessLogic.Actions;
 using Umbraco.Core;
 using Umbraco.Core.Models;
+using Umbraco.Core.Models.Membership;
+using Umbraco.Core.Services;
 
 namespace Umbraco.Web.WebApi.Filters
 {
@@ -71,14 +70,6 @@ namespace Umbraco.Web.WebApi.Filters
             _permissionToCheck = ActionBrowse.Instance.Letter;
         }
 
-
-        protected override void FilterItems(IUser user, IList items)
-        {
-            base.FilterItems(user, items);
-
-            FilterBasedOnPermissions(items, user);
-        }
-
         protected override int[] GetUserStartNodes(IUser user)
         {
             return user.CalculateContentStartNodeIds(_entityService);
@@ -89,7 +80,7 @@ namespace Umbraco.Web.WebApi.Filters
             get { return Constants.System.RecycleBinContent; }
         }
 
-        internal void FilterBasedOnPermissions(IList items, IUser user)
+        internal override void FilterBasedOnPermissions(IList items, IUser user)
         {
             var length = items.Count;
 

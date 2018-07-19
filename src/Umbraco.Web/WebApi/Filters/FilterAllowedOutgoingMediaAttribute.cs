@@ -7,8 +7,6 @@ using System.Web.Http.Filters;
 using Umbraco.Core;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Membership;
-using Umbraco.Core.Services;
-using Umbraco.Web.Models.ContentEditing;
 
 namespace Umbraco.Web.WebApi.Filters
 {
@@ -80,7 +78,7 @@ namespace Umbraco.Web.WebApi.Filters
         {
             FilterBasedOnStartNode(items, user);
 
-            FilterBasedOnPermissions(items, user, ApplicationContext.Current.Services.UserService);
+            FilterBasedOnPermissions(items, user);
         }
 
         internal void FilterBasedOnStartNode(IList items, IUser user)
@@ -101,7 +99,7 @@ namespace Umbraco.Web.WebApi.Filters
             }
         }
 
-        internal virtual void FilterBasedOnPermissions(IList items, IUser user, IUserService userService)
+        internal virtual void FilterBasedOnPermissions(IList items, IUser user)
         {
             var args = new Umbraco.Core.Events.GettingPermissionsEventArgs(user, null, items.Cast<dynamic>().Select(i => (int)i.Id).ToArray());
             Umbraco.Web.Editors.MediaController.RaiseGettingPermissionsEvent(args);
