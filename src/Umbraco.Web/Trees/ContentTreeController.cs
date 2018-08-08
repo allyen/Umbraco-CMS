@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Web.Http;
-using umbraco;
-using umbraco.BusinessLogic.Actions;
 using Umbraco.Core;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
@@ -41,7 +42,7 @@ namespace Umbraco.Web.Trees
     public class ContentTreeController : ContentTreeControllerBase, ISearchableTree
     {
         private readonly UmbracoTreeSearcher _treeSearcher = new UmbracoTreeSearcher();
-        
+
         protected override int RecycleBinId
         {
             get { return Constants.System.RecycleBinContent; }
@@ -67,7 +68,7 @@ namespace Umbraco.Web.Trees
         /// <returns></returns>
         protected override TreeNode GetSingleTreeNode(IUmbracoEntity e, string parentId, FormDataCollection queryStrings)
         {
-            var entity = (UmbracoEntity)e;
+            var entity = (UmbracoEntity) e;
 
             var allowedUserOptions = GetAllowedUserMenuItemsForNode(e);
             if (CanUserAccessNode(e, allowedUserOptions))
@@ -112,7 +113,7 @@ namespace Umbraco.Web.Trees
             if (id == Constants.System.Root.ToInvariantString())
             {
                 var menu = new MenuItemCollection();
-                
+
                 // if the user's start node is not the root then the only menu item to display is refresh
                 if (UserStartNodes.Contains(Constants.System.Root) == false)
                 {
@@ -144,9 +145,7 @@ namespace Umbraco.Web.Trees
                 }
 
                 // add default actions for *all* users
-                if (Security.CurrentUser.IsAdmin())
-                    menu.Items.Add<ActionRePublish>(ui.Text("actions", ActionRePublish.Instance.Alias)).ConvertLegacyMenuItem(null, "content", "content");
-
+                menu.Items.Add<ActionRePublish>(ui.Text("actions", ActionRePublish.Instance.Alias)).ConvertLegacyMenuItem(null, "content", "content");
                 menu.Items.Add<RefreshNode, ActionRefresh>(ui.Text("actions", ActionRefresh.Instance.Alias), true);
 
                 return menu;
