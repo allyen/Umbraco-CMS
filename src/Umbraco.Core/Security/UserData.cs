@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Runtime.Serialization;
 
 namespace Umbraco.Core.Security
@@ -45,6 +46,7 @@ namespace Umbraco.Core.Security
         public object Id { get; set; }
         
         [DataMember(Name = "roles")]
+        [JsonIgnore]
         public string[] Roles { get; set; }
 
         [DataMember(Name = "username")]

@@ -314,6 +314,7 @@ namespace Umbraco.Core.Security
         public string[] Roles
         {
             get { return UserData.Roles; }
+            set { UserData.Roles = value; }
         }
 
         /// <summary>

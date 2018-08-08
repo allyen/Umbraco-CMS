@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Web.Security;
 using Microsoft.Owin;
@@ -6,6 +7,7 @@ using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Newtonsoft.Json;
 using Owin;
+using Umbraco.Core;
 using Umbraco.Core.Security;
 
 namespace Umbraco.Web.Security.Identity
@@ -75,6 +77,9 @@ namespace Umbraco.Web.Security.Identity
                 //for previous versions of Umbraco
                 return null;
             }
+
+            identity.Roles = ApplicationContext.Current.Services.UserService.GetUserById(identity.Id.TryConvertTo<int>().Result).Groups
+                .Select(r => r.Alias).ToArray();
 
             var ticket = new AuthenticationTicket(identity, new AuthenticationProperties
             {
