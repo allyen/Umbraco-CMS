@@ -1267,8 +1267,6 @@ namespace Umbraco.Core.Services
                     AddAdditionalPermissions(assignedPermissionsArray, permission.AssignedPermissions);
                 }
 
-                GettingPermissions.RaiseEvent(new GettingPermissionsEventArgs(user, result, nodeIds), this);
-
                 assignedPermissions = string.Join("", assignedPermissionsArray);
                 return true;
             }

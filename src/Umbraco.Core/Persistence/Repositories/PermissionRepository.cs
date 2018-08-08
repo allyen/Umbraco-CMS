@@ -26,7 +26,7 @@ namespace Umbraco.Core.Persistence.Repositories
     /// This repo implements the base <see cref="PetaPocoRepositoryBase{TId,TEntity}"/> class so that permissions can be queued to be persisted
     /// like the normal repository pattern but the standard repository Get commands don't apply and will throw <see cref="NotImplementedException"/>
     /// </remarks>
-    public class PermissionRepository<TEntity> : PetaPocoRepositoryBase<int, ContentPermissionSet>
+    internal class PermissionRepository<TEntity> : PetaPocoRepositoryBase<int, ContentPermissionSet>
         where TEntity : class, IAggregateRoot
     {
 
