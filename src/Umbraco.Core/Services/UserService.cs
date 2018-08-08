@@ -1199,6 +1199,7 @@ namespace Umbraco.Core.Services
 
             }
 
+            resultPermissions.RemoveWhere(p => p.EntityId != entityId);
             var permissionSet = new EntityPermissionSet(entityId, resultPermissions);
             return permissionSet;
         }
