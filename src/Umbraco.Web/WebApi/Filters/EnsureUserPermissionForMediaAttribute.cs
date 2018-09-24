@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Web.Http;
 using System.Web.Http.Controllers;
 using System.Web.Http.Filters;
 using Umbraco.Core;
 using Umbraco.Core.Models;
-using Umbraco.Core.Models.Membership;
-using Umbraco.Core.Services;
 using Umbraco.Web.Editors;
-using umbraco.BusinessLogic.Actions;
 
 namespace Umbraco.Web.WebApi.Filters
 {
@@ -18,7 +14,7 @@ namespace Umbraco.Web.WebApi.Filters
     /// <remarks>
     /// Since media doesn't have permissions, this simply checks start node access    
     /// </remarks>
-    internal sealed class EnsureUserPermissionForMediaAttribute : ActionFilterAttribute
+    public sealed class EnsureUserPermissionForMediaAttribute : ActionFilterAttribute
     {
         private readonly int? _nodeId;
         private readonly string _paramName;
