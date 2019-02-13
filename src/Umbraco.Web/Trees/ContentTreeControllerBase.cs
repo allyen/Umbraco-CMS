@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -11,12 +10,12 @@ using Umbraco.Core;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.EntityBase;
-using Umbraco.Core.Persistence;
 using Umbraco.Web.Models.Trees;
 using Umbraco.Web.WebApi.Filters;
 using umbraco;
 using umbraco.BusinessLogic.Actions;
 using System.Globalization;
+using Umbraco.Core.Services;
 
 namespace Umbraco.Web.Trees
 {
@@ -203,8 +202,15 @@ namespace Umbraco.Web.Trees
                 entityId = entity.Id;
             }
 
-            return Services.EntityService.GetChildren(entityId, UmbracoObjectType).ToArray();
+            return GetChildrenFromEntityService(entityId);
         }
+
+        /// <summary>
+        /// Abstract method to fetch the entities from the entity service
+        /// </summary>
+        /// <param name="entityId"></param>
+        /// <returns></returns>
+        internal abstract IEnumerable<IUmbracoEntity> GetChildrenFromEntityService(int entityId);
 
         /// <summary>
         /// Returns true or false if the current user has access to the node based on the user's allowed start node (path) access
@@ -275,6 +281,37 @@ namespace Umbraco.Web.Trees
         }
 
         /// <summary>
+        /// Check to see if we should return children of a container node
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns></returns>
+        /// <remarks>
+        /// This is required in case a user has custom start nodes that are children of a list view since in that case we'll need to render the tree node. In normal cases we don't render
+        /// children of a list view.
+        /// </remarks>
+        protected bool ShouldRenderChildrenOfContainer(IUmbracoEntity e)
+        {
+            var isContainer = e.IsContainer();
+
+            var renderChildren = e.HasChildren() && (isContainer == false);
+
+            //Here we need to figure out if the node is a container and if so check if the user has a custom start node, then check if that start node is a child
+            // of this container node. If that is true, the HasChildren must be true so that the tree node still renders even though this current node is a container/list view.
+            if (isContainer && UserStartNodes.Length > 0 && UserStartNodes.Contains(Constants.System.Root) == false)
+            {                    
+                var startNodes = Services.EntityService.GetAll(UmbracoObjectType, UserStartNodes);
+                //if any of these start nodes' parent is current, then we need to render children normally so we need to switch some logic and tell
+                // the UI that this node does have children and that it isn't a container
+                if (startNodes.Any(x => x.ParentId == e.Id))
+                {
+                    renderChildren = true;
+                }
+            }
+
+            return renderChildren;
+        }
+
+        /// <summary>
         /// Before we make a call to get the tree nodes we have to check if they can actually be rendered
         /// </summary>
         /// <param name="id"></param>
@@ -290,7 +327,7 @@ namespace Umbraco.Web.Trees
             //before we get the children we need to see if this is a container node
 
             //test if the parent is a listview / container
-            if (current != null && current.IsContainer())
+            if (current != null && ShouldRenderChildrenOfContainer(current) == false)
             {
                 //no children!
                 return new TreeNodeCollection();
@@ -338,6 +375,11 @@ namespace Umbraco.Web.Trees
             foreach (var m in notAllowed)
             {
                 menuWithAllItems.Items.Remove(m);
+                // if the disallowed action is set as default action, make sure to reset the default action as well
+                if (menuWithAllItems.DefaultMenuAlias == m.Alias)
+                {
+                    menuWithAllItems.DefaultMenuAlias = null;
+                }
             }
         }
 

@@ -6,12 +6,26 @@ angular.module("umbraco").controller("Umbraco.Editors.Media.MoveController",
 	    $scope.dialogTreeEventHandler = $({});
 	    var node = dialogOptions.currentNode;
 
+        $scope.busy = false;
+        $scope.searchInfo = {
+            searchFromId: null,
+            searchFromName: null,
+            showSearch: false,
+            results: [],
+            selectedSearchResults: []
+        }
         $scope.treeModel = {
             hideHeader: false
         }
         userService.getCurrentUser().then(function (userData) {
             $scope.treeModel.hideHeader = userData.startMediaIds.length > 0 && userData.startMediaIds.indexOf(-1) == -1;
         });
+
+        function treeLoadedHandler(ev, args) {
+            if (node && node.path) {
+                $scope.dialogTreeEventHandler.syncTree({ path: node.path, activate: false });
+            }
+        }
 
 	    function nodeSelectHandler(ev, args) {
 
@@ -38,12 +52,30 @@ angular.module("umbraco").controller("Umbraco.Editors.Media.MoveController",
 			}
 	    }
 
-	    $scope.dialogTreeEventHandler.bind("treeNodeSelect", nodeSelectHandler);
-	    $scope.dialogTreeEventHandler.bind("treeNodeExpanded", nodeExpandedHandler);
+        $scope.hideSearch = function () {
+            $scope.searchInfo.showSearch = false;
+            $scope.searchInfo.searchFromId = null;
+            $scope.searchInfo.searchFromName = null;
+            $scope.searchInfo.results = [];
+        }
+
+        // method to select a search result 
+        $scope.selectResult = function (evt, result) {
+            result.selected = result.selected === true ? false : true;
+            nodeSelectHandler(evt, { event: evt, node: result });
+        };
+
+        //callback when there are search results 
+        $scope.onSearchResults = function (results) {
+            $scope.searchInfo.results = results;
+            $scope.searchInfo.showSearch = true;
+        };
 
 	    $scope.move = function () {
+	        $scope.busy = true;
 	        mediaResource.move({ parentId: $scope.target.id, id: node.id })
                 .then(function (path) {
+	                $scope.busy = false;
                     $scope.error = false;
                     $scope.success = true;
 
@@ -70,7 +102,12 @@ angular.module("umbraco").controller("Umbraco.Editors.Media.MoveController",
                 });
 	    };
 
+        $scope.dialogTreeEventHandler.bind("treeLoaded", treeLoadedHandler);
+        $scope.dialogTreeEventHandler.bind("treeNodeSelect", nodeSelectHandler);
+        $scope.dialogTreeEventHandler.bind("treeNodeExpanded", nodeExpandedHandler);
+
 	    $scope.$on('$destroy', function () {
+	        $scope.dialogTreeEventHandler.unbind("treeLoaded", treeLoadedHandler);
 	        $scope.dialogTreeEventHandler.unbind("treeNodeSelect", nodeSelectHandler);
 			$scope.dialogTreeEventHandler.unbind("treeNodeExpanded", nodeExpandedHandler);
 	    });

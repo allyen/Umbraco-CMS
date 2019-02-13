@@ -20,6 +20,7 @@ using Umbraco.Web.Mvc;
 using Umbraco.Web.PropertyEditors;
 using Umbraco.Web.Trees;
 using Umbraco.Web.WebServices;
+using Constants = Umbraco.Core.Constants;
 
 namespace Umbraco.Web.Editors
 {
@@ -51,7 +52,7 @@ namespace Umbraco.Web.Editors
             var keepOnlyKeys = new Dictionary<string, string[]>
             {
                 {"umbracoUrls", new[] {"authenticationApiBaseUrl", "serverVarsJs", "externalLoginsUrl", "currentUserApiBaseUrl"}},
-                {"umbracoSettings", new[] {"allowPasswordReset", "imageFileTypes", "maxFileSize", "loginBackgroundImage"}},
+                {"umbracoSettings", new[] {"allowPasswordReset", "imageFileTypes", "maxFileSize", "loginBackgroundImage", "canSendRequiredEmail"}},
                 {"application", new[] {"applicationPath", "cacheBuster"}},
                 {"isDebuggingEnabled", new string[] { }},
                 {"features", new [] {"disabledFeatures"}}
@@ -113,7 +114,7 @@ namespace Umbraco.Web.Editors
                         {"serverVarsJs", _urlHelper.Action("Application", "BackOffice")},
                         //API URLs
                         {
-                            "packagesRestApiBaseUrl", UmbracoConfig.For.UmbracoSettings().PackageRepositories.GetDefault().RestApiUrl
+                            "packagesRestApiBaseUrl", Constants.PackageRepository.RestApiBaseUrl
                         },
                         {
                             "redirectUrlManagementApiBaseUrl", _urlHelper.GetUmbracoApiServiceBaseUrl<RedirectUrlManagementController>(
@@ -268,6 +269,10 @@ namespace Umbraco.Web.Editors
                                 controller => controller.GetByPath("", ""))
                         },
                         {
+                            "dictionaryApiBaseUrl", _urlHelper.GetUmbracoApiServiceBaseUrl<DictionaryController>(
+                                controller => controller.DeleteById(int.MaxValue))
+						},
+                        {
                             "helpApiBaseUrl", _urlHelper.GetUmbracoApiServiceBaseUrl<HelpController>(
                                 controller => controller.GetContextHelpForPage("","",""))
                         },
@@ -275,6 +280,7 @@ namespace Umbraco.Web.Editors
                             "backOfficeAssetsApiBaseUrl", _urlHelper.GetUmbracoApiServiceBaseUrl<BackOfficeAssetsController>(
                                 controller => controller.GetSupportedMomentLocales())
                         }
+
                     }
                 },
                 {
@@ -305,6 +311,7 @@ namespace Umbraco.Web.Editors
                         {"allowPasswordReset", UmbracoConfig.For.UmbracoSettings().Security.AllowPasswordReset},
                         {"loginBackgroundImage",  UmbracoConfig.For.UmbracoSettings().Content.LoginBackgroundImage},
                         {"showUserInvite", EmailSender.CanSendRequiredEmail},
+                        {"canSendRequiredEmail", EmailSender.CanSendRequiredEmail},
                     }
                 },
                 {
