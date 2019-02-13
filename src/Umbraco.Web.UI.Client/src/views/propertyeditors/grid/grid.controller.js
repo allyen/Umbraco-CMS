@@ -1,6 +1,6 @@
 angular.module("umbraco")
     .controller("Umbraco.PropertyEditors.GridController",
-    function ($scope, $http, assetsService, localizationService, $rootScope, dialogService, gridService, mediaResource, imageHelper, $timeout, umbRequestHelper, angularHelper, eventsService, editorState) {
+    function ($scope, $http, $routeParams, assetsService, localizationService, $rootScope, dialogService, gridService, mediaResource, imageHelper, $timeout, umbRequestHelper, angularHelper, eventsService, editorState) {
 
         // Grid status variables
         var placeHolder = "";
@@ -864,11 +864,16 @@ angular.module("umbraco")
 
         };
 
+        var getEditorsPromise = $scope.model.config.items.gridEditorsApiUrl
+            ? umbRequestHelper.resourcePromise(
+                $http.get($scope.model.config.items.gridEditorsApiUrl
+                    .replace("$idOrParentId", ($routeParams.create || !editorState.current.id) ? editorState.current.parentId : editorState.current.id)
+                    .replace("$id", editorState.current.id)
+                    .replace("$parentId", editorState.current.parentId)),
+                'Unable to load grid editors')
+            : gridService.getGridEditors();
 
-        var eventData = {};
-        eventsService.emit("grid.getGridEditors", eventData);
-
-        (eventData.promise || gridService.getGridEditors()).then(function (response) {
+        getEditorsPromise.then(function (response) {
             $scope.availableEditors = response.data;
 
             //Localize the grid editor names

@@ -101,6 +101,11 @@
                 <input type="number" min="1" ng-model="model.value.columns" />
         </umb-control-group>
 
+        <umb-control-group label="Custom API URL for available grid editors"
+                           description="Must return object { data: [...] }. Replacements are made for $id, $parentId, $idOrParentId (takes new content into account).">
+            <input type="text" class="" ng-model="model.value.gridEditorsApiUrl" />
+        </umb-control-group>
+
         <umb-control-group label="Custom grid toolbar view"
                            description="">
             <input type="text" class="" ng-model="model.value.gridToolbarView" />
