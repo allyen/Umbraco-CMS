@@ -392,11 +392,6 @@ namespace Umbraco.Core.IO
                 //We will just swallow, just means we can't read exif data, we don't want to log an error either
                 return new Size(Constants.Conventions.Media.DefaultSize, Constants.Conventions.Media.DefaultSize);
             }
-            catch (Exception e)
-            {
-                LogHelper.Error<MediaFileSystem>("The stream is not an image, cannot read dimensions", e);
-                return new Size(0, 0);
-            }
         }
 
         #endregion

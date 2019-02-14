@@ -2,15 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.Common;
-using System.Data.SqlClient;
-using System.Data.SqlServerCe;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.Events;
 using Umbraco.Core.Logging;
-using Umbraco.Core.Models;
 using Umbraco.Core.Models.Membership;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.DatabaseModelDefinitions;
@@ -1340,10 +1337,5 @@ namespace Umbraco.Core.Services
         //TODO: still don't know if we need this yet unless we start caching permissions, but that also means we'll need another
         // event on the ContentService since there's a method there to modify node permissions too, or we can proxy events if needed.
         internal static event TypedEventHandler<IUserService, SaveEventArgs<EntityPermission>> UserGroupPermissionsAssigned;
-
-        /// <summary>
-        /// Occurs after user permissons were obtained, possible to change them
-        /// </summary>
-        public static event TypedEventHandler<IUserService, GettingPermissionsEventArgs> GettingPermissions;
     }
 }
