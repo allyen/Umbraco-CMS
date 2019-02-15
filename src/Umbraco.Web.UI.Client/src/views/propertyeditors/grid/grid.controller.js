@@ -2,8 +2,9 @@ angular.module("umbraco")
     .controller("Umbraco.PropertyEditors.GridController",
     function (
         $scope,
-		$routeParams
+		$routeParams,
         $http,
+        editorState,
         assetsService,
         localizationService,
         $rootScope,

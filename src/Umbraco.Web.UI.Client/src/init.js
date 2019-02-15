@@ -56,7 +56,7 @@ app.run(['userService', '$log', '$rootScope', '$location', 'queryStrings', 'navi
             if (deployConfig) {
                 deployEnv = Umbraco.Sys.ServerVariables.deploy.CurrentWorkspace;
                 deployEnvTitle = "(" + deployEnv + ") ";
-                $rootScope.locationTitle = current.params.section + " - " + $location.$$host;
+            }
 
             if(current.params.section) {
 
@@ -72,15 +72,13 @@ app.run(['userService', '$log', '$rootScope', '$location', 'queryStrings', 'navi
                 else {
                     $rootScope.locationTitle = baseTitle;
                 }
-                
             }
-            }
+            else {
 
                 if(deployEnv) {
-                     $rootScope.locationTitle = deployEnvTitle + "Umbraco - " + $location.$$host;
+                    $rootScope.locationTitle = deployEnvTitle + "Umbraco - " + $location.$$host;
                 }
 
-            else {
                 $rootScope.locationTitle = "Umbraco - " + $location.$$host;
             }
 
