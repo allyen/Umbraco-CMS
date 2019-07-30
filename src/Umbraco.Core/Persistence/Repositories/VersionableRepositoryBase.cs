@@ -553,7 +553,7 @@ WHERE EXISTS(
     INNER JOIN 
 	    (" + string.Format(parsedOriginalSql, "cmsContent.contentType") + @") as docData
     ON cmsPropertyType.contentTypeId = docData.contentType
-    WHERE a.id = b.id)", docSql.Arguments);
+    WHERE a.id = b.id) OPTION (OPTIMIZE FOR UNKNOWN)", docSql.Arguments);
 
             var allPreValues = Database.Fetch<DataTypePreValueDto>(preValsSql);
 
