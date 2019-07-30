@@ -89,7 +89,7 @@ namespace Umbraco.Web.Editors
                 throw new HttpResponseException(HttpStatusCode.NotFound);
             }
 
-            var emptyContent = Services.MediaService.CreateMedia("", parentId, contentType.Alias, UmbracoUser.Id);
+            var emptyContent = Services.MediaService.CreateMedia("", parentId, contentType.Alias, Security.CurrentUser.Id);
             var mapped = AutoMapperExtensions.MapWithUmbracoContext<IMedia, MediaItemDisplay>(emptyContent, UmbracoContext);
 
             //remove this tab if it exists: umbContainerView
@@ -313,6 +313,31 @@ namespace Umbraco.Web.Editors
         }
 
         /// <summary>
+        /// This method is obsolete, use the overload with ignoreUserStartNodes instead
+        /// Returns the child media objects - using the entity GUID id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="pageNumber"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="orderBy"></param>
+        /// <param name="orderDirection"></param>
+        /// <param name="orderBySystemField"></param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        [Obsolete("This method is obsolete, use the overload with ignoreUserStartNodes instead", false)]
+        [FilterAllowedOutgoingMedia(typeof(IEnumerable<ContentItemBasic<ContentPropertyBasic, IMedia>>), "Items")]
+        public PagedResult<ContentItemBasic<ContentPropertyBasic, IMedia>> GetChildren(Guid id,
+           int pageNumber = 0,
+           int pageSize = 0,
+           string orderBy = "SortOrder",
+           Direction orderDirection = Direction.Ascending,
+           bool orderBySystemField = true,
+           string filter = "")
+        {
+            return GetChildren(id, false, pageNumber, pageSize, orderBy, orderDirection, orderBySystemField, filter);
+        }
+
+        /// <summary>
         /// Returns the child media objects - using the entity GUID id
         /// </summary>
         /// <param name="id"></param>
@@ -325,6 +350,7 @@ namespace Umbraco.Web.Editors
         /// <returns></returns>
         [FilterAllowedOutgoingMedia(typeof(IEnumerable<ContentItemBasic<ContentPropertyBasic, IMedia>>), "Items")]
         public PagedResult<ContentItemBasic<ContentPropertyBasic, IMedia>> GetChildren(Guid id,
+           bool ignoreUserStartNodes,
            int pageNumber = 0,
            int pageSize = 0,
            string orderBy = "SortOrder",
@@ -341,6 +367,31 @@ namespace Umbraco.Web.Editors
         }
 
         /// <summary>
+        /// This method is obsolete, use the overload with ignoreUserStartNodes instead
+        /// Returns the child media objects - using the entity UDI id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="pageNumber"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="orderBy"></param>
+        /// <param name="orderDirection"></param>
+        /// <param name="orderBySystemField"></param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        [Obsolete("This method is obsolete, use the overload with ignoreUserStartNodes instead", false)]
+        [FilterAllowedOutgoingMedia(typeof(IEnumerable<ContentItemBasic<ContentPropertyBasic, IMedia>>), "Items")]
+        public PagedResult<ContentItemBasic<ContentPropertyBasic, IMedia>> GetChildren(Udi id,
+           int pageNumber = 0,
+           int pageSize = 0,
+           string orderBy = "SortOrder",
+           Direction orderDirection = Direction.Ascending,
+           bool orderBySystemField = true,
+           string filter = "")
+        {
+            return GetChildren(id, false, pageNumber, pageSize, orderBy, orderDirection, orderBySystemField, filter);
+        }
+
+        /// <summary>
         /// Returns the child media objects - using the entity UDI id
         /// </summary>
         /// <param name="id"></param>
@@ -353,6 +404,7 @@ namespace Umbraco.Web.Editors
         /// <returns></returns>
         [FilterAllowedOutgoingMedia(typeof(IEnumerable<ContentItemBasic<ContentPropertyBasic, IMedia>>), "Items")]
         public PagedResult<ContentItemBasic<ContentPropertyBasic, IMedia>> GetChildren(Udi id,
+           bool ignoreUserStartNodes,
            int pageNumber = 0,
            int pageSize = 0,
            string orderBy = "SortOrder",
@@ -417,7 +469,7 @@ namespace Umbraco.Web.Editors
             //if the current item is in the recycle bin
             if (foundMedia.IsInRecycleBin() == false)
             {
-                var moveResult = Services.MediaService.WithResult().MoveToRecycleBin(foundMedia, (int)Security.CurrentUser.Id);
+                var moveResult = Services.MediaService.WithResult().MoveToRecycleBin(foundMedia, Security.CurrentUser.Id);
                 if (moveResult == false)
                 {
                     //returning an object of INotificationModel will ensure that any pending
@@ -427,7 +479,7 @@ namespace Umbraco.Web.Editors
             }
             else
             {
-                var deleteResult = Services.MediaService.WithResult().Delete(foundMedia, (int)Security.CurrentUser.Id);
+                var deleteResult = Services.MediaService.WithResult().Delete(foundMedia, Security.CurrentUser.Id);
                 if (deleteResult == false)
                 {
                     //returning an object of INotificationModel will ensure that any pending
@@ -450,8 +502,8 @@ namespace Umbraco.Web.Editors
             var toMove = ValidateMoveOrCopy(move);
             var destinationParentID = move.ParentId;
             var sourceParentID = toMove.ParentId;
-            
-            var moveResult = Services.MediaService.WithResult().Move(toMove, move.ParentId);
+
+            var moveResult = Services.MediaService.WithResult().Move(toMove, move.ParentId, Security.CurrentUser.Id);
 
             if (sourceParentID == destinationParentID)
             {
@@ -520,7 +572,7 @@ namespace Umbraco.Web.Editors
             }
 
             //save the item
-            var saveStatus = Services.MediaService.WithResult().Save(contentItem.PersistedContent, (int)Security.CurrentUser.Id);
+            var saveStatus = Services.MediaService.WithResult().Save(contentItem.PersistedContent, Security.CurrentUser.Id);
 
             //return the updated model
             var display = AutoMapperExtensions.MapWithUmbracoContext<IMedia, MediaItemDisplay>(contentItem.PersistedContent, UmbracoContext);
@@ -578,7 +630,7 @@ namespace Umbraco.Web.Editors
         [HttpPost]
         public HttpResponseMessage EmptyRecycleBin()
         {
-            Services.MediaService.EmptyRecycleBin();
+            Services.MediaService.EmptyRecycleBin(Security.CurrentUser.Id);
 
             return Request.CreateNotificationSuccessResponse(Services.TextService.Localize("defaultdialogs/recycleBinIsEmpty"));
         }
@@ -622,11 +674,11 @@ namespace Umbraco.Web.Editors
                 throw;
             }
         }
-        
+
         public MediaItemDisplay PostAddFolder(PostedFolder folder)
         {
             var intParentId = GetParentIdAsInt(folder.ParentId, validatePermissions:true);
-            
+
             var mediaService = ApplicationContext.Services.MediaService;
 
             var f = mediaService.CreateMedia(folder.Name, intParentId, Constants.Conventions.MediaTypes.Folder);
@@ -666,10 +718,10 @@ namespace Umbraco.Web.Editors
             //get the string json from the request
             string currentFolderId = result.FormData["currentFolder"];
             int parentId = GetParentIdAsInt(currentFolderId, validatePermissions: true);
-           
+
             var tempFiles = new PostedFiles();
             var mediaService = ApplicationContext.Services.MediaService;
-            
+
             //in case we pass a path with a folder in it, we will create it and upload media to it.
             if (result.FormData.ContainsKey("path"))
             {

@@ -52,7 +52,7 @@ namespace Umbraco.Web.PropertyEditors
 
                                     foreach (var areaVal in areaVals)
                                     {
-                                        //TODO: If it's not a string, then it's a json formatted value - 
+                                        //TODO: If it's not a string, then it's a json formatted value -
                                         // we cannot really index this in a smart way since it could be 'anything'
                                         if (areaVal.Type == JTokenType.String)
                                         {
@@ -90,12 +90,12 @@ namespace Umbraco.Web.PropertyEditors
                         catch (InvalidCastException)
                         {
                             //swallow...on purpose, there's a chance that this isn't the json format we are looking for
-                            // and we don't want that to affect the website. 
+                            // and we don't want that to affect the website.
                         }
                         catch (JsonException)
                         {
-                            //swallow...on purpose, there's a chance that this isn't json and we don't want that to affect 
-                            // the website. 
+                            //swallow...on purpose, there's a chance that this isn't json and we don't want that to affect
+                            // the website.
                         }
                         catch (ArgumentException)
                         {
@@ -144,6 +144,9 @@ namespace Umbraco.Web.PropertyEditors
 
             [PreValueField("rte", "Rich text editor", "views/propertyeditors/rte/rte.prevalues.html", Description = "Rich text editor configuration")]
             public string Rte { get; set; }
+
+            [PreValueField(Constants.DataTypes.ReservedPreValueKeys.IgnoreUserStartNodes, "Ignore user start nodes", "boolean", Description = "Selecting this option allows a user to choose nodes that they normally don't have access to.")]
+            public bool IgnoreUserStartNodes { get; set; }
         }
 
         #region Application event handler, used to bind to events on startup
@@ -157,7 +160,7 @@ namespace Umbraco.Web.PropertyEditors
         {
             /// <summary>
             /// We're going to bind to the Examine events so we can ensure grid data is index nicely.
-            /// </summary>        
+            /// </summary>
             protected override void ApplicationStarted(UmbracoApplicationBase umbracoApplication, ApplicationContext applicationContext)
             {
                 foreach (var i in ExamineManager.Instance.IndexProviderCollection.OfType<BaseUmbracoIndexer>())
@@ -180,7 +183,7 @@ namespace Umbraco.Web.PropertyEditors
         public void OnApplicationStarted(UmbracoApplicationBase umbracoApplication, ApplicationContext applicationContext)
         {
             //wrap
-            _applicationStartup.OnApplicationStarted(umbracoApplication, applicationContext);            
+            _applicationStartup.OnApplicationStarted(umbracoApplication, applicationContext);
         }
         #endregion
     }

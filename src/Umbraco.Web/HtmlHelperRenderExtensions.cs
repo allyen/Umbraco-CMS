@@ -48,7 +48,7 @@ namespace Umbraco.Web
         public static MvcHtmlString AreaPartial(this HtmlHelper helper, string partial, string area, object model = null, ViewDataDictionary viewData = null)
         {
             var originalArea = helper.ViewContext.RouteData.DataTokens["area"];
-            helper.ViewContext.RouteData.DataTokens["area"] = area;	        
+            helper.ViewContext.RouteData.DataTokens["area"] = area;
             var result = helper.Partial(partial, model, viewData);
             helper.ViewContext.RouteData.DataTokens["area"] = originalArea;
             return result;
@@ -79,9 +79,9 @@ namespace Umbraco.Web
         }
 
 		public static IHtmlString CachedPartial(
-			this HtmlHelper htmlHelper, 
-			string partialViewName, 
-			object model, 
+			this HtmlHelper htmlHelper,
+			string partialViewName,
+			object model,
 			int cachedSeconds,
 			bool cacheByPage = false,
 			bool cacheByMember = false,
@@ -122,7 +122,7 @@ namespace Umbraco.Web
 		}
 
 		/// <summary>
-		/// A validation summary that lets you pass in a prefix so that the summary only displays for elements 
+		/// A validation summary that lets you pass in a prefix so that the summary only displays for elements
 		/// containing the prefix. This allows you to have more than on validation summary on a page.
 		/// </summary>
 		/// <param name="htmlHelper"></param>
@@ -142,7 +142,7 @@ namespace Umbraco.Web
 				return htmlHelper.ValidationSummary(excludePropertyErrors, message, htmlAttributes);
 			}
 
-			//if there's a prefix applied, we need to create a new html helper with a filtered ModelState collection so that it only looks for 
+			//if there's a prefix applied, we need to create a new html helper with a filtered ModelState collection so that it only looks for
 			//specific model state with the prefix.
 			var filteredHtmlHelper = new HtmlHelper(htmlHelper.ViewContext, htmlHelper.ViewDataContainer.FilterContainer(prefix));
 			return filteredHtmlHelper.ValidationSummary(excludePropertyErrors, message, htmlAttributes);
@@ -190,7 +190,7 @@ namespace Umbraco.Web
                 }
                 else
                 {
-                    routeVals.Add("area", metaData.AreaName);    
+                    routeVals.Add("area", metaData.AreaName);
                 }
             }
 
@@ -292,7 +292,9 @@ namespace Umbraco.Web
 		        _method = method;
 			    _controllerName = controllerName;
                 _encryptedString = UmbracoHelper.CreateEncryptedRouteString(controllerName, controllerAction, area, additionalRouteVals);
+
 			}
+
 
 		    private readonly ViewContext _viewContext;
 		    private readonly FormMethod _method;
@@ -305,7 +307,6 @@ namespace Umbraco.Web
 				if (this._disposed)
 					return;
 				this._disposed = true;
-
                 //Detect if the call is targeting UmbRegisterController/UmbProfileController/UmbLoginStatusController/UmbLoginController and if it is we automatically output a AntiForgeryToken()
                 // We have a controllerName and area so we can match
                 if (_controllerName == "UmbRegister"
@@ -313,7 +314,7 @@ namespace Umbraco.Web
                     || _controllerName == "UmbLoginStatus"
                     || _controllerName == "UmbLogin")
 			    {
-			        _viewContext.Writer.Write(AntiForgery.GetHtml().ToString());
+                    _viewContext.Writer.Write(AntiForgery.GetHtml().ToString());
 			    }
 
                 //write out the hidden surface form routes
@@ -802,7 +803,7 @@ namespace Umbraco.Web
 		/// <param name="htmlAttributes"></param>
 		/// <param name="surfaceController"></param>
 		/// <param name="surfaceAction"></param>
-		/// <param name="area"></param>		
+		/// <param name="area"></param>
 		/// <param name="additionalRouteVals"></param>
 		/// <returns></returns>
 		/// <remarks>
@@ -828,7 +829,7 @@ namespace Umbraco.Web
 			tagBuilder.MergeAttributes(htmlAttributes);
 			// action is implicitly generated, so htmlAttributes take precedence.
 			tagBuilder.MergeAttribute("action", formAction);
-			// method is an explicit parameter, so it takes precedence over the htmlAttributes. 
+			// method is an explicit parameter, so it takes precedence over the htmlAttributes.
 			tagBuilder.MergeAttribute("method", HtmlHelper.GetFormMethodString(method), true);
 			var traditionalJavascriptEnabled = htmlHelper.ViewContext.ClientValidationEnabled && htmlHelper.ViewContext.UnobtrusiveJavaScriptEnabled == false;
 			if (traditionalJavascriptEnabled)
@@ -849,7 +850,7 @@ namespace Umbraco.Web
 		}
 
 		#endregion
-        
+
 		#region Wrap
 
 		public static HtmlTagWrapper Wrap(this HtmlHelper html, string tag, string innerText, params IHtmlTagWrapper[] children)
@@ -915,7 +916,7 @@ namespace Umbraco.Web
 
         #region canvasdesigner
 
-        public static IHtmlString EnableCanvasDesigner(this HtmlHelper html, 
+        public static IHtmlString EnableCanvasDesigner(this HtmlHelper html,
             UrlHelper url,
             UmbracoContext umbCtx)
         {
@@ -933,7 +934,7 @@ namespace Umbraco.Web
             UrlHelper url,
             UmbracoContext umbCtx, string canvasdesignerConfigPath, string canvasdesignerPalettesPath)
         {
-            
+
             var umbracoPath = url.Content(SystemDirectories.Umbraco);
 
             string previewLink = @"<script src=""{0}/lib/jquery/jquery.min.js"" type=""text/javascript""></script>" +
@@ -952,11 +953,11 @@ namespace Umbraco.Web
 
             if (umbCtx.InPreviewMode)
             {
-                canvasdesignerConfigPath = string.IsNullOrEmpty(canvasdesignerConfigPath) == false 
-                    ? canvasdesignerConfigPath 
+                canvasdesignerConfigPath = string.IsNullOrEmpty(canvasdesignerConfigPath) == false
+                    ? canvasdesignerConfigPath
                     : string.Format("{0}/js/canvasdesigner.config.js", umbracoPath);
-                canvasdesignerPalettesPath = string.IsNullOrEmpty(canvasdesignerPalettesPath) == false 
-                    ? canvasdesignerPalettesPath 
+                canvasdesignerPalettesPath = string.IsNullOrEmpty(canvasdesignerPalettesPath) == false
+                    ? canvasdesignerPalettesPath
                     : string.Format("{0}/js/canvasdesigner.palettes.js", umbracoPath);
 
                 if (string.IsNullOrEmpty(cssPath) == false)
@@ -977,5 +978,37 @@ namespace Umbraco.Web
 
         #endregion
 
+        #region RelatedLink
+
+        /// <summary>
+        /// Renders an anchor element for a RelatedLink instance.
+        /// Format: &lt;a href=&quot;relatedLink.Link&quot; target=&quot;_blank/_self&quot;&gt;relatedLink.Caption&lt;/a&gt;
+        /// </summary>
+        /// <param name="htmlHelper">The HTML helper instance that this method extends.</param>
+        /// <param name="relatedLink">The RelatedLink instance</param>
+        /// <returns>An anchor element </returns>
+        public static MvcHtmlString GetRelatedLinkHtml(this HtmlHelper htmlHelper, RelatedLink relatedLink)
+        {
+            return htmlHelper.GetRelatedLinkHtml(relatedLink, null);
+        }
+
+        /// <summary>
+        /// Renders an anchor element for a RelatedLink instance, accepting htmlAttributes.
+        /// Format: &lt;a href=&quot;relatedLink.Link&quot; target=&quot;_blank/_self&quot; htmlAttributes&gt;relatedLink.Caption&lt;/a&gt;
+        /// </summary>
+        /// <param name="htmlHelper">The HTML helper instance that this method extends.</param>
+        /// <param name="relatedLink">The RelatedLink instance</param>
+        /// <param name="htmlAttributes">An object that contains the HTML attributes to set for the element.</param>
+        /// <returns></returns>
+        public static MvcHtmlString GetRelatedLinkHtml(this HtmlHelper htmlHelper, RelatedLink relatedLink, object htmlAttributes)
+        {
+            var tagBuilder = new TagBuilder("a");
+            tagBuilder.MergeAttributes(HtmlHelper.AnonymousObjectToHtmlAttributes(htmlAttributes));
+            tagBuilder.MergeAttribute("href", relatedLink.Link);
+            tagBuilder.MergeAttribute("target", relatedLink.NewWindow ? "_blank" : "_self");
+            tagBuilder.InnerHtml = HttpUtility.HtmlEncode(relatedLink.Caption);
+            return MvcHtmlString.Create(tagBuilder.ToString(TagRenderMode.Normal));
+        }
+        #endregion
     }
 }
