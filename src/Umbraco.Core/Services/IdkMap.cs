@@ -14,6 +14,7 @@ namespace Umbraco.Core.Services
 
         private readonly Dictionary<int, TypedId<Guid>> _id2Key = new Dictionary<int, TypedId<Guid>>();
         private readonly Dictionary<Guid, TypedId<int>> _key2Id = new Dictionary<Guid, TypedId<int>>();
+        private readonly ConcurrentDictionary<Guid, object> _deletedKeys = new ConcurrentDictionary<Guid, object>();
 
         public IdkMap(IDatabaseUnitOfWorkProvider uowProvider)
         {
@@ -164,6 +165,10 @@ namespace Umbraco.Core.Services
                     _locker.ExitReadLock();
             }
 
+            // test if this was previously found to be a deleted entity
+            if (_deletedKeys.ContainsKey(key))
+                return Attempt<int>.Fail();
+
 #if POPULATE_FROM_DATABASE
             // if cache is empty and looking for a document or a media,
             // populate the cache at once and return what we found
@@ -197,7 +202,11 @@ namespace Umbraco.Core.Services
                 }
             }
 
-            if (val == null) return Attempt<int>.Fail();
+            if (val == null)
+            {
+                _deletedKeys.TryAdd(key, null);
+                return Attempt<int>.Fail();
+            }
 
             // cache reservations, when something is saved this cache is cleared anyways
             //if (umbracoObjectType == UmbracoObjectTypes.IdReservation)
