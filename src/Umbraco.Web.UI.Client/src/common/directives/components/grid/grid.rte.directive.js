@@ -248,7 +248,7 @@ angular.module("umbraco.directives")
                                         }
 
                                         unpinToolbar();
-                                        $('.umb-panel-body').off('scroll', pinToolbar);
+                                        $('.umb-panel-body, .umb-overlay-container').off('scroll', pinToolbar);
 
                                     });
                                 });
@@ -262,7 +262,7 @@ angular.module("umbraco.directives")
                                         }
 
                                         pinToolbar();
-                                        $('.umb-panel-body').on('scroll', pinToolbar);
+                                        $('.umb-panel-body, .umb-overlay-container').on('scroll', pinToolbar);
 
                                     });
                                 });
@@ -276,7 +276,7 @@ angular.module("umbraco.directives")
                                         }
 
                                         pinToolbar();
-                                        $('.umb-panel-body').on('scroll', pinToolbar);
+                                        $('.umb-panel-body, .umb-overlay-container').on('scroll', pinToolbar);
 
                                     });
                                 });
