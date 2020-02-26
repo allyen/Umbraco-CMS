@@ -1,23 +1,13 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Globalization;
 using System.IO;
-using System.Web.Security;
+using System.Linq;
+using System.Threading;
+using umbraco;
 using Umbraco.Core;
-using Umbraco.Core.Configuration;
 using Umbraco.Core.Configuration.UmbracoSettings;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
-using Umbraco.Core.Models;
-using Umbraco.Core.Security;
-
-using umbraco;
-using umbraco.cms.businesslogic.web;
-using umbraco.cms.businesslogic.language;
-using umbraco.cms.businesslogic.member;
 using Umbraco.Core.Models;
 using Umbraco.Core.Services;
 using Umbraco.Web.Security;
@@ -144,6 +134,9 @@ namespace Umbraco.Web.Routing
 
             // set the culture on the thread -- again, 'cos it might have changed due to a finder or wildcard domain
             Thread.CurrentThread.CurrentUICulture = Thread.CurrentThread.CurrentCulture = _pcr.Culture;
+
+            // handle umbracoRedirect
+            FollowExternalRedirect();
 
             // trigger the Prepared event - at that point it is still possible to change about anything
             // even though the request might be flagged for redirection - we'll redirect _after_ the event
@@ -413,9 +406,6 @@ namespace Umbraco.Web.Routing
 
             // find a template
             FindTemplate();
-
-            // handle umbracoRedirect
-            FollowExternalRedirect();
         }
 
         /// <summary>
