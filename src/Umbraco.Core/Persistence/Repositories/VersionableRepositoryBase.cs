@@ -573,7 +573,7 @@ ON cmsPropertyData.propertytypeid = cmsPropertyType.id
 INNER JOIN 
 	(" + string.Format(parsedOriginalSql, "cmsContent.nodeId, cmsContentVersion.VersionId") + @") as docData
 ON cmsPropertyData.versionId = docData.VersionId AND cmsPropertyData.contentNodeId = docData.nodeId
-ORDER BY contentNodeId, versionId, propertytypeid
+ORDER BY contentNodeId, versionId, propertytypeid OPTION (OPTIMIZE FOR UNKNOWN)
 ", docSql.Arguments);
             
             //This does NOT fetch all data into memory in a list, this will read

@@ -91,6 +91,8 @@ namespace Umbraco.Core.Persistence.Repositories
                 baseQuery.Append(new Sql("WHERE umbracoNode.id IN (" + sql.SQL + ")", sql.Arguments))
                     .OrderBy<NodeDto>(x => x.SortOrder);
 
+                baseQuery.Append("OPTION (OPTIMIZE FOR UNKNOWN)");
+
                 return ProcessQuery(baseQuery, new PagingSqlQuery(baseQuery));
             }
             else
@@ -98,6 +100,8 @@ namespace Umbraco.Core.Persistence.Repositories
                 var translator = new SqlTranslator<IMember>(baseQuery, query);
                 var sql = translator.Translate()
                     .OrderBy<NodeDto>(x => x.SortOrder);
+
+                sql.Append("OPTION (OPTIMIZE FOR UNKNOWN)");
 
                 return ProcessQuery(sql, new PagingSqlQuery(sql));
             }
