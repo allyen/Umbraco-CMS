@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 
 namespace Umbraco.Core.Migrations.Upgrade.V_8_0_0.DataTypes
 {
@@ -36,7 +36,14 @@ namespace Umbraco.Core.Migrations.Upgrade.V_8_0_0.DataTypes
 
         protected virtual object GetPreValueValue(PreValueDto preValue)
         {
-            return preValue.Value.DetectIsJson() ? JsonConvert.DeserializeObject(preValue.Value) : preValue.Value;
+            try
+            {
+                return preValue.Value.DetectIsJson() ? JsonConvert.DeserializeObject(preValue.Value) : preValue.Value;
+            }
+            catch (JsonReaderException)
+            {
+                return preValue.Value;
+            }
         }
     }
 }

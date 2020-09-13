@@ -17,7 +17,7 @@ namespace Umbraco.Core.Migrations.Upgrade.V_8_0_0.Models
     internal class PropertyDataDto80
     {
         public const string TableName = Constants.DatabaseSchema.Tables.PropertyData;
-        public const int VarcharLength = 512;
+        public const int VarcharLength = 2000;
         public const int SegmentLength = 256;
 
         private decimal? _decimalValue;

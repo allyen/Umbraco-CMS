@@ -82,10 +82,13 @@ namespace Umbraco.Core.Migrations
                 Execute.Sql(sql).Do();
         }
 
-        protected void ReplaceColumn<T>(string tableName, string currentName, string newName)
+        protected void ReplaceColumn<T>(string tableName, string currentName, string newName, bool values = true)
         {
             AddColumn<T>(tableName, newName, out var sqls);
-            Execute.Sql($"UPDATE {SqlSyntax.GetQuotedTableName(tableName)} SET {SqlSyntax.GetQuotedColumnName(newName)}={SqlSyntax.GetQuotedColumnName(currentName)}").Do();
+
+            if (values)
+                Execute.Sql($"UPDATE {SqlSyntax.GetQuotedTableName(tableName)} SET {SqlSyntax.GetQuotedColumnName(newName)}={SqlSyntax.GetQuotedColumnName(currentName)}").Do();
+
             foreach (var sql in sqls) Execute.Sql(sql).Do();
             Delete.Column(currentName).FromTable(tableName).Do();
         }

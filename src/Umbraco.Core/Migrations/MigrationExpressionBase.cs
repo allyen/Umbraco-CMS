@@ -1,8 +1,8 @@
-﻿using System;
+﻿using NPoco;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using NPoco;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.SqlSyntax;
@@ -117,6 +117,7 @@ namespace Umbraco.Core.Migrations
         {
             var stmt = stmtBuilder.ToString();
             Logger.Info(GetType(), "SQL [{ContextIndex}]: {Sql}", Context.Index, stmt);
+            Database.OneTimeCommandTimeout = 60 * 60 * 12;
             Database.Execute(stmt);
             stmtBuilder.Clear();
         }

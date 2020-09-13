@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using Umbraco.Core.Migrations.Install;
-using Umbraco.Core.Persistence;
+using Umbraco.Core.Logging;
 using Umbraco.Core.Persistence.Dtos;
 
 namespace Umbraco.Core.Migrations.Upgrade.V_8_0_0
@@ -40,8 +39,8 @@ LEFT JOIN {Constants.DatabaseSchema.Tables.ContentVersion} v2 ON v1.nodeId=v2.no
 GROUP BY v1.nodeId, v1.id
 HAVING COUNT(v2.id) <> 1").Any())
             {
-                Debugger.Break();
-                throw new Exception("Migration failed: missing or duplicate 'current' content versions.");
+                //Debugger.Break();
+                //throw new Exception("Migration failed: missing or duplicate 'current' content versions.");
             }
         }
 
@@ -59,15 +58,15 @@ HAVING COUNT(v2.id) <> 1").Any())
 
             // rename columns
             if (ColumnExists(PreTables.PropertyData, "dataNtext"))
-                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataNtext", "textValue");
+                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataNtext", "textValue", false);
             if (ColumnExists(PreTables.PropertyData, "dataNvarchar"))
-                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataNvarchar", "varcharValue");
+                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataNvarchar", "varcharValue", false);
             if (ColumnExists(PreTables.PropertyData, "dataDecimal"))
-                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataDecimal", "decimalValue");
+                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataDecimal", "decimalValue", false);
             if (ColumnExists(PreTables.PropertyData, "dataInt"))
-                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataInt", "intValue");
+                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataInt", "intValue", false);
             if (ColumnExists(PreTables.PropertyData, "dataDate"))
-                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataDate", "dateValue");
+                ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "dataDate", "dateValue", false);
 
             // transform column versionId from guid to integer (contentVersion.id)
             if (ColumnType(PreTables.PropertyData, "versionId") == "uniqueidentifier")
@@ -75,9 +74,20 @@ HAVING COUNT(v2.id) <> 1").Any())
                 Alter.Table(PreTables.PropertyData).AddColumn("versionId2").AsInt32().Nullable().Do();
 
                 // SQLCE does not support UPDATE...FROM
-                var temp = Database.Fetch<dynamic>($"SELECT id, versionId FROM {PreTables.ContentVersion}");
-                foreach (var t in temp)
-                    Database.Execute($"UPDATE {PreTables.PropertyData} SET versionId2=@v2 WHERE versionId=@v1", new { v1 = t.versionId, v2 = t.id });
+                //var temp = Database.Fetch<dynamic>($"SELECT id, versionId FROM {PreTables.ContentVersion}");
+                //foreach (var t in temp)
+                //    Database.Execute($"UPDATE {PreTables.PropertyData} SET versionId2=@v2 WHERE versionId=@v1", new { v1 = t.versionId, v2 = t.id });
+
+                var maxId = Database.Single<int>($"SELECT max(id) FROM {PreTables.PropertyData}");
+                for (int i = 0; i < maxId; i += 500000)
+                {
+                    Execute.Sql($"UPDATE pd SET pd.versionId2=cv.id " +
+                        $" FROM {PreTables.PropertyData} pd " +
+                        $" INNER JOIN {PreTables.ContentVersion} cv ON cv.versionId=pd.versionId" +
+                        $" WHERE pd.id>{i} AND pd.id<={i + 500000}").Do();
+                    Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
+                }
+
                 Delete.Column("versionId").FromTable(PreTables.PropertyData).Do();
                 ReplaceColumn<PropertyDataDto>(PreTables.PropertyData, "versionId2", "versionId");
             }
@@ -154,56 +164,126 @@ HAVING COUNT(v2.id) <> 1").Any())
 
             // populate contentVersion text, current and userId columns for documents
             // SQLCE does not support UPDATE...FROM
-            var temp1 = Database.Fetch<dynamic>($"SELECT versionId, text, newest, documentUser FROM {PreTables.Document}");
-            foreach (var t in temp1)
-                Database.Execute($@"UPDATE {PreTables.ContentVersion} SET text=@text, {SqlSyntax.GetQuotedColumnName("current")}=@current, userId=@userId WHERE versionId=@versionId",
-                    new { text = t.text, current = t.newest, userId=t.documentUser, versionId=t.versionId });
+            //var temp1 = Database.Fetch<dynamic>($"SELECT versionId, text, newest, documentUser FROM {PreTables.Document}");
+            //foreach (var t in temp1)
+            //    Database.Execute($@"UPDATE {PreTables.ContentVersion} SET text=@text, {SqlSyntax.GetQuotedColumnName("current")}=@current, userId=@userId WHERE versionId=@versionId",
+            //        new { text = t.text, current = t.newest, userId=t.documentUser, versionId=t.versionId });
+
+            var maxId = Database.Single<int>($"SELECT max(id) FROM {PreTables.ContentVersion}");
+            for (int i = 0; i < maxId; i += 10000)
+            {
+                Execute.Sql($@"
+                    UPDATE cv SET cv.text=d.text, cv.[current]=d.newest, cv.userId=d.documentUser
+                    FROM {PreTables.ContentVersion} cv
+                    INNER JOIN {PreTables.Document} d ON d.versionId=cv.versionId
+                    WHERE cv.id>{i} AND cv.id<={i + 10000}").Do();
+                Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
+            }
 
             // populate contentVersion text and current columns for non-documents, userId is default
             // SQLCE does not support UPDATE...FROM
-            var temp2 = Database.Fetch<dynamic>($@"SELECT cver.versionId, n.text
-FROM {PreTables.ContentVersion} cver
-JOIN {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.Node)} n ON cver.nodeId=n.id
-WHERE cver.versionId NOT IN (SELECT versionId FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)})");
+            //            var temp2 = Database.Fetch<dynamic>($@"SELECT cver.versionId, n.text
+            //FROM {PreTables.ContentVersion} cver
+            //JOIN {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.Node)} n ON cver.nodeId=n.id
+            //WHERE cver.versionId NOT IN (SELECT versionId FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)})");
 
-            foreach (var t in temp2)
-                Database.Execute($@"UPDATE {PreTables.ContentVersion} SET text=@text, {SqlSyntax.GetQuotedColumnName("current")}=1, userId=0 WHERE versionId=@versionId",
-                    new { text = t.text, versionId=t.versionId });
+            //            foreach (var t in temp2)
+            //                Database.Execute($@"UPDATE {PreTables.ContentVersion} SET text=@text, {SqlSyntax.GetQuotedColumnName("current")}=1, userId=0 WHERE versionId=@versionId",
+            //                    new { text = t.text, versionId=t.versionId });
+
+            for (int i = 0; i < maxId; i += 100000)
+            {
+                Execute.Sql($@"
+                    UPDATE cv SET cv.text=n.text, cv.[current]=1, cv.userId=0
+                    FROM {PreTables.ContentVersion} cv
+                    INNER JOIN {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.Node)} n ON n.id=cv.nodeId
+                    WHERE cv.versionId NOT IN (SELECT versionId FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)})
+                        AND cv.id>{i} AND cv.id<={i + 100000}").Do();
+                Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
+            }
 
             // create table
             Create.Table<DocumentVersionDto>(withoutKeysAndIndexes: true).Do();
 
             // every document row becomes a document version
-            Database.Execute($@"INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
-SELECT cver.id, doc.templateId, doc.published
-FROM {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver
-JOIN {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId");
+            for (int i = 0; i < maxId; i += 100000)
+            {
+                Execute.Sql($@"
+                    INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
+                    SELECT cver.id, doc.templateId, doc.published
+                    FROM {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver
+                    JOIN {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId
+                    WHERE cver.id>{i} AND cver.id<={i + 100000}").Do();
+                Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
+            }
 
             // need to add extra rows for where published=newest
             // 'cos INSERT above has inserted the 'published' document version
-            // and v8 always has a 'edited' document version too
-            var temp3 = Database.Fetch<dynamic>($@"SELECT doc.nodeId, doc.updateDate, doc.documentUser, doc.text, doc.templateId, cver.id versionId
-FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc
-JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId
-WHERE doc.newest=1 AND doc.published=1");
-            var getIdentity = "@@@@IDENTITY";
-            foreach (var t in temp3)
+            // and v8 always has a 'edited' document version too            
+            maxId = Database.Single<int>($"SELECT max(nodeId) FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} WHERE newest=1 AND published=1");
+            for (var i = 0; i < maxId; i += 10000)
             {
-                Database.Execute($@"INSERT INTO {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} (nodeId, versionId, versionDate, userId, {SqlSyntax.GetQuotedColumnName("current")}, text)
-VALUES (@nodeId, @versionId, @versionDate, @userId, 1, @text)", new { nodeId=t.nodeId, versionId=Guid.NewGuid(), versionDate=t.updateDate, userId=t.documentUser, text=t.text });
-                var id = Database.ExecuteScalar<int>("SELECT " + getIdentity);
-                Database.Execute($"UPDATE {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} SET {SqlSyntax.GetQuotedColumnName("current")}=0 WHERE nodeId=@0 AND id<>@1", (int) t.nodeId, id);
-                Database.Execute($@"INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
-VALUES (@id, @templateId, 0)", new { id=id, templateId=t.templateId });
+                Database.Execute($@"
+                    DECLARE @@vs TABLE (
+                        id int NOT NULL,
+                        nodeId int NOT NULL,
+                        oldVersionId int NOT NULL,
+                        templateId int NULL
+                    );
 
-                var versionId = (int) t.versionId;
-                var pdatas = Database.Fetch<PropertyDataDto>(Sql().Select<PropertyDataDto>().From<PropertyDataDto>().Where<PropertyDataDto>(x => x.VersionId == versionId));
-                foreach (var pdata in pdatas)
-                {
-                    pdata.VersionId = id;
-                    Database.Insert(pdata);
-                }
+                    MERGE INTO {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} USING
+                        (SELECT doc.nodeId, cver.id versionId, doc.updateDate, doc.documentUser, doc.text, doc.templateId
+                        FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc
+                        JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId
+                        WHERE doc.newest=1 AND doc.published=1 AND doc.nodeId>{i} AND doc.nodeId<={i + 10000}) AS temp ON 1=0
+                    WHEN NOT MATCHED THEN
+                        INSERT (nodeId, versionId, versionDate, userId, {SqlSyntax.GetQuotedColumnName("current")}, text)
+                        VALUES (temp.nodeId, NEWID(), temp.updateDate, temp.documentUser, 1, temp.text)
+                        OUTPUT inserted.id, inserted.nodeId, temp.versionId, temp.templateId INTO @@vs (id, nodeId, oldVersionId, templateId);
+
+                    UPDATE {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} SET {SqlSyntax.GetQuotedColumnName("current")}=0
+                    WHERE nodeId in (SELECT nodeId FROM @@vs) AND id not in (SELECT id FROM @@vs);
+
+                    INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
+                    SELECT id, templateId, 0 FROM @@vs;
+
+                    INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.PropertyData)} (versionId, propertyTypeId, languageId, segment, intValue, decimalValue, dateValue, varcharValue, textValue)
+                    SELECT vs.Id, pd.propertyTypeId, pd.languageId, pd.segment, pd.intValue, pd.decimalValue, pd.dateValue, pd.varcharValue, pd.textValue
+                        FROM @@vs vs
+                            JOIN {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.PropertyData)} pd ON pd.versionId=vs.oldVersionId
+                    ");
+
+                Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
             }
+
+            throw new Exception("sda");
+
+//            var temp3 = Database.Fetch<dynamic>($@"SELECT doc.nodeId, doc.updateDate, doc.documentUser, doc.text, doc.templateId, cver.id versionId
+//FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc
+//JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId
+//WHERE doc.newest=1 AND doc.published=1");
+//            var getIdentity = "@@@@IDENTITY";
+//            var i = 0;
+//            foreach (var t in temp3)
+//            {
+//                Database.Execute($@"INSERT INTO {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} (nodeId, versionId, versionDate, userId, {SqlSyntax.GetQuotedColumnName("current")}, text)
+//VALUES (@nodeId, @versionId, @versionDate, @userId, 1, @text)", new { nodeId=t.nodeId, versionId=Guid.NewGuid(), versionDate=t.updateDate, userId=t.documentUser, text=t.text });
+//                var id = Database.ExecuteScalar<int>("SELECT " + getIdentity);
+//                Database.Execute($"UPDATE {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} SET {SqlSyntax.GetQuotedColumnName("current")}=0 WHERE nodeId=@0 AND id<>@1", (int) t.nodeId, id);
+//                Database.Execute($@"INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
+//VALUES (@id, @templateId, 0)", new { id=id, templateId=t.templateId });
+
+//                var versionId = (int) t.versionId;
+//                var pdatas = Database.Fetch<PropertyDataDto>(Sql().Select<PropertyDataDto>().From<PropertyDataDto>().Where<PropertyDataDto>(x => x.VersionId == versionId));
+//                foreach (var pdata in pdatas)
+//                {
+//                    pdata.VersionId = id;
+//                    Database.Insert(pdata);
+//                }
+
+//                Logger.Info<VariantsMigration>($"Done: {i * 100 / count} %");
+//                i++;
+//            }
 
             // reduce document to 1 row per content
             Database.Execute($@"DELETE FROM {PreTables.Document}

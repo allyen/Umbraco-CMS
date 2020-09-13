@@ -377,6 +377,7 @@ namespace Umbraco.Core.Scoping
             {
                 try
                 {
+                    _database.OneTimeCommandTimeout = 60 * 60 * 24;
                     if (completed)
                         _database.CompleteTransaction();
                     else

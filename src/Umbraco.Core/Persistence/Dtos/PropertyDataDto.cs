@@ -1,5 +1,5 @@
-﻿using System;
-using NPoco;
+﻿using NPoco;
+using System;
 using Umbraco.Core.Persistence.DatabaseAnnotations;
 
 namespace Umbraco.Core.Persistence.Dtos
@@ -10,7 +10,7 @@ namespace Umbraco.Core.Persistence.Dtos
     internal class PropertyDataDto
     {
         public const string TableName = Constants.DatabaseSchema.Tables.PropertyData;
-        public const int VarcharLength = 512;
+        public const int VarcharLength = 2000;
         public const int SegmentLength = 256;
 
         private decimal? _decimalValue;
