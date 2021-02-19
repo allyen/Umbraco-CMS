@@ -132,8 +132,8 @@ namespace Umbraco.Core.Scoping
             _messages = noScope.MessagesOrNull;
 
             // make sure the NoScope can be replaced ie not in a transaction
-            if (_database != null && _database.InTransaction)
-                throw new Exception("NoScope instance is not free.");
+            //if (_database != null && _database.InTransaction)
+            //    throw new Exception("NoScope instance is not free.");
         }
 
         private readonly Guid _instanceId = Guid.NewGuid();
