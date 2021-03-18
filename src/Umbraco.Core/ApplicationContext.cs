@@ -166,7 +166,7 @@ namespace Umbraco.Core
         /// <summary>
         /// Gets the scope provider.
         /// </summary>
-        internal IScopeProvider ScopeProvider { get { return _databaseContext == null ? null : _databaseContext.ScopeProvider; } }
+        public IScopeProvider ScopeProvider { get { return _databaseContext == null ? null : _databaseContext.ScopeProvider; } }
 
 		/// <summary>
 		/// Returns the application wide cache accessor

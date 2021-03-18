@@ -467,8 +467,8 @@ namespace Umbraco.Core.Scoping
 #endif
                 // peta poco nulls the shared connection after each command unless there's a trx
                 var database = noScope.DatabaseOrNull;
-                //if (database != null && database.InTransaction)
-                //    throw new Exception("NoScope is in a transaction.");
+                if (database != null && database.InTransaction)
+                    throw new Exception("NoScope is in a transaction.");
                 var ambientContext = AmbientContext;
                 var newContext = ambientContext == null ? new ScopeContext() : null;
                 var scope = new Scope(this, noScope, newContext, isolationLevel, repositoryCacheMode, eventDispatcher, scopeFileSystems, callContext);
