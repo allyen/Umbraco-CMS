@@ -30,14 +30,16 @@
                 <asp:DropDownList OnSelectedIndexChanged="version_load" ID="allVersions" runat="server" Width="400px" AutoPostBack="True" CssClass="guiInputTextTiny" />
             </cc1:PropertyPanel>
 
-            <cc1:PropertyPanel id="pp_view" Text="View" runat="server">
-                <small>
-                    <asp:RadioButtonList ID="rbl_mode" runat="server" OnSelectedIndexChanged="version_load" RepeatDirection="Horizontal">
-                        <asp:ListItem Selected="True" Value="diff">Diff</asp:ListItem>
-                        <asp:ListItem Value="html">Html</asp:ListItem>
-                    </asp:RadioButtonList>
-                </small>
-            </cc1:PropertyPanel>
+            <div style="display: none">
+                <cc1:PropertyPanel id="pp_view" Text="View" runat="server">
+                    <small>
+                        <asp:RadioButtonList ID="rbl_mode" runat="server" OnSelectedIndexChanged="version_load" RepeatDirection="Horizontal">
+                            <asp:ListItem Value="diff">Diff</asp:ListItem>
+                            <asp:ListItem Selected="True" Value="html">Html</asp:ListItem>
+                        </asp:RadioButtonList>
+                    </small>
+                </cc1:PropertyPanel>
+            </div>
         </cc1:Pane>
 
         <asp:Panel ID="diffPanel" Visible="false" runat="server" Height="300px">
