@@ -370,12 +370,12 @@ namespace Umbraco.Core.Persistence.Repositories
         {
             return sql
                 .From<TagDto>(SqlSyntax)
-                /*.InnerJoin<TagRelationshipDto>(SqlSyntax)
+                .InnerJoin<TagRelationshipDto>(SqlSyntax)
                 .On<TagRelationshipDto, TagDto>(SqlSyntax, left => left.TagId, right => right.Id)
                 .InnerJoin<ContentDto>(SqlSyntax)
                 .On<ContentDto, TagRelationshipDto>(SqlSyntax, left => left.NodeId, right => right.NodeId)
                 .InnerJoin<NodeDto>(SqlSyntax)
-                .On<NodeDto, ContentDto>(SqlSyntax, left => left.NodeId, right => right.NodeId)*/;
+                .On<NodeDto, ContentDto>(SqlSyntax, left => left.NodeId, right => right.NodeId);
         }
 
         private Sql ApplyGroupFilterToTagsQuery(Sql sql, string group)
