@@ -16,10 +16,10 @@ angular.module('umbraco').controller("Umbraco.PropertyEditors.MediaPickerControl
                 $scope.model.config.startNodeIsVirtual = true;
 
             } else {
-                userService.getCurrentUser().then(function (userData) {
-                    $scope.model.config.startNodeId = userData.startMediaIds.length !== 1 ? -1 : userData.startMediaIds[0];
-                    $scope.model.config.startNodeIsVirtual = userData.startMediaIds.length !== 1;
-                });
+                //userService.getCurrentUser().then(function (userData) {
+                //    $scope.model.config.startNodeId = userData.startMediaIds.length !== 1 ? -1 : userData.startMediaIds[0];
+                //    $scope.model.config.startNodeIsVirtual = userData.startMediaIds.length !== 1;
+                //});
             }
         }
 
@@ -109,7 +109,7 @@ angular.module('umbraco').controller("Umbraco.PropertyEditors.MediaPickerControl
        $scope.add = function() {
            
            $scope.mediaPickerOverlay = {
-               view: "mediapicker",
+               view: "/App_Plugins/WebCentrum/PropertyEditors/PhotoLibraryMediaPicker/photoLibraryMediaPicker.html",
                title: "Select media",
                startNodeId: $scope.model.config.startNodeId,
                startNodeIsVirtual: $scope.model.config.startNodeIsVirtual,

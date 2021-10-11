@@ -13,10 +13,11 @@ angular.module("umbraco")
             $scope.onlyImages = dialogOptions.onlyImages;
             $scope.showDetails = dialogOptions.showDetails;
             $scope.multiPicker = (dialogOptions.multiPicker && dialogOptions.multiPicker !== "0") ? true : false;
-            $scope.startNodeId = editorState.current.metaData.mediaPickerStartNodeId
-                ? editorState.current.metaData.mediaPickerStartNodeId
-                : dialogOptions.startNodeId
-                    ? dialogOptions.startNodeId : -1;
+            $scope.startNodeId = dialogOptions.startNodeId
+                ? dialogOptions.startNodeId
+                : editorState.current.metaData.mediaPickerStartNodeId
+                    ? editorState.current.metaData.mediaPickerStartNodeId
+                    : -1;
             $scope.cropSize = dialogOptions.cropSize;
             $scope.lastOpenedNode = localStorageService.get("umbLastOpenedMediaNodeId");
             $scope.lockedFolder = true;
