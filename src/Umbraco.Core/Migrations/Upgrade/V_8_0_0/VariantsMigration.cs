@@ -170,7 +170,7 @@ HAVING COUNT(v2.id) <> 1").Any())
             //        new { text = t.text, current = t.newest, userId=t.documentUser, versionId=t.versionId });
 
             var maxId = Database.Single<int>($"SELECT max(id) FROM {PreTables.ContentVersion}");
-            for (int i = 0; i < maxId; i += 10000)
+            for (int i = 0; i <= maxId; i += 10000)
             {
                 Execute.Sql($@"
                     UPDATE cv SET cv.text=d.text, cv.[current]=d.newest, cv.userId=d.documentUser
@@ -191,7 +191,7 @@ HAVING COUNT(v2.id) <> 1").Any())
             //                Database.Execute($@"UPDATE {PreTables.ContentVersion} SET text=@text, {SqlSyntax.GetQuotedColumnName("current")}=1, userId=0 WHERE versionId=@versionId",
             //                    new { text = t.text, versionId=t.versionId });
 
-            for (int i = 0; i < maxId; i += 100000)
+            for (int i = 0; i <= maxId; i += 100000)
             {
                 Execute.Sql($@"
                     UPDATE cv SET cv.text=n.text, cv.[current]=1, cv.userId=0
@@ -206,7 +206,7 @@ HAVING COUNT(v2.id) <> 1").Any())
             Create.Table<DocumentVersionDto>(withoutKeysAndIndexes: true).Do();
 
             // every document row becomes a document version
-            for (int i = 0; i < maxId; i += 100000)
+            for (int i = 0; i <= maxId; i += 100000)
             {
                 Execute.Sql($@"
                     INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
@@ -221,7 +221,7 @@ HAVING COUNT(v2.id) <> 1").Any())
             // 'cos INSERT above has inserted the 'published' document version
             // and v8 always has a 'edited' document version too            
             maxId = Database.Single<int>($"SELECT max(nodeId) FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} WHERE newest=1 AND published=1");
-            for (var i = 0; i < maxId; i += 10000)
+            for (var i = 0; i <= maxId; i += 10000)
             {
                 Database.Execute($@"
                     DECLARE @@vs TABLE (
@@ -255,8 +255,6 @@ HAVING COUNT(v2.id) <> 1").Any())
 
                 Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
             }
-
-            throw new Exception("sda");
 
 //            var temp3 = Database.Fetch<dynamic>($@"SELECT doc.nodeId, doc.updateDate, doc.documentUser, doc.text, doc.templateId, cver.id versionId
 //FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc

@@ -22,7 +22,7 @@ namespace Umbraco.Core.Persistence.Dtos
 
         [Column("versionId")]
         [ForeignKey(typeof(ContentVersionDto))]
-        [Index(IndexTypes.UniqueNonClustered, Name = "IX_" + TableName + "_VersionId", ForColumns = "versionId,propertyTypeId,languageId,segment")]
+       // [Index(IndexTypes.UniqueNonClustered, Name = "IX_" + TableName + "_VersionId", ForColumns = "versionId,propertyTypeId,languageId,segment")]
         public int VersionId { get; set; }
 
         [Column("propertyTypeId")]

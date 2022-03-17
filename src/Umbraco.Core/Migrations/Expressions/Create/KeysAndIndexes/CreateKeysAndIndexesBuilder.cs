@@ -1,8 +1,9 @@
-﻿using System;
-using NPoco;
+﻿using NPoco;
+using System;
 using Umbraco.Core.Migrations.Expressions.Common;
 using Umbraco.Core.Migrations.Expressions.Execute.Expressions;
 using Umbraco.Core.Persistence.DatabaseModelDefinitions;
+using Umbraco.Core.Persistence.Dtos;
 
 namespace Umbraco.Core.Migrations.Expressions.Create.KeysAndIndexes
 {
@@ -29,7 +30,9 @@ namespace Umbraco.Core.Migrations.Expressions.Create.KeysAndIndexes
             // changing the DTO may break old migrations - or, better, these migrations
             // should capture a copy of the DTO class that will not change
 
-            ExecuteSql(syntax.FormatPrimaryKey(tableDefinition));
+            if (TypeOfDto != typeof(PropertyDataDto))
+                ExecuteSql(syntax.FormatPrimaryKey(tableDefinition));
+
             foreach (var sql in syntax.Format(tableDefinition.Indexes))
                 ExecuteSql(sql);
             foreach (var sql in syntax.Format(tableDefinition.ForeignKeys))

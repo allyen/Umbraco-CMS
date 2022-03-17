@@ -1,7 +1,6 @@
-﻿using System;
-using System.Globalization;
+﻿using NPoco;
+using System;
 using System.Linq;
-using NPoco;
 using Umbraco.Core.Persistence;
 using Umbraco.Core.Persistence.Dtos;
 
@@ -93,24 +92,24 @@ namespace Umbraco.Core.Migrations.Upgrade.V_8_0_0
             // update values for known property types
             // depending on the size of the site, that *may* take time
             // but we want to parse in C# not in the database
-            var values = Database.Fetch<PropertyDataValue>(Sql()
-                .Select<PropertyDataDto>(x => x.Id, x => x.VarcharValue)
-                .From<PropertyDataDto>()
-                .WhereIn<PropertyDataDto>(x => x.PropertyTypeId, intPropertyTypes));
-            foreach (var value in values)
-                Database.Execute(Sql()
-                    .Update<PropertyDataDto>(u => u
-                        .Set(x => x.IntegerValue, string.IsNullOrWhiteSpace(value.VarcharValue) ? (int?) null :  int.Parse(value.VarcharValue, NumberStyles.Any, CultureInfo.InvariantCulture))
-                        .Set(x => x.TextValue, null))
-                    .Where<PropertyDataDto>(x => x.Id == value.Id));
+            //var values = Database.Fetch<PropertyDataValue>(Sql()
+            //    .Select<PropertyDataDto>(x => x.Id, x => x.VarcharValue)
+            //    .From<PropertyDataDto>()
+            //    .WhereIn<PropertyDataDto>(x => x.PropertyTypeId, intPropertyTypes));
+            //foreach (var value in values)
+            //    Database.Execute(Sql()
+            //        .Update<PropertyDataDto>(u => u
+            //            .Set(x => x.IntegerValue, string.IsNullOrWhiteSpace(value.VarcharValue) ? (int?) null :  int.Parse(value.VarcharValue, NumberStyles.Any, CultureInfo.InvariantCulture))
+            //            .Set(x => x.TextValue, null))
+            //        .Where<PropertyDataDto>(x => x.Id == value.Id));
 
-            values = Database.Fetch<PropertyDataValue>(Sql().Select<PropertyDataDto>(x => x.Id, x => x.VarcharValue).From<PropertyDataDto>().WhereIn<PropertyDataDto>(x => x.PropertyTypeId, dtPropertyTypes));
-            foreach (var value in values)
-                Database.Execute(Sql()
-                    .Update<PropertyDataDto>(u => u
-                        .Set(x => x.DateValue, string.IsNullOrWhiteSpace(value.VarcharValue) ? (DateTime?) null : DateTime.Parse(value.VarcharValue, CultureInfo.InvariantCulture, DateTimeStyles.None))
-                        .Set(x => x.TextValue, null))
-                    .Where<PropertyDataDto>(x => x.Id == value.Id));
+            //values = Database.Fetch<PropertyDataValue>(Sql().Select<PropertyDataDto>(x => x.Id, x => x.VarcharValue).From<PropertyDataDto>().WhereIn<PropertyDataDto>(x => x.PropertyTypeId, dtPropertyTypes));
+            //foreach (var value in values)
+            //    Database.Execute(Sql()
+            //        .Update<PropertyDataDto>(u => u
+            //            .Set(x => x.DateValue, string.IsNullOrWhiteSpace(value.VarcharValue) ? (DateTime?) null : DateTime.Parse(value.VarcharValue, CultureInfo.InvariantCulture, DateTimeStyles.None))
+            //            .Set(x => x.TextValue, null))
+            //        .Where<PropertyDataDto>(x => x.Id == value.Id));
 
             // anything that's custom... ppl will have to figure it out manually, there isn't much we can do about it
         }
