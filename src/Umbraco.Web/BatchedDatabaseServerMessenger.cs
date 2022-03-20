@@ -26,6 +26,7 @@ namespace Umbraco.Web
     public class BatchedDatabaseServerMessenger : DatabaseServerMessenger
     {
         private readonly IUmbracoDatabaseFactory _databaseFactory;
+        private readonly Lazy<SyncBootState> _syncBootState;
 
         [Obsolete("This overload should not be used, enableDistCalls has no effect")]
         [EditorBrowsable(EditorBrowsableState.Never)]
@@ -39,28 +40,22 @@ namespace Umbraco.Web
             : base(runtime, scopeProvider, sqlContext, proflog, globalSettings, true, options)
         {
             _databaseFactory = databaseFactory;
-        }
-
-        // invoked by DatabaseServerRegistrarAndMessengerComponent
-        internal void Startup()
-        {
-            UmbracoModule.EndRequest += UmbracoModule_EndRequest;
-
-            if (_databaseFactory.CanConnect == false)
+            _syncBootState = new Lazy<SyncBootState>(() =>
             {
-                Logger.Warn<BatchedDatabaseServerMessenger>("Cannot connect to the database, distributed calls will not be enabled for this server.");
-            }
-            else
-            {
-                Boot();
-            }
+                if (_databaseFactory.CanConnect == false)
+                {
+                    Logger.Warn<BatchedDatabaseServerMessenger>("Cannot connect to the database, distributed calls will not be enabled for this server.");
+                    return SyncBootState.Unknown;
+                }
+                else
+                {
+                    return base.GetSyncBootState();
+                }
+            });
         }
 
-        private void UmbracoModule_EndRequest(object sender, UmbracoRequestEventArgs e)
-        {
-            // will clear the batch - will remain in HttpContext though - that's ok
-            FlushBatch();
-        }
+        // override to deal with database connectivity
+        public override SyncBootState GetSyncBootState() => _syncBootState.Value;
 
         protected override void DeliverRemote(ICacheRefresher refresher, MessageType messageType, IEnumerable<object> ids = null, string json = null)
         {
@@ -73,9 +68,11 @@ namespace Umbraco.Web
             BatchMessage(refresher, messageType, idsA, arrayType, json);
         }
 
-        public void FlushBatch()
+        public void FlushBatch() => FlushBatch(null);
+
+        internal void FlushBatch(HttpContextBase httpContext)
         {
-            var batch = GetBatch(false);
+            var batch = httpContext != null ? GetBatch(false, httpContext) : GetBatch(false);
             if (batch == null) return;
 
             var instructions = batch.SelectMany(x => x.Instructions).ToArray();
@@ -88,9 +85,9 @@ namespace Umbraco.Web
                 {
                     WriteInstructions(scope, instructionsBatch);
                 }
+
                 scope.Complete();
             }
-
         }
 
         private void WriteInstructions(IScope scope, IEnumerable<RefreshInstruction> instructions)
@@ -116,10 +113,15 @@ namespace Umbraco.Web
                 // the case if the asp.net synchronization context has kicked in
                 ?? (HttpContext.Current == null ? null : new HttpContextWrapper(HttpContext.Current));
 
-            // if no context was found, return null - we cannot not batch
+            // if no context was found, return null - we cannot batch
             if (httpContext == null) return null;
 
-            var key = typeof (BatchedDatabaseServerMessenger).Name;
+            return GetBatch(create, httpContext);
+        }
+
+        protected ICollection<RefreshInstructionEnvelope> GetBatch(bool create, HttpContextBase httpContext)
+        {
+            var key = typeof(BatchedDatabaseServerMessenger).Name;
 
             // no thread-safety here because it'll run in only 1 thread (request) at a time
             var batch = (ICollection<RefreshInstructionEnvelope>)httpContext.Items[key];
@@ -133,9 +135,17 @@ namespace Umbraco.Web
             MessageType messageType,
             IEnumerable<object> ids = null,
             Type idType = null,
+            string json = null) => BatchMessage(refresher, messageType, null, ids, idType, json);
+
+        protected void BatchMessage(
+            ICacheRefresher refresher,
+            MessageType messageType,
+            HttpContextBase httpContext,
+            IEnumerable<object> ids = null,
+            Type idType = null,
             string json = null)
         {
-            var batch = GetBatch(true);
+            var batch = httpContext != null ? GetBatch(true, httpContext) : GetBatch(true);
             var instructions = RefreshInstruction.GetInstructions(refresher, messageType, ids, idType, json);
 
             // batch if we can, else write to DB immediately

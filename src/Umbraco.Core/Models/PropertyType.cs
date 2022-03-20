@@ -31,6 +31,7 @@ namespace Umbraco.Core.Models
         private string _validationRegExp;
         private string _validationRegExpMessage;
         private ContentVariation _variations;
+        private bool _labelOnTop;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyType"/> class.
@@ -178,7 +179,8 @@ namespace Umbraco.Core.Models
         /// </summary>
         /// <remarks>For generic properties, the value is <c>null</c>.</remarks>
         [DataMember]
-        internal Lazy<int> PropertyGroupId
+        [DoNotClone]
+        public Lazy<int> PropertyGroupId
         {
             get => _propertyGroupId;
             set => SetPropertyValueAndDetectChanges(value, ref _propertyGroupId, nameof(PropertyGroupId));
@@ -202,6 +204,16 @@ namespace Umbraco.Core.Models
         {
             get => _mandatoryMessage;
             set => SetPropertyValueAndDetectChanges(value, ref _mandatoryMessage, nameof(MandatoryMessage));
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the label of this property type should be displayed on top.
+        /// </summary>
+        [DataMember]
+        public bool LabelOnTop
+        {
+            get => _labelOnTop;
+            set => SetPropertyValueAndDetectChanges(value, ref _labelOnTop, nameof(LabelOnTop));
         }
 
         /// <summary>
@@ -437,7 +449,7 @@ namespace Umbraco.Core.Models
             base.PerformDeepClone(clone);
 
             var clonedEntity = (PropertyType)clone;
-            
+
             //need to manually assign the Lazy value as it will not be automatically mapped
             if (PropertyGroupId != null)
             {

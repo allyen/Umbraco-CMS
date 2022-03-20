@@ -31,6 +31,11 @@
    margin-left: 5px;
 }
 
+.umb-button__button[disabled] .umb-button__caret {
+    border-top-color: @gray-7;
+    border-bottom-color: @gray-7;
+}
+
 .umb-button__progress {
    position: absolute;
    left: 50%;
@@ -58,6 +63,11 @@
    border-left-color: @white;
 }
 
+.umb-button__progress.-black {
+   border-color: rgba(255, 255, 255, 0.4);
+   border-left-color: @black;
+}
+
 .umb-button__success,
 .umb-button__error {
    position: absolute;
@@ -79,6 +89,11 @@
 .umb-button__success.-white,
 .umb-button__error.-white {
    color: @white;
+}
+
+.umb-button__success.-black,
+.umb-button__error.-black {
+   color: @black;
 }
 
 .umb-button__overlay {

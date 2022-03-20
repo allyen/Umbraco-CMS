@@ -68,7 +68,7 @@ namespace Umbraco.TestData
                 scope.Complete();
             }
 
-            
+
             return Content("Done");
         }
 
@@ -89,7 +89,7 @@ namespace Umbraco.TestData
                 message = "Count not high enough for specified for number of levels required";
                 return false;
             }
-            
+
             return true;
         }
 
@@ -140,7 +140,7 @@ namespace Umbraco.TestData
                     currChildCount = prev.childCount;
                     // restore the parent
                     parent = prev.parent;
-                    
+
                 }
                 else if (contentItem.Level < depth)
                 {
@@ -149,10 +149,10 @@ namespace Umbraco.TestData
 
                     // not at max depth, create below
                     parent = created.container();
-                    
+
                     currChildCount = 0;
                 }
-                
+
             }
         }
 
@@ -172,7 +172,7 @@ namespace Umbraco.TestData
             {
                 var imageUrl = faker.Image.PicsumUrl();
 
-                // we are appending a &ext=.jpg to the end of this for a reason. The result of this url will be something like:
+                // we are appending a &ext=.jpg to the end of this for a reason. The result of this URL will be something like:
                 // https://picsum.photos/640/480/?image=106
                 // and due to the way that we detect images there must be an extension so we'll change it to
                 // https://picsum.photos/640/480/?image=106&ext=.jpg
@@ -208,7 +208,8 @@ namespace Umbraco.TestData
             var docType = GetOrCreateContentType();
 
             var parent = Services.ContentService.Create(company, -1, docType.Alias);
-            parent.SetValue("review", faker.Rant.Review());
+            // give it some reasonable data (100 reviews)
+            parent.SetValue("review", string.Join(" ", Enumerable.Range(0, 100).Select(x => faker.Rant.Review())));
             parent.SetValue("desc", company);
             parent.SetValue("media", imageIds[random.Next(0, imageIds.Count - 1)]);
             Services.ContentService.Save(parent);
@@ -218,8 +219,9 @@ namespace Umbraco.TestData
             return CreateHierarchy(parent, count, depth, currParent =>
             {
                 var content = Services.ContentService.Create(faker.Commerce.ProductName(), currParent, docType.Alias);
-                content.SetValue("review", faker.Rant.Review());
-                content.SetValue("desc", string.Join(", ", Enumerable.Range(0, 5).Select(x => faker.Commerce.ProductAdjective()))); ;
+                // give it some reasonable data (100 reviews)
+                content.SetValue("review", string.Join(" ", Enumerable.Range(0, 100).Select(x => faker.Rant.Review())));
+                content.SetValue("desc", string.Join(", ", Enumerable.Range(0, 5).Select(x => faker.Commerce.ProductAdjective())));
                 content.SetValue("media", imageIds[random.Next(0, imageIds.Count - 1)]);
 
                 Services.ContentService.Save(content);
@@ -259,7 +261,7 @@ namespace Umbraco.TestData
             return docType;
         }
 
-        private IDataType GetOrCreateRichText() => GetOrCreateDataType(RichTextDataTypeName, Constants.PropertyEditors.Aliases.TinyMce);      
+        private IDataType GetOrCreateRichText() => GetOrCreateDataType(RichTextDataTypeName, Constants.PropertyEditors.Aliases.TinyMce);
 
         private IDataType GetOrCreateMediaPicker() => GetOrCreateDataType(MediaPickerDataTypeName, Constants.PropertyEditors.Aliases.MediaPicker);
 

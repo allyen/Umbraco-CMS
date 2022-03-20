@@ -36,7 +36,7 @@ namespace Umbraco.Web.PropertyEditors
         /// <param name="mediaParentFolder"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
-        internal string FindAndPersistPastedTempImages(string html, Guid mediaParentFolder, int userId)
+        internal string FindAndPersistPastedTempImages(string html, Guid mediaParentFolder, int userId, IImageUrlGenerator imageUrlGenerator)
         {
             // Find all img's that has data-tmpimg attribute
             // Use HTML Agility Pack - https://html-agility-pack.net
@@ -96,12 +96,12 @@ namespace Umbraco.Web.PropertyEditors
                 // Add the UDI to the img element as new data attribute
                 img.SetAttributeValue("data-udi", udi.ToString());
 
-                // Get the new persisted image url
+                // Get the new persisted image URL
                 var mediaTyped = _umbracoContextAccessor?.UmbracoContext?.Media.GetById(udi.Guid);
                 if (mediaTyped == null)
                     throw new PanicException($"Could not find media by id {udi.Guid} or there was no UmbracoContext available.");
 
-                var location = mediaTyped.Url;
+                var location = mediaTyped.Url();
 
                 // Find the width & height attributes as we need to set the imageprocessor QueryString
                 var width = img.GetAttributeValue("width", int.MinValue);
@@ -109,7 +109,7 @@ namespace Umbraco.Web.PropertyEditors
 
                 if (width != int.MinValue && height != int.MinValue)
                 {
-                    location = $"{location}?width={width}&height={height}&mode=max";
+                    location = imageUrlGenerator.GetImageUrl(new ImageUrlGenerationOptions(location) { ImageCropMode = "max", Width = width, Height = height });
                 }
 
                 img.SetAttributeValue("src", location);
@@ -132,7 +132,7 @@ namespace Umbraco.Web.PropertyEditors
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error(typeof(HtmlImageSourceParser), ex, "Could not delete temp file or folder {FileName}", absoluteTempImagePath);
+                        _logger.Error<string>(typeof(HtmlImageSourceParser), ex, "Could not delete temp file or folder {FileName}", absoluteTempImagePath);
                     }
                 }
             }

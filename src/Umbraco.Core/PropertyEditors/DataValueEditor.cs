@@ -145,8 +145,18 @@ namespace Umbraco.Core.PropertyEditors
         /// <returns></returns>
         internal Attempt<object> TryConvertValueToCrlType(object value)
         {
-            if (value is JValue)
-                value = value.ToString();
+            if (value is JToken jsonValue)
+            {
+                if (jsonValue is JContainer && jsonValue.HasValues == false)
+                {
+                    // Empty JSON array/object
+                    value = null;
+                }
+                else
+                {
+                    value = jsonValue.ToString(Formatting.None);
+                }
+            }
 
             //this is a custom check to avoid any errors, if it's a string and it's empty just make it null
             if (value is string s && string.IsNullOrWhiteSpace(s))
@@ -187,6 +197,7 @@ namespace Umbraco.Core.PropertyEditors
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
             return value.TryConvertTo(valueType);
         }
 
@@ -204,7 +215,7 @@ namespace Umbraco.Core.PropertyEditors
         /// <returns></returns>
         ///  <remarks>
         ///  By default this will attempt to automatically convert the string value to the value type supplied by ValueType.
-        /// 
+        ///
         ///  If overridden then the object returned must match the type supplied in the ValueType, otherwise persisting the
         ///  value to the DB will fail when it tries to validate the value type.
         ///  </remarks>
@@ -219,9 +230,10 @@ namespace Umbraco.Core.PropertyEditors
             var result = TryConvertValueToCrlType(editorValue.Value);
             if (result.Success == false)
             {
-                Current.Logger.Warn<DataValueEditor>("The value {EditorValue} cannot be converted to the type {StorageTypeValue}", editorValue.Value, ValueTypes.ToStorageType(ValueType));
+                Current.Logger.Warn<DataValueEditor,object,ValueStorageType>("The value {EditorValue} cannot be converted to the type {StorageTypeValue}", editorValue.Value, ValueTypes.ToStorageType(ValueType));
                 return null;
             }
+
             return result.Result;
         }
 

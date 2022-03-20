@@ -171,7 +171,7 @@ namespace Umbraco.Core
                 throw new FormatException(string.Format("Unknown entity type \"{0}\".", entityType));
             }
 
-            var path = uri.AbsolutePath.TrimStart('/');
+            var path = uri.AbsolutePath.TrimStart(Constants.CharArrays.ForwardSlash);
 
             if (udiType == UdiType.GuidUdi)
             {
@@ -316,7 +316,7 @@ namespace Umbraco.Core
 
             if (udiType == UdiType.GuidUdi)
                 return new GuidUdi(uri);
-            if (udiType == UdiType.GuidUdi)
+            if (udiType == UdiType.StringUdi)
                 return new StringUdi(uri);
 
             throw new ArgumentException(string.Format("Uri \"{0}\" is not a valid udi.", uri));

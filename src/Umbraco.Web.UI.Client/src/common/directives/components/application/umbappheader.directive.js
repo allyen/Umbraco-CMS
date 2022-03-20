@@ -1,9 +1,9 @@
 (function () {
     "use strict";
 
-    function AppHeaderDirective(eventsService, appState, userService, focusService) {
+    function AppHeaderDirective(eventsService, appState, userService, focusService, overlayService, $timeout) {
 
-        function link(scope, el, attr, ctrl) {
+        function link(scope, element) {
 
             var evts = [];
 
@@ -16,22 +16,23 @@
                 { value: "assets/img/application/logo@2x.png" },
                 { value: "assets/img/application/logo@3x.png" }
             ];
+            scope.hideBackofficeLogo = Umbraco.Sys.ServerVariables.umbracoSettings.hideBackofficeLogo;
 
             // when a user logs out or timesout
-            evts.push(eventsService.on("app.notAuthenticated", function() {
+            evts.push(eventsService.on("app.notAuthenticated", function () {
                 scope.authenticated = false;
                 scope.user = null;
             }));
 
             // when the application is ready and the user is authorized setup the data
-            evts.push(eventsService.on("app.ready", function(evt, data) {
-                
+            evts.push(eventsService.on("app.ready", function (evt, data) {
+
                 scope.authenticated = true;
                 scope.user = data.user;
 
                 if (scope.user.avatars) {
                     scope.avatar = [];
-                    if (angular.isArray(scope.user.avatars)) {
+                    if (Utilities.isArray(scope.user.avatars)) {
                         for (var i = 0; i < scope.user.avatars.length; i++) {
                             scope.avatar.push({ value: scope.user.avatars[i] });
                         }
@@ -40,13 +41,13 @@
 
             }));
 
-            evts.push(eventsService.on("app.userRefresh", function(evt) {
-                userService.refreshCurrentUser().then(function(data) {
+            evts.push(eventsService.on("app.userRefresh", function (evt) {
+                userService.refreshCurrentUser().then(function (data) {
                     scope.user = data;
-        
+
                     if (scope.user.avatars) {
                         scope.avatar = [];
-                        if (angular.isArray(scope.user.avatars)) {
+                        if (Utilities.isArray(scope.user.avatars)) {
                             for (var i = 0; i < scope.user.avatars.length; i++) {
                                 scope.avatar.push({ value: scope.user.avatars[i] });
                             }
@@ -54,10 +55,10 @@
                     }
                 });
             }));
-            
+
             scope.rememberFocus = focusService.rememberFocus;
-            
-            scope.searchClick = function() {
+
+            scope.searchClick = function () {
                 var showSearch = appState.getSearchState("show");
                 appState.setSearchState("show", !showSearch);
             };
@@ -71,18 +72,56 @@
             };
 
             scope.avatarClick = function () {
-                if(!scope.userDialog) {
-                    scope.userDialog = {
-                        view: "user",
-                        show: true,
-                        close: function (oldModel) {
-                            scope.userDialog.show = false;
-                            scope.userDialog = null;
-                        }
-                    };
+
+                const dialog = {
+                    view: "user",
+                    position: "right",
+                    name: "overlay-user",
+                    close: function () {
+                        overlayService.close();
+                    }
+                };
+
+                overlayService.open(dialog);
+            };
+
+            scope.logoModal = {
+                show: false,
+                text: "",
+                timer: null
+            };
+            scope.showLogoModal = function() {
+                $timeout.cancel(scope.logoModal.timer);
+                scope.logoModal.show = true;
+                scope.logoModal.text = "version "+Umbraco.Sys.ServerVariables.application.version;
+                $timeout(function () {
+                    const anchorLink = element[0].querySelector('.umb-app-header__logo-modal');
+                    if(anchorLink) {
+                        anchorLink.focus();
+                    }
+                });
+            };
+            scope.keepLogoModal = function() {
+                $timeout.cancel(scope.logoModal.timer);
+            };
+            scope.hideLogoModal = function() {
+                if(scope.logoModal.show === true) {
+                    $timeout.cancel(scope.logoModal.timer);
+                    scope.logoModal.timer = $timeout(function () {
+                        scope.logoModal.show = false;
+                    }, 100);
+                }
+            };
+            scope.stopClickEvent = function($event) {
+                $event.stopPropagation();
+            };
+
+            scope.toggleLogoModal = function() {
+                if(scope.logoModal.show) {
+                    $timeout.cancel(scope.logoModal.timer);
+                    scope.logoModal.show = false;
                 } else {
-                    scope.userDialog.show = false;
-                    scope.userDialog = null;
+                    scope.showLogoModal();
                 }
             };
 

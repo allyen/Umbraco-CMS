@@ -12,11 +12,11 @@ namespace Umbraco.Core.Configuration.UmbracoSettings
         IEnumerable<string> ImageFileTypes { get; }
 
         IEnumerable<IImagingAutoFillUploadField> ImageAutoFillProperties { get; }
-        
+
         bool ResolveUrlsFromTextString { get; }
 
         IEnumerable<IContentErrorPage> Error404Collection { get; }
-        
+
         string PreviewBadge { get; }
 
         MacroErrorBehaviour MacroErrorBehaviour { get; }
@@ -25,6 +25,8 @@ namespace Umbraco.Core.Configuration.UmbracoSettings
 
         IEnumerable<string> AllowedUploadFiles { get; }
 
+        IContentVersionCleanupPolicyGlobalSettings ContentVersionCleanupPolicyGlobalSettings { get; }
+
         /// <summary>
         /// Gets a value indicating whether to show deprecated property editors in
         /// a datatype list of available editors.
@@ -32,5 +34,8 @@ namespace Umbraco.Core.Configuration.UmbracoSettings
         bool ShowDeprecatedPropertyEditors { get; }
 
         string LoginBackgroundImage { get; }
+
+        string LoginLogoImage { get; }
+        bool HideBackOfficeLogo { get; }
     }
 }

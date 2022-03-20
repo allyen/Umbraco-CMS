@@ -38,6 +38,8 @@ using Umbraco.Web.Trees;
 using Umbraco.Web.WebApi;
 using Current = Umbraco.Web.Composing.Current;
 using Umbraco.Web.PropertyEditors;
+using Umbraco.Core.Models;
+using Umbraco.Web.Models;
 
 namespace Umbraco.Web.Runtime
 {
@@ -108,6 +110,7 @@ namespace Umbraco.Web.Runtime
             composition.RegisterUnique<HtmlUrlParser>();
             composition.RegisterUnique<HtmlImageSourceParser>();
             composition.RegisterUnique<RichTextEditorPastedImages>();
+            composition.RegisterUnique<PropertyEditors.ValueConverters.BlockEditorConverter>();
 
             // register the umbraco helper - this is Transient! very important!
             // also, if not level.Run, we cannot really use the helper (during upgrade...)
@@ -134,9 +137,8 @@ namespace Umbraco.Web.Runtime
             composition.RegisterUnique<IEventMessagesAccessor, HybridEventMessagesAccessor>();
             composition.RegisterUnique<ITreeService, TreeService>();
             composition.RegisterUnique<ISectionService, SectionService>();
-
             composition.RegisterUnique<IDashboardService, DashboardService>();
-
+            composition.RegisterUnique<IIconService, IconService>();
             composition.RegisterUnique<IExamineManager>(factory => ExamineManager.Instance);
 
             // configure the container for web
@@ -177,7 +179,7 @@ namespace Umbraco.Web.Runtime
                 .Remove<TinyMceValueConverter>()
                 .Remove<TextStringValueConverter>()
                 .Remove<MarkdownEditorValueConverter>();
-            
+
             // add all known factories, devs can then modify this list on application
             // startup either by binding to events or in their own global.asax
             composition.FilteredControllerFactory()
@@ -190,6 +192,8 @@ namespace Umbraco.Web.Runtime
             composition.MediaUrlProviders()
                 .Append<DefaultMediaUrlProvider>();
 
+            composition.RegisterUnique<IImageUrlGenerator, ImageProcessorImageUrlGenerator>();
+
             composition.RegisterUnique<IContentLastChanceFinder, ContentFinderByConfigured404>();
 
             composition.ContentFinders()
@@ -199,8 +203,12 @@ namespace Umbraco.Web.Runtime
                 .Append<ContentFinderByUrl>()
                 .Append<ContentFinderByIdPath>()
                 //.Append<ContentFinderByUrlAndTemplate>() // disabled, this is an odd finder
-                .Append<ContentFinderByUrlAlias>()
-                .Append<ContentFinderByRedirectUrl>();
+                .Append<ContentFinderByUrlAlias>();
+                //only append ContentFinderByRedirectUrl if RedirectUrlTracking is not disabled
+                if (composition.Configs.Settings().WebRouting.DisableRedirectUrlTracking == false)
+                {
+                    composition.ContentFinders().Append<ContentFinderByRedirectUrl>();
+                }
 
             composition.RegisterUnique<ISiteDomainHelper, SiteDomainHelper>();
 
@@ -230,7 +238,12 @@ namespace Umbraco.Web.Runtime
             composition.ContentApps()
                 .Append<ListViewContentAppFactory>()
                 .Append<ContentEditorContentAppFactory>()
-                .Append<ContentInfoContentAppFactory>();
+                .Append<ContentInfoContentAppFactory>()
+                .Append<ContentTypeDesignContentAppFactory>()
+                .Append<ContentTypeListViewContentAppFactory>()
+                .Append<ContentTypePermissionsContentAppFactory>()
+                .Append<ContentTypeTemplatesContentAppFactory>()
+                .Append<MemberEditorContentAppFactory>();
 
             // register back office sections in the order we want them rendered
             composition.Sections()
@@ -257,7 +270,6 @@ namespace Umbraco.Web.Runtime
             // note: IEmbedProvider is not IDiscoverable - think about it if going for type scanning
             composition.OEmbedProviders()
                 .Append<YouTube>()
-                .Append<Instagram>()
                 .Append<Twitter>()
                 .Append<Vimeo>()
                 .Append<DailyMotion>()

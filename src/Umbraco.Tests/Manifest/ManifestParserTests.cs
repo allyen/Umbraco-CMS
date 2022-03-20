@@ -187,6 +187,8 @@ javascript: ['~/test.js',/*** some note about stuff asd09823-4**09234*/ '~/test2
 
             var editor = manifest.PropertyEditors[1];
             Assert.IsTrue((editor.Type & EditorType.MacroParameter) > 0);
+            Assert.IsNotEmpty(editor.DefaultConfiguration);
+            Assert.AreEqual("some default val", editor.DefaultConfiguration["key1"]);
 
             editor = manifest.PropertyEditors[0];
             Assert.AreEqual("Test.Test1", editor.Alias);
@@ -440,6 +442,28 @@ javascript: ['~/test.js',/*** some note about stuff asd09823-4**09234*/ '~/test2
             Assert.AreEqual("hello", manifest.Sections[1].Alias);
             Assert.AreEqual("Content", manifest.Sections[0].Name);
             Assert.AreEqual("World", manifest.Sections[1].Name);
+        }
+
+        [Test]
+        public void CanParseManifest_Version()
+        {
+            const string json = @"{""name"": ""VersionPackage"", ""version"": ""1.0.0""}";
+            PackageManifest manifest = _parser.ParseManifest(json);
+
+            Assert.Multiple(() =>
+            {
+                Assert.AreEqual("VersionPackage", manifest.PackageName);
+                Assert.AreEqual("1.0.0", manifest.Version);
+            });
+        }
+
+        [Test]
+        public void CanParseManifest_TrackingAllowed()
+        {
+            const string json = @"{""allowPackageTelemetry"": false }";
+            PackageManifest manifest = _parser.ParseManifest(json);
+
+            Assert.IsFalse(manifest.AllowPackageTelemetry);
         }
     }
 }

@@ -23,6 +23,7 @@ using Umbraco.Web.WebApi.Filters;
 using Umbraco.Web.Trees;
 using Stylesheet = Umbraco.Core.Models.Stylesheet;
 using StylesheetRule = Umbraco.Web.Models.ContentEditing.StylesheetRule;
+using CharArrays = Umbraco.Core.Constants.CharArrays;
 
 namespace Umbraco.Web.Editors
 {
@@ -88,7 +89,7 @@ namespace Umbraco.Web.Editors
             if (string.IsNullOrWhiteSpace(parentId)) throw new ArgumentException("Value cannot be null or whitespace.", "parentId");
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Value cannot be null or whitespace.", "name");
             if (name.ContainsAny(Path.GetInvalidPathChars())) {
-                return Request.CreateNotificationValidationErrorResponse(Services.TextService.Localize("codefile/createFolderIllegalChars"));
+                return Request.CreateNotificationValidationErrorResponse(Services.TextService.Localize("codefile", "createFolderIllegalChars"));
             }
 
             // if the parentId is root (-1) then we just need an empty string as we are
@@ -139,7 +140,7 @@ namespace Umbraco.Web.Editors
         /// Used to get a specific file from disk via the FileService
         /// </summary>
         /// <param name="type">This is a string but will be 'scripts' 'partialViews', 'partialViewMacros' or 'stylesheets'</param>
-        /// <param name="virtualPath">The filename or urlencoded path of the file to open</param>
+        /// <param name="virtualPath">The filename or URL encoded path of the file to open</param>
         /// <returns>The file and its contents from the virtualPath</returns>
         public CodeFileDisplay GetByPath(string type, string virtualPath)
         {
@@ -277,7 +278,7 @@ namespace Umbraco.Web.Editors
 
             if (id != Core.Constants.System.RootString)
             {
-                codeFileDisplay.VirtualPath += id.TrimStart("/").EnsureEndsWith("/");
+                codeFileDisplay.VirtualPath += id.TrimStart(CharArrays.ForwardSlash).EnsureEndsWith("/");
                 //if it's not new then it will have a path, otherwise it won't
                 codeFileDisplay.Path = Url.GetTreePathFromFilePath(id);
             }
@@ -291,7 +292,7 @@ namespace Umbraco.Web.Editors
         /// Used to delete a specific file from disk via the FileService
         /// </summary>
         /// <param name="type">This is a string but will be 'scripts' 'partialViews', 'partialViewMacros' or 'stylesheets'</param>
-        /// <param name="virtualPath">The filename or urlencoded path of the file to delete</param>
+        /// <param name="virtualPath">The filename or URL encoded path of the file to delete</param>
         /// <returns>Will return a simple 200 if file deletion succeeds</returns>
         [HttpDelete]
         [HttpPost]
@@ -305,7 +306,7 @@ namespace Umbraco.Web.Editors
             switch (type)
             {
                 case Core.Constants.Trees.PartialViews:
-                    if (IsDirectory(virtualPath, SystemDirectories.PartialViews))
+                    if (IsDirectory(virtualPath, SystemDirectories.PartialViews, Current.FileSystems.PartialViewsFileSystem))
                     {
                         Services.FileService.DeletePartialViewFolder(virtualPath);
                         return Request.CreateResponse(HttpStatusCode.OK);
@@ -317,7 +318,7 @@ namespace Umbraco.Web.Editors
                     return Request.CreateErrorResponse(HttpStatusCode.NotFound, "No Partial View or folder found with the specified path");
 
                 case Core.Constants.Trees.PartialViewMacros:
-                    if (IsDirectory(virtualPath, SystemDirectories.MacroPartials))
+                    if (IsDirectory(virtualPath, SystemDirectories.MacroPartials, Current.FileSystems.MacroPartialsFileSystem))
                     {
                         Services.FileService.DeletePartialViewMacroFolder(virtualPath);
                         return Request.CreateResponse(HttpStatusCode.OK);
@@ -329,7 +330,7 @@ namespace Umbraco.Web.Editors
                     return Request.CreateErrorResponse(HttpStatusCode.NotFound, "No Partial View Macro or folder found with the specified path");
 
                 case Core.Constants.Trees.Scripts:
-                    if (IsDirectory(virtualPath, SystemDirectories.Scripts))
+                    if (IsDirectory(virtualPath, SystemDirectories.Scripts, Current.FileSystems.ScriptsFileSystem))
                     {
                         Services.FileService.DeleteScriptFolder(virtualPath);
                         return Request.CreateResponse(HttpStatusCode.OK);
@@ -342,7 +343,7 @@ namespace Umbraco.Web.Editors
                     return Request.CreateErrorResponse(HttpStatusCode.NotFound, "No Script or folder found with the specified path");
 
                 case Core.Constants.Trees.Stylesheets:
-                    if (IsDirectory(virtualPath, SystemDirectories.Css))
+                    if (IsDirectory(virtualPath, SystemDirectories.Css, Current.FileSystems.StylesheetsFileSystem))
                     {
                         Services.FileService.DeleteStyleSheetFolder(virtualPath);
                         return Request.CreateResponse(HttpStatusCode.OK);
@@ -388,8 +389,8 @@ namespace Umbraco.Web.Editors
                     }
 
                     display.AddErrorNotification(
-                        Services.TextService.Localize("speechBubbles/partialViewErrorHeader"),
-                        Services.TextService.Localize("speechBubbles/partialViewErrorText"));
+                        Services.TextService.Localize("speechBubbles", "partialViewErrorHeader"),
+                        Services.TextService.Localize("speechBubbles", "partialViewErrorText"));
                     break;
 
                 case Core.Constants.Trees.PartialViewMacros:
@@ -403,8 +404,8 @@ namespace Umbraco.Web.Editors
                     }
 
                     display.AddErrorNotification(
-                        Services.TextService.Localize("speechBubbles/partialViewErrorHeader"),
-                        Services.TextService.Localize("speechBubbles/partialViewErrorText"));
+                        Services.TextService.Localize("speechBubbles", "partialViewErrorHeader"),
+                        Services.TextService.Localize("speechBubbles", "partialViewErrorText"));
                     break;
 
                 case Core.Constants.Trees.Scripts:
@@ -473,7 +474,7 @@ namespace Umbraco.Web.Editors
                 data.Content = StylesheetHelper.ReplaceRule(data.Content, rule.Name, null);
             }
 
-            data.Content = data.Content.TrimEnd('\n', '\r');
+            data.Content = data.Content.TrimEnd(CharArrays.LineFeedCarriageReturn);
 
             // now add all the posted rules
             if (data.Rules != null && data.Rules.Any())
@@ -633,11 +634,23 @@ namespace Umbraco.Web.Editors
             return value;
         }
 
-        private bool IsDirectory(string virtualPath, string systemDirectory)
+        private bool IsDirectory(string virtualPath, string systemDirectory, IFileSystem fileSystem)
         {
             var path = IOHelper.MapPath(systemDirectory + "/" + virtualPath);
-            var dirInfo = new DirectoryInfo(path);
-            return dirInfo.Attributes == FileAttributes.Directory;
+
+            // If it's a physical filesystem check with directory info
+            if (fileSystem.CanAddPhysical)
+            {
+                var dirInfo = new DirectoryInfo(path);
+
+                // If you turn off indexing in Windows this will have the attribute:
+                // `FileAttributes.Directory | FileAttributes.NotContentIndexed`
+                return (dirInfo.Attributes & FileAttributes.Directory) != 0;
+            }
+
+            // Otherwise check the filesystem abstraction to see if the folder exists
+            // Since this is used for delete, it presumably exists if we're trying to delete it
+            return fileSystem.DirectoryExists(path);
         }
 
         // this is an internal class for passing stylesheet data from the client to the controller while editing

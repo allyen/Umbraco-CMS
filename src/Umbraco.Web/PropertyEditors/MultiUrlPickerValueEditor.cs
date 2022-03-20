@@ -115,42 +115,47 @@ namespace Umbraco.Web.PropertyEditors
             }
             catch (Exception ex)
             {
-                _logger.Error<MultiUrlPickerValueEditor>("Error getting links", ex);
+                _logger.Error<MultiUrlPickerValueEditor>(ex, "Error getting links");
             }
 
             return base.ToEditor(property, dataTypeService, culture, segment);
         }
 
+        private static readonly JsonSerializerSettings LinkDisplayJsonSerializerSettings = new JsonSerializerSettings
+        {
+            Formatting = Formatting.None,
+            NullValueHandling = NullValueHandling.Ignore
+        };
 
         public override object FromEditor(ContentPropertyData editorValue, object currentValue)
         {
             var value = editorValue.Value?.ToString();
-
             if (string.IsNullOrEmpty(value))
             {
-                return string.Empty;
+                return null;
             }
 
             try
             {
+                var links = JsonConvert.DeserializeObject<List<LinkDisplay>>(value);
+                if (links.Count == 0)
+                    return null;
+
                 return JsonConvert.SerializeObject(
-                    from link in JsonConvert.DeserializeObject<List<LinkDisplay>>(value)
+                    from link in links
                     select new MultiUrlPickerValueEditor.LinkDto
                     {
                         Name = link.Name,
                         QueryString = link.QueryString,
                         Target = link.Target,
                         Udi = link.Udi,
-                        Url = link.Udi == null ? link.Url : null, // only save the url for external links
+                        Url = link.Udi == null ? link.Url : null, // only save the URL for external links
                     },
-                    new JsonSerializerSettings
-                    {
-                        NullValueHandling = NullValueHandling.Ignore
-                    });
+                    LinkDisplayJsonSerializerSettings);
             }
             catch (Exception ex)
             {
-                _logger.Error<MultiUrlPickerValueEditor>("Error saving links", ex);
+                _logger.Error<MultiUrlPickerValueEditor>(ex, "Error saving links");
             }
 
             return base.FromEditor(editorValue, currentValue);

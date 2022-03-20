@@ -53,7 +53,7 @@ namespace Umbraco.Core.Xml
         public static bool IsXmlWhitespace(string s)
         {
             // as per xml 1.1 specs - anything else is significant whitespace
-            s = s.Trim(' ', '\t', '\r', '\n');
+            s = s.Trim(Constants.CharArrays.XmlWhitespaceChars);
             return s.Length == 0;
         }
 
@@ -214,9 +214,9 @@ namespace Umbraco.Core.Xml
                 var xmlDoc = new XmlDocument();
                 //Load the file into the XmlDocument
                 xmlDoc.Load(reader);
-                
+
                 return xmlDoc;
-            }   
+            }
         }
 
         /// <summary>
@@ -335,7 +335,7 @@ namespace Umbraco.Core.Xml
             var child = parent.SelectSingleNode(name);
             if (child != null)
             {
-                child.InnerXml = "<![CDATA[" + value + "]]>"; ;
+                child.InnerXml = "<![CDATA[" + value + "]]>";
                 return child;
             }
             return AddCDataNode(xd, name, value);

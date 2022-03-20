@@ -226,9 +226,7 @@ function mediaResource($q, $http, umbDataFormatter, umbRequestHelper) {
         getByIds: function (ids) {
 
             var idQuery = "";
-            _.each(ids, function (item) {
-                idQuery += "ids=" + item + "&";
-            });
+            ids.forEach(id => idQuery += `ids=${id}&`);
 
             return umbRequestHelper.resourcePromise(
                 $http.get(
@@ -335,7 +333,7 @@ function mediaResource($q, $http, umbDataFormatter, umbRequestHelper) {
                 options = {};
             }
             //overwrite the defaults if there are any specified
-            angular.extend(defaults, options);
+            Utilities.extend(defaults, options);
             //now copy back to the options we will use
             options = defaults;
             //change asc/desct
@@ -348,10 +346,10 @@ function mediaResource($q, $http, umbDataFormatter, umbRequestHelper) {
 
             //converts the value to a js bool
             function toBool(v) {
-                if (angular.isNumber(v)) {
+                if (Utilities.isNumber(v)) {
                     return v > 0;
                 }
-                if (angular.isString(v)) {
+                if (Utilities.isString(v)) {
                     return v === "true";
                 }
                 if (typeof v === "boolean") {
@@ -565,7 +563,7 @@ function mediaResource($q, $http, umbDataFormatter, umbRequestHelper) {
                 options = {};
             }
             //overwrite the defaults if there are any specified
-            angular.extend(defaults, options);
+            Utilities.extend(defaults, options);
             //now copy back to the options we will use
             options = defaults;
 

@@ -67,7 +67,7 @@ namespace Umbraco.Core.Manifest
         /// <summary>
         /// Gets all manifests.
         /// </summary>
-        private IEnumerable<PackageManifest> GetManifests()
+        internal IEnumerable<PackageManifest> GetManifests()
         {
             var manifests = new List<PackageManifest>();
 
@@ -85,7 +85,7 @@ namespace Umbraco.Core.Manifest
                 }
                 catch (Exception e)
                 {
-                    _logger.Error<ManifestParser>(e, "Failed to parse manifest at '{Path}', ignoring.", path);
+                    _logger.Error<ManifestParser, string>(e, "Failed to parse manifest at '{Path}', ignoring.", path);
                 }
             }
 

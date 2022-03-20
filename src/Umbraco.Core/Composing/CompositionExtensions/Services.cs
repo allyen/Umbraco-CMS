@@ -6,8 +6,10 @@ using Umbraco.Core.Events;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Packaging;
+using Umbraco.Core.Security;
 using Umbraco.Core.Services;
 using Umbraco.Core.Services.Implement;
+using Umbraco.Core.Telemetry;
 
 namespace Umbraco.Core.Composing.CompositionExtensions
 {
@@ -31,7 +33,12 @@ namespace Umbraco.Core.Composing.CompositionExtensions
             composition.RegisterUnique<IDomainService, DomainService>();
             composition.RegisterUnique<IAuditService, AuditService>();
             composition.RegisterUnique<ITagService, TagService>();
-            composition.RegisterUnique<IContentService, ContentService>();
+
+            composition.RegisterUnique<ContentService>();
+            composition.RegisterUnique<IContentService>(factory => factory.GetInstance<ContentService>());
+            composition.RegisterUnique<IContentVersionService>(factory => factory.GetInstance<ContentService>());
+            composition.RegisterUnique<IContentVersionCleanupPolicy, DefaultContentVersionCleanupPolicy>();
+
             composition.RegisterUnique<IUserService, UserService>();
             composition.RegisterUnique<IMemberService, MemberService>();
             composition.RegisterUnique<IMediaService, MediaService>();
@@ -52,6 +59,7 @@ namespace Umbraco.Core.Composing.CompositionExtensions
             composition.RegisterUnique<IExternalLoginService, ExternalLoginService>();
             composition.RegisterUnique<IRedirectUrlService, RedirectUrlService>();
             composition.RegisterUnique<IConsentService, ConsentService>();
+            composition.RegisterUnique<IEmailSender, EmailSender>();
             composition.Register<LocalizedTextServiceFileSources>(SourcesFactory);
             composition.RegisterUnique<ILocalizedTextService>(factory => new LocalizedTextService(
                 factory.GetInstance<Lazy<LocalizedTextServiceFileSources>>(),
@@ -72,6 +80,9 @@ namespace Umbraco.Core.Composing.CompositionExtensions
                     factory.GetInstance<PackageDataInstallation>(), factory.GetInstance<PackageFileInstallation>(),
                     factory.GetInstance<CompiledPackageXmlParser>(), factory.GetInstance<IPackageActionRunner>(),
                     new DirectoryInfo(IOHelper.GetRootDirectorySafe())));
+
+            composition.RegisterUnique<ITelemetryService, TelemetryService>();
+            composition.RegisterUnique<IHtmlSanitizer, NoopHtmlSanitizer>();
 
             return composition;
         }

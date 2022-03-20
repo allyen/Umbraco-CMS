@@ -3,10 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Umbraco.Core;
+using Umbraco.Core.Composing;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.Editors;
 using Umbraco.Core.PropertyEditors;
+using Umbraco.Core.Security;
 using Umbraco.Core.Services;
 using Umbraco.Web.Templates;
 
@@ -30,18 +32,45 @@ namespace Umbraco.Web.PropertyEditors
         private readonly HtmlImageSourceParser _imageSourceParser;
         private readonly RichTextEditorPastedImages _pastedImages;
         private readonly HtmlLocalLinkParser _localLinkParser;
+        private readonly IImageUrlGenerator _imageUrlGenerator;
+        private readonly IHtmlSanitizer _htmlSanitizer;
 
+        [Obsolete("Use the constructor which takes an IHtmlSanitizer")]
         public GridPropertyEditor(ILogger logger,
             IUmbracoContextAccessor umbracoContextAccessor,
             HtmlImageSourceParser imageSourceParser,
             RichTextEditorPastedImages pastedImages,
             HtmlLocalLinkParser localLinkParser)
+            : this(logger, umbracoContextAccessor, imageSourceParser, pastedImages, localLinkParser, Current.ImageUrlGenerator)
+        {
+        }
+
+        [Obsolete("Use the constructor which takes an IHtmlSanitizer")]
+        public GridPropertyEditor(ILogger logger,
+            IUmbracoContextAccessor umbracoContextAccessor,
+            HtmlImageSourceParser imageSourceParser,
+            RichTextEditorPastedImages pastedImages,
+            HtmlLocalLinkParser localLinkParser,
+            IImageUrlGenerator imageUrlGenerator)
+            : this(logger, umbracoContextAccessor, imageSourceParser, pastedImages, localLinkParser, imageUrlGenerator, Current.Factory.GetInstance<IHtmlSanitizer>())
+        {
+        }
+
+        public GridPropertyEditor(ILogger logger,
+            IUmbracoContextAccessor umbracoContextAccessor,
+            HtmlImageSourceParser imageSourceParser,
+            RichTextEditorPastedImages pastedImages,
+            HtmlLocalLinkParser localLinkParser,
+            IImageUrlGenerator imageUrlGenerator,
+            IHtmlSanitizer htmlSanitizer)
             : base(logger)
         {
             _umbracoContextAccessor = umbracoContextAccessor;
             _imageSourceParser = imageSourceParser;
             _pastedImages = pastedImages;
             _localLinkParser = localLinkParser;
+            _imageUrlGenerator = imageUrlGenerator;
+            _htmlSanitizer = htmlSanitizer;
         }
 
         public override IPropertyIndexValueFactory PropertyIndexValueFactory => new GridPropertyIndexValueFactory();
@@ -50,7 +79,7 @@ namespace Umbraco.Web.PropertyEditors
         /// Overridden to ensure that the value is validated
         /// </summary>
         /// <returns></returns>
-        protected override IDataValueEditor CreateValueEditor() => new GridPropertyValueEditor(Attribute, _umbracoContextAccessor, _imageSourceParser, _pastedImages, _localLinkParser);
+        protected override IDataValueEditor CreateValueEditor() => new GridPropertyValueEditor(Attribute, _umbracoContextAccessor, _imageSourceParser, _pastedImages, _localLinkParser, _imageUrlGenerator, _htmlSanitizer);
 
         protected override IConfigurationEditor CreateConfigurationEditor() => new GridConfigurationEditor();
 
@@ -61,18 +90,43 @@ namespace Umbraco.Web.PropertyEditors
             private readonly RichTextEditorPastedImages _pastedImages;
             private readonly RichTextPropertyEditor.RichTextPropertyValueEditor _richTextPropertyValueEditor;
             private readonly MediaPickerPropertyEditor.MediaPickerPropertyValueEditor _mediaPickerPropertyValueEditor;
+            private readonly IImageUrlGenerator _imageUrlGenerator;
 
+            [Obsolete("Use the constructor which takes an IHtmlSanitizer")]
             public GridPropertyValueEditor(DataEditorAttribute attribute,
                 IUmbracoContextAccessor umbracoContextAccessor,
                 HtmlImageSourceParser imageSourceParser,
                 RichTextEditorPastedImages pastedImages,
                 HtmlLocalLinkParser localLinkParser)
+                : this(attribute, umbracoContextAccessor, imageSourceParser, pastedImages, localLinkParser, Current.ImageUrlGenerator)
+            {
+            }
+
+            [Obsolete("Use the constructor which takes an IHtmlSanitizer")]
+            public GridPropertyValueEditor(DataEditorAttribute attribute,
+                IUmbracoContextAccessor umbracoContextAccessor,
+                HtmlImageSourceParser imageSourceParser,
+                RichTextEditorPastedImages pastedImages,
+                HtmlLocalLinkParser localLinkParser,
+                IImageUrlGenerator imageUrlGenerator)
+                : this(attribute, umbracoContextAccessor, imageSourceParser, pastedImages, localLinkParser, imageUrlGenerator, Current.Factory.GetInstance<IHtmlSanitizer>())
+            {
+            }
+
+            public GridPropertyValueEditor(DataEditorAttribute attribute,
+                IUmbracoContextAccessor umbracoContextAccessor,
+                HtmlImageSourceParser imageSourceParser,
+                RichTextEditorPastedImages pastedImages,
+                HtmlLocalLinkParser localLinkParser,
+                IImageUrlGenerator imageUrlGenerator,
+                IHtmlSanitizer htmlSanitizer)
                 : base(attribute)
             {
                 _umbracoContextAccessor = umbracoContextAccessor;
                 _imageSourceParser = imageSourceParser;
                 _pastedImages = pastedImages;
-                _richTextPropertyValueEditor = new RichTextPropertyEditor.RichTextPropertyValueEditor(attribute, umbracoContextAccessor, imageSourceParser, localLinkParser, pastedImages);
+                _imageUrlGenerator = imageUrlGenerator;
+                _richTextPropertyValueEditor = new RichTextPropertyEditor.RichTextPropertyValueEditor(attribute, umbracoContextAccessor, imageSourceParser, localLinkParser, pastedImages, _imageUrlGenerator, htmlSanitizer);
                 _mediaPickerPropertyValueEditor = new MediaPickerPropertyEditor.MediaPickerPropertyValueEditor(attribute);
             }
 
@@ -108,14 +162,14 @@ namespace Umbraco.Web.PropertyEditors
                     // Parse the HTML
                     var html = rte.Value?.ToString();
 
-                    var parseAndSavedTempImages = _pastedImages.FindAndPersistPastedTempImages(html, mediaParentId, userId);
+                    var parseAndSavedTempImages = _pastedImages.FindAndPersistPastedTempImages(html, mediaParentId, userId, _imageUrlGenerator);
                     var editorValueWithMediaUrlsRemoved = _imageSourceParser.RemoveImageSources(parseAndSavedTempImages);
 
                     rte.Value = editorValueWithMediaUrlsRemoved;
                 }
 
                 // Convert back to raw JSON for persisting
-                return JsonConvert.SerializeObject(grid);
+                return JsonConvert.SerializeObject(grid, Formatting.None);
             }
 
             /// <summary>
@@ -165,14 +219,18 @@ namespace Umbraco.Web.PropertyEditors
             public IEnumerable<UmbracoEntityReference> GetReferences(object value)
             {
                 var rawJson = value == null ? string.Empty : value is string str ? str : value.ToString();
+
+                if (rawJson.IsNullOrWhiteSpace())
+                    yield break;
+
                 DeserializeGridValue(rawJson, out var richTextEditorValues, out var mediaValues);
 
                 foreach (var umbracoEntityReference in richTextEditorValues.SelectMany(x =>
                     _richTextPropertyValueEditor.GetReferences(x.Value)))
                     yield return umbracoEntityReference;
 
-                foreach (var umbracoEntityReference in mediaValues.SelectMany(x =>
-                    _mediaPickerPropertyValueEditor.GetReferences(x.Value["udi"])))
+                foreach (var umbracoEntityReference in mediaValues.Where(x => x.Value.HasValues)
+                    .SelectMany(x => _mediaPickerPropertyValueEditor.GetReferences(x.Value["udi"])))
                     yield return umbracoEntityReference;
             }
         }
