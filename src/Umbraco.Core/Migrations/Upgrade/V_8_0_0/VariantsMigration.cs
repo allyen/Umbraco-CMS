@@ -197,7 +197,7 @@ INNER JOIN {PreTables.PropertyData} ON {PreTables.ContentVersion}.versionId = {P
                 for (int i = 0; i < maxId; i += 10000)
                 {
                     Execute.Sql($@"
-                    UPDATE cv SET cv.text=d.text, cv.[current]=d.newest, cv.userId=d.documentUser
+                    UPDATE cv SET cv.text=d.text, cv.[current]=(d.newest & ~d.published), cv.userId=d.documentUser
                     FROM {PreTables.ContentVersion} cv
                     INNER JOIN {PreTables.Document} d ON d.versionId=cv.versionId
                     WHERE cv.id>{i} AND cv.id<={i + 10000}").Do();
@@ -262,14 +262,14 @@ INSERT INTO {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} (nodeId, ve
 SELECT doc.nodeId, NEWID(), doc.updateDate, doc.documentUser, 1, doc.text
 FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc
 JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId
-WHERE doc.newest=1 AND doc.published=1 AND doc.id>{i} AND doc.id<={i + 10000}");
+WHERE doc.newest=1 AND doc.published=1 AND doc.nodeId>{i} AND doc.nodeId<={i + 10000}");
 
                 Database.Execute($@"
 INSERT INTO {SqlSyntax.GetQuotedTableName(Constants.DatabaseSchema.Tables.DocumentVersion)} (id, templateId, published)
 SELECT cverNew.id, doc.templateId, 0
 FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc
 JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cverNew ON doc.nodeId = cverNew.nodeId
-WHERE doc.newest=1 AND doc.published=1 AND cverNew.{SqlSyntax.GetQuotedColumnName("current")} = 1 AND doc.id>{i} AND doc.id<={i + 10000}");
+WHERE doc.newest=1 AND doc.published=1 AND cverNew.{SqlSyntax.GetQuotedColumnName("current")} = 1 AND doc.nodeId>{i} AND doc.nodeId<={i + 10000}");
 
                 Database.Execute($@"
 INSERT INTO {SqlSyntax.GetQuotedTableName(PropertyDataDto.TableName)} (propertytypeid,languageId,segment,textValue,varcharValue,decimalValue,intValue,dateValue,versionId)
@@ -278,8 +278,8 @@ FROM {SqlSyntax.GetQuotedTableName(PreTables.Document)} doc
 JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cver ON doc.nodeId=cver.nodeId AND doc.versionId=cver.versionId
 JOIN {SqlSyntax.GetQuotedTableName(PreTables.ContentVersion)} cverNew ON doc.nodeId = cverNew.nodeId
 JOIN {SqlSyntax.GetQuotedTableName(PropertyDataDto.TableName)} pd ON pd.versionId=cver.id
-WHERE doc.newest=1 AND doc.published=1 AND cverNew.{SqlSyntax.GetQuotedColumnName("current")} = 1 AND doc.id>{i} AND doc.id<={i + 10000}");
-                
+WHERE doc.newest=1 AND doc.published=1 AND cverNew.{SqlSyntax.GetQuotedColumnName("current")} = 1 AND doc.nodeId>{i} AND doc.nodeId<={i + 10000}");
+
                 Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
             }
 
@@ -314,7 +314,11 @@ SELECT nodeId FROM {PreTables.ContentVersion} cv INNER JOIN {Constants.DatabaseS
             // cannot compare NTEXT values in TSQL
             // cannot cast NTEXT to NVARCHAR(MAX) in SQLCE
             // ... bah ...
-            var temp = Database.Fetch<dynamic>($@"SELECT n.id,
+            Logger.Info<VariantsMigration>("set 'edited' to true whenever a 'non-published' property data is != a published one");
+            maxId = Database.Single<int>($"SELECT max(id) FROM {Constants.DatabaseSchema.Tables.Node}");
+            for (var i = 0; i <= maxId; i += 10000)
+            {
+                var temp = Database.Fetch<dynamic>($@"SELECT n.id,
 v1.intValue intValue1, v1.decimalValue decimalValue1, v1.dateValue dateValue1, v1.varcharValue varcharValue1, v1.textValue textValue1,
 v2.intValue intValue2, v2.decimalValue decimalValue2, v2.dateValue dateValue2, v2.varcharValue varcharValue2, v2.textValue textValue2
 FROM {Constants.DatabaseSchema.Tables.Node} n
@@ -325,13 +329,17 @@ JOIN {Constants.DatabaseSchema.Tables.DocumentVersion} dv ON cv2.id=dv.id AND dv
 JOIN {Constants.DatabaseSchema.Tables.PropertyData} v2 ON cv2.id=v2.versionId
 WHERE v1.propertyTypeId=v2.propertyTypeId
 AND (v1.languageId=v2.languageId OR (v1.languageId IS NULL AND v2.languageId IS NULL))
-AND (v1.segment=v2.segment OR (v1.segment IS NULL AND v2.segment IS NULL))");
+AND (v1.segment=v2.segment OR (v1.segment IS NULL AND v2.segment IS NULL))
+AND n.id>{i} AND n.id<={i + 10000}");
 
-            var updatedIds = new HashSet<int>();
-            foreach (var t in temp)
-                if (t.intValue1 != t.intValue2 || t.decimalValue1 != t.decimalValue2 || t.dateValue1 != t.dateValue2 || t.varcharValue1 != t.varcharValue2 || t.textValue1 != t.textValue2)
-                    if (updatedIds.Add((int)t.id))
-                        Database.Execute($"UPDATE {SqlSyntax.GetQuotedTableName(PreTables.Document)} SET edited=1 WHERE nodeId=@nodeId", new { nodeId = t.id });
+                var updatedIds = new HashSet<int>();
+                foreach (var t in temp)
+                    if (t.intValue1 != t.intValue2 || t.decimalValue1 != t.decimalValue2 || t.dateValue1 != t.dateValue2 || t.varcharValue1 != t.varcharValue2 || t.textValue1 != t.textValue2)
+                        if (updatedIds.Add((int)t.id))
+                            Database.Execute($"UPDATE {SqlSyntax.GetQuotedTableName(PreTables.Document)} SET edited=1 WHERE nodeId=@nodeId", new { nodeId = t.id });
+
+                Logger.Info<VariantsMigration>($"Done: {i * 100 / maxId} %");
+            }
 
             // drop more columns
             Delete.Column("versionId").FromTable(PreTables.ContentVersion).Do();

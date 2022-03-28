@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Globalization;
 using Umbraco.Core.Configuration.UmbracoSettings;
+using Umbraco.Core.Logging;
 
 namespace Umbraco.Core.Strings
 {
@@ -347,7 +348,8 @@ namespace Umbraco.Core.Strings
                 // no idea, really, so they are not supported at the moment
                 var isPair = char.IsSurrogate(c);
                 if (isPair)
-                    throw new NotSupportedException("Surrogate pairs are not supported.");
+                    continue;
+                    //throw new NotSupportedException("Surrogate pairs are not supported.");
 
                 switch (state)
                 {

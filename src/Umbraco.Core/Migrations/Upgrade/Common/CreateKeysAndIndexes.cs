@@ -1,4 +1,5 @@
 ﻿using Umbraco.Core.Migrations.Install;
+using Umbraco.Core.Persistence.DatabaseModelDefinitions;
 
 namespace Umbraco.Core.Migrations.Upgrade.Common
 {
@@ -15,8 +16,14 @@ namespace Umbraco.Core.Migrations.Upgrade.Common
             Delete.KeysAndIndexes(Constants.DatabaseSchema.Tables.PropertyData).Do();
 
             // re-create *all* keys and indexes
+            var tables = SqlSyntax.GetTablesInSchema(Context.Database);
             foreach (var x in DatabaseSchemaCreator.OrderedTables)
-                Create.KeysAndIndexes(x).Do();
+            {
+                // prevent creation of keys for tables from newer migrations
+                var tableDefinition = DefinitionFactory.GetTableDefinition(x, SqlSyntax);
+                if (tables.InvariantContains(tableDefinition.Name))
+                    Create.KeysAndIndexes(x).Do();
+            }
         }
     }
 }

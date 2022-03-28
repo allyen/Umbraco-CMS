@@ -93,6 +93,7 @@ namespace Umbraco.Core.Migrations.Upgrade.V_8_0_0
             // update values for known property types
             // depending on the size of the site, that *may* take time
             // but we want to parse in C# not in the database
+            // probably better to parse in DB, this takes 20 minutes
             var values = Database.Fetch<PropertyDataValue>(Sql()
                 .Select<PropertyDataDto>(x => x.Id, x => x.VarcharValue)
                 .From<PropertyDataDto>()
