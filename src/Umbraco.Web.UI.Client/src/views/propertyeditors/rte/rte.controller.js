@@ -365,6 +365,7 @@ angular.module("umbraco")
                     //the elements needed
                     $timeout(function () {
                         tinymce.DOM.events.domLoaded = true;
+                        eventsService.emit('rte.beforeInit', { config: baseLineConfigObj, styleFiles: editorConfig.stylesheets });
                         tinymce.init(baseLineConfigObj);
 
                         $scope.isLoading = false;

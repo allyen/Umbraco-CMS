@@ -351,6 +351,7 @@ angular.module("umbraco.directives")
                                 //the elements needed
                                 $timeout(function () {
                                     tinymce.DOM.events.domLoaded = true;
+                                    eventsService.emit('rte.beforeInit', { config: baseLineConfigObj, styleFiles: scope.configuration.stylesheets });
                                     tinymce.init(baseLineConfigObj);
 
                                     scope.isLoading = false;
