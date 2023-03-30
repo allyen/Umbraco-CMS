@@ -173,7 +173,7 @@
     <key alias="altTextOptional">Alternativní text (nepovinný)</key>
     <key alias="noItemsToShow">There are no items to show</key>
     <key alias="getUrlException">Nelze načíst URL stránky</key>
-    <key alias="routeError">Tato stárnka je zveřejněná, ale její URL adresa koliduje se stránkou %0%</key>
+    <key alias="routeError">Tato stránka je zveřejněná, ale její URL adresa koliduje se stránkou %0%</key>
     <key alias="scheduledPublishServerTime">Což je pro server čas:</key>
     <key alias="scheduledPublishDocumentation"><![CDATA[<a href="https://our.umbraco.org/documentation/Getting-Started/Data/Scheduled-Publishing/#timezones" target="_blank">Co to znamená?</a>]]></key>
   </area>
