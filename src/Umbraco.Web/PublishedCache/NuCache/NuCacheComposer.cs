@@ -16,7 +16,7 @@ namespace Umbraco.Web.PublishedCache.NuCache
             //Overriden on Run state in DatabaseServerRegistrarAndMessengerComposer
             composition.Register<ISyncBootStateAccessor, NonRuntimeLevelBootStateAccessor>(Lifetime.Singleton);
 
-            var serializer = ConfigurationManager.AppSettings[NuCacheSerializerComponent.Nucache_Serializer_Key];
+            var serializer = "MsgPack"; //ConfigurationManager.AppSettings[NuCacheSerializerComponent.Nucache_Serializer_Key];
             if (serializer != "MsgPack")
             {
                 // TODO: This allows people to revert to the legacy serializer, by default it will be MessagePack
