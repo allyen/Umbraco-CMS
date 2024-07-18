@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Umbraco.Core;
 using Umbraco.Core.Models;
 using Umbraco.Core.Models.PublishedContent;
@@ -40,7 +40,8 @@ namespace Umbraco.Web.PropertyEditors.ValueConverters
             {
                 if (source != null && !source.ToString().IsNullOrWhiteSpace())
                 {
-                    var rawValue = JsonConvert.DeserializeObject<List<object>>(source.ToString());
+                    var settings = new JsonSerializerSettings { MaxDepth = 128 };
+                    var rawValue = JsonConvert.DeserializeObject<List<object>>(source.ToString(), settings);
                     var processedValue = new List<IPublishedContent>();
 
                     var preValueCollection = NestedContentHelper.GetPreValuesCollectionByDataTypeId(propertyType.DataTypeId);

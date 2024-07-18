@@ -1,20 +1,11 @@
-﻿using System;
-using System.ComponentModel;
+﻿using Newtonsoft.Json;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Formatting;
-using System.Text;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Controllers;
-using System.Web.Http.ModelBinding.Binders;
-using System.Web.Http.Validation;
-using System.Web.ModelBinding;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Umbraco.Core;
 using Umbraco.Core.IO;
 using Umbraco.Core.Models;
@@ -24,9 +15,6 @@ using Umbraco.Web.Security;
 using Umbraco.Web.WebApi.Filters;
 using IModelBinder = System.Web.Http.ModelBinding.IModelBinder;
 using ModelBindingContext = System.Web.Http.ModelBinding.ModelBindingContext;
-using ModelMetadata = System.Web.Http.Metadata.ModelMetadata;
-using ModelMetadataProvider = System.Web.Http.Metadata.ModelMetadataProvider;
-using MutableObjectModelBinder = System.Web.Http.ModelBinding.Binders.MutableObjectModelBinder;
 using Task = System.Threading.Tasks.Task;
 
 namespace Umbraco.Web.WebApi.Binders
@@ -99,9 +87,9 @@ namespace Umbraco.Web.WebApi.Binders
             var request = actionContext.Request;
 
             //IMPORTANT!!! We need to ensure the umbraco context here because this is running in an async thread
-            var httpContext = (HttpContextBase) request.Properties["MS_HttpContext"];
+            var httpContext = (HttpContextBase)request.Properties["MS_HttpContext"];
             UmbracoContext.EnsureContext(
-                httpContext, 
+                httpContext,
                 ApplicationContext.Current,
                 new WebSecurity(httpContext, ApplicationContext.Current));
 
@@ -120,8 +108,9 @@ namespace Umbraco.Web.WebApi.Binders
             var contentItem = result.FormData["contentItem"];
 
             //deserialize into our model
-            var model = JsonConvert.DeserializeObject<TModelSave>(contentItem);
-            
+            var settings = new JsonSerializerSettings { MaxDepth = 128 };
+            var model = JsonConvert.DeserializeObject<TModelSave>(contentItem, settings);
+
             //get the default body validator and validate the object
             var bodyValidator = actionContext.ControllerContext.Configuration.Services.GetBodyModelValidator();
             var metadataProvider = actionContext.ControllerContext.Configuration.Services.GetModelMetadataProvider();
@@ -141,15 +130,15 @@ namespace Umbraco.Web.WebApi.Binders
                     throw new HttpResponseException(response);
                 }
                 var propAlias = parts[1];
-             
-                var fileName = file.Headers.ContentDisposition.FileName.Trim(new char[] {'\"'});
+
+                var fileName = file.Headers.ContentDisposition.FileName.Trim(new char[] { '\"' });
 
                 model.UploadedFiles.Add(new ContentItemFile
-                    {
-                        TempFilePath = file.LocalFileName,
-                        PropertyAlias = propAlias,
-                        FileName = fileName
-                    });
+                {
+                    TempFilePath = file.LocalFileName,
+                    PropertyAlias = propAlias,
+                    FileName = fileName
+                });
             }
 
             if (ContentControllerBase.IsCreatingAction(model.Action))
@@ -160,18 +149,18 @@ namespace Umbraco.Web.WebApi.Binders
             else
             {
                 //finally, let's lookup the real content item and create the DTO item
-                model.PersistedContent = GetExisting(model);                
+                model.PersistedContent = GetExisting(model);
             }
-            
+
             //create the dto from the persisted model
             if (model.PersistedContent != null)
             {
-                model.ContentDto = MapFromPersisted(model);  
+                model.ContentDto = MapFromPersisted(model);
             }
             if (model.ContentDto != null)
             {
                 //now map all of the saved values to the dto
-                MapPropertyValuesFromSaved(model, model.ContentDto);    
+                MapPropertyValuesFromSaved(model, model.ContentDto);
             }
 
             model.Name = model.Name.Trim();
@@ -192,7 +181,7 @@ namespace Umbraco.Web.WebApi.Binders
                 foreach (var propertyDto in dto.Properties)
                 {
                     if (propertyDto.Alias != p.Alias) continue;
-                    propertyDto.Value = p.Value;                        
+                    propertyDto.Value = p.Value;
                     break;
                 }
             }

@@ -1,9 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
-using System.Text;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
+using System.IO;
+using System.Text;
 
 namespace Umbraco.Core.Serialization
 {
@@ -13,7 +12,7 @@ namespace Umbraco.Core.Serialization
 
         public JsonNetSerializer()
         {
-            _settings = new JsonSerializerSettings();
+            _settings = new JsonSerializerSettings { MaxDepth = 128 };
 
             //var customResolver = new CustomIgnoreResolver
             //    {

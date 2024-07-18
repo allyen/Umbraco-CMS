@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -9,7 +10,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web.Security;
-using Newtonsoft.Json;
 using Umbraco.Core.CodeAnnotations;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
@@ -161,7 +161,8 @@ namespace Umbraco.Core
             }
             try
             {
-                var obj = JsonConvert.DeserializeObject(input);
+                var settings = new JsonSerializerSettings { MaxDepth = 128 };
+                var obj = JsonConvert.DeserializeObject(input, settings);
                 return obj;
             }
             catch (Exception)
@@ -1575,7 +1576,7 @@ namespace Umbraco.Core
             guid[left] = guid[right];
             guid[right] = temp;
         }
-        
+
         /// <summary>
         /// Converts a file name to a friendly name for a content item
         /// </summary>

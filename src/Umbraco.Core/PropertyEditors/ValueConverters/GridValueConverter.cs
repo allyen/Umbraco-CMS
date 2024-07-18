@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.IO;
 using System.Linq;
 using System.Web;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Umbraco.Core.Configuration;
 using Umbraco.Core.IO;
 using Umbraco.Core.Logging;
@@ -33,7 +33,8 @@ namespace Umbraco.Core.PropertyEditors.ValueConverters
             {
                 try
                 {
-                    var obj = JsonConvert.DeserializeObject<JObject>(sourceString);
+                    var settings = new JsonSerializerSettings { MaxDepth = 128 };
+                    var obj = JsonConvert.DeserializeObject<JObject>(sourceString, settings);
 
                     //so we have the grid json... we need to merge in the grid's configuration values with the values
                     // we've saved in the database so that when the front end gets this value, it is up-to-date.
@@ -47,7 +48,7 @@ namespace Umbraco.Core.PropertyEditors.ValueConverters
                         new DirectoryInfo(IOHelper.MapPath(SystemDirectories.AppPlugins)),
                         new DirectoryInfo(IOHelper.MapPath(SystemDirectories.Config)),
                         isDebug);
-                    
+
                     var sections = GetArray(obj, "sections");
                     foreach (var section in sections.Cast<JObject>())
                     {

@@ -11,7 +11,7 @@ using UmbracoExamine;
 
 namespace Umbraco.Web.PropertyEditors
 {
-    [PropertyEditor(Core.Constants.PropertyEditors.GridAlias, "Grid layout", "grid", HideLabel = true, IsParameterEditor = false, ValueType = PropertyEditorValueTypes.Json, Group="rich content", Icon="icon-layout")]
+    [PropertyEditor(Core.Constants.PropertyEditors.GridAlias, "Grid layout", "grid", HideLabel = true, IsParameterEditor = false, ValueType = PropertyEditorValueTypes.Json, Group = "rich content", Icon = "icon-layout")]
     public class GridPropertyEditor : PropertyEditor, IApplicationEventHandler
     {
         public delegate PropertyValueEditor CreatingValueEditorEventHandler<TEventArgs>(TEventArgs e);
@@ -35,8 +35,8 @@ namespace Umbraco.Web.PropertyEditors
                         try
                         {
                             //TODO: We should deserialize this to Umbraco.Core.Models.GridValue instead of doing the below
-
-                            var json = JsonConvert.DeserializeObject<JObject>(e.Fields[field.Name]);
+                            var settings = new JsonSerializerSettings { MaxDepth = 128 };
+                            var json = JsonConvert.DeserializeObject<JObject>(e.Fields[field.Name], settings);
 
                             //check if this is formatted for grid json
                             JToken name;

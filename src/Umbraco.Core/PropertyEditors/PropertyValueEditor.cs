@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Xml.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Manifest;
 using Umbraco.Core.Models;
@@ -204,7 +204,7 @@ namespace Umbraco.Core.PropertyEditors
                     //ensure these are nullable so we can return a null if required
                     //NOTE: This is allowing type of 'long' because I think json.net will deserialize a numerical value as long
                     // instead of int. Even though our db will not support this (will get truncated), we'll at least parse to this.
-                    
+
                     valueType = typeof(long?);
 
                     //if parsing is successful, we need to return as an Int, we're only dealing with long's here because of json.net, we actually
@@ -212,7 +212,7 @@ namespace Umbraco.Core.PropertyEditors
                     //when we compare the values for dirty tracking we'll be comparing an int -> long and they will not match.
                     var result = value.TryConvertTo(valueType);
                     return result.Success && result.Result != null
-                        ? Attempt<object>.Succeed((int)(long)result.Result) 
+                        ? Attempt<object>.Succeed((int)(long)result.Result)
                         : result;
 
                 case DataTypeDatabaseType.Decimal:
@@ -282,7 +282,7 @@ namespace Umbraco.Core.PropertyEditors
 
             switch (GetDatabaseType())
             {
-                case DataTypeDatabaseType.Ntext:                    
+                case DataTypeDatabaseType.Ntext:
                 case DataTypeDatabaseType.Nvarchar:
                     //if it is a string type, we will attempt to see if it is json stored data, if it is we'll try to convert
                     //to a real json object so we can pass the true json object directly to angular!
@@ -291,7 +291,8 @@ namespace Umbraco.Core.PropertyEditors
                     {
                         try
                         {
-                            var json = JsonConvert.DeserializeObject(asString);
+                            var settings = new JsonSerializerSettings { MaxDepth = 128 };
+                            var json = JsonConvert.DeserializeObject(asString, settings);
                             return json;
                         }
                         catch
@@ -305,8 +306,8 @@ namespace Umbraco.Core.PropertyEditors
                     //Decimals need to be formatted with invariant culture (dots, not commas)
                     //Anything else falls back to ToString()
                     var decim = property.Value.TryConvertTo<decimal>();
-                    return decim.Success 
-                        ? decim.Result.ToString(NumberFormatInfo.InvariantInfo) 
+                    return decim.Success
+                        ? decim.Result.ToString(NumberFormatInfo.InvariantInfo)
                         : property.Value.ToString();
                 case DataTypeDatabaseType.Date:
                     var date = property.Value.TryConvertTo<DateTime?>();
@@ -318,7 +319,7 @@ namespace Umbraco.Core.PropertyEditors
                     return date.Result.Value.ToIsoString();
                 default:
                     throw new ArgumentOutOfRangeException();
-            }            
+            }
         }
 
         /// <summary>
@@ -349,7 +350,7 @@ namespace Umbraco.Core.PropertyEditors
                 case DataTypeDatabaseType.Date:
                 case DataTypeDatabaseType.Integer:
                 case DataTypeDatabaseType.Decimal:
-                    return new XText(ConvertDbToString(property, propertyType, dataTypeService));                    
+                    return new XText(ConvertDbToString(property, propertyType, dataTypeService));
                 case DataTypeDatabaseType.Nvarchar:
                 case DataTypeDatabaseType.Ntext:
                     //put text in cdata
@@ -379,7 +380,7 @@ namespace Umbraco.Core.PropertyEditors
                     return property.Value.ToXmlString<string>();
                 case DataTypeDatabaseType.Integer:
                 case DataTypeDatabaseType.Decimal:
-                    return property.Value.ToXmlString(property.Value.GetType());                
+                    return property.Value.ToXmlString(property.Value.GetType());
                 case DataTypeDatabaseType.Date:
                     //treat dates differently, output the format as xml format
                     if (property.Value == null)

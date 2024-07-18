@@ -1,6 +1,6 @@
-﻿using System;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
 using Umbraco.Core.Logging;
 using Umbraco.Core.Models.PublishedContent;
 
@@ -38,15 +38,16 @@ namespace Umbraco.Core.PropertyEditors.ValueConverters
             {
                 try
                 {
-                    var obj = JsonConvert.DeserializeObject(sourceString);
+                    var settings = new JsonSerializerSettings { MaxDepth = 128 };
+                    var obj = JsonConvert.DeserializeObject(sourceString, settings);
                     return obj;
                 }
                 catch (Exception ex)
                 {
-                    LogHelper.Error<JsonValueConverter>("Could not parse the string " + sourceString + " to a json object", ex);                    
+                    LogHelper.Error<JsonValueConverter>("Could not parse the string " + sourceString + " to a json object", ex);
                 }
             }
-            
+
             //it's not json, just return the string
             return sourceString;
         }
