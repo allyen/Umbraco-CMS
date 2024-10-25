@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -185,11 +184,11 @@ AND umbracoNode.nodeObjectType = @objectType",
             foreach (var allowedContentType in entity.AllowedContentTypes)
             {
                 Database.Insert(new ContentTypeAllowedContentTypeDto
-                                    {
-                                        Id = entity.Id,
-                                        AllowedId = allowedContentType.Id.Value,
-                                        SortOrder = allowedContentType.SortOrder
-                                    });
+                {
+                    Id = entity.Id,
+                    AllowedId = allowedContentType.Id.Value,
+                    SortOrder = allowedContentType.SortOrder
+                });
             }
 
             var propertyFactory = new PropertyGroupFactory(nodeDto.NodeId);
@@ -917,7 +916,7 @@ AND umbracoNode.id <> @id",
                         WHERE (umbracoNode.nodeObjectType = @nodeObjectType)
                         ORDER BY ctId";
 
-                var result = db.Fetch<dynamic>(sql, new { nodeObjectType = new Guid(Constants.ObjectTypes.DocumentType)});
+                var result = db.Fetch<dynamic>(sql, new { nodeObjectType = new Guid(Constants.ObjectTypes.DocumentType) });
 
                 if (result.Any() == false)
                 {
@@ -1112,81 +1111,80 @@ AND umbracoNode.id <> @id",
 
                 //NOTE: we are going to assume there's not going to be more than 2100 content type ids since that is the max SQL param count!
                 // Since there are 2 groups of params, it will be half!
-                if (((contentTypeIds.Length / 2) - 1) > 2000)
-                    throw new InvalidOperationException("Cannot perform this lookup, too many sql parameters");
-
-                var result = db.Fetch<dynamic>(sqlBuilder.ToString(), new { contentTypeIds = contentTypeIds });
-
-                foreach (var contentTypeId in contentTypeIds)
+                foreach (var idGroup in contentTypeIds.InGroupsOf(1000))
                 {
-                    //from this we need to make :
-                    // * PropertyGroupCollection - Contains all property groups along with all property types associated with a group
-                    // * PropertyTypeCollection - Contains all property types that do not belong to a group
+                    var result = db.Fetch<dynamic>(sqlBuilder.ToString(), new { contentTypeIds = idGroup });
 
-                    //create the property group collection first, this means all groups (even empty ones) and all groups with properties
+                    foreach (var contentTypeId in idGroup)
+                    {
+                        //from this we need to make :
+                        // * PropertyGroupCollection - Contains all property groups along with all property types associated with a group
+                        // * PropertyTypeCollection - Contains all property types that do not belong to a group
 
-                    int currId = contentTypeId;
+                        //create the property group collection first, this means all groups (even empty ones) and all groups with properties
 
-                    var propertyGroupCollection = new PropertyGroupCollection(result
-                        //get all rows that have a group id
-                        .Where(x => x.pgId != null)
-                        //filter based on the current content type
-                        .Where(x => x.contentTypeId == currId)
-                        //turn that into a custom object containing only the group info
-                        .Select(x => new { GroupId = x.pgId, SortOrder = x.pgSortOrder, Text = x.pgText, Key = x.pgKey })
-                        //get distinct data by id
-                        .DistinctBy(x => (int)x.GroupId)
-                        //for each of these groups, create a group object with it's associated properties
-                        .Select(group => new PropertyGroup(new PropertyTypeCollection(
-                            result
-                                .Where(row => row.pgId == group.GroupId && row.ptId != null)
-                                .Select(row => new PropertyType(row.dtPropEdAlias, Enum<DataTypeDatabaseType>.Parse(row.dtDbType), row.ptAlias)
-                                {
-                                    //fill in the rest of the property type properties
-                                    Description = row.ptDesc,
-                                    DataTypeDefinitionId = row.dtId,
-                                    Id = row.ptId,
-                                    Key = row.ptUniqueID,
-                                    Mandatory = Convert.ToBoolean(row.ptMandatory),
-                                    Name = row.ptName,
-                                    PropertyGroupId = new Lazy<int>(() => group.GroupId, false),
-                                    SortOrder = row.ptSortOrder,
-                                    ValidationRegExp = row.ptRegExp
-                                })))
-                        {
-                            //fill in the rest of the group properties
-                            Id = group.GroupId,
-                            Name = group.Text,
-                            SortOrder = group.SortOrder,
-                            Key = group.Key
-                        }).ToArray());
+                        int currId = contentTypeId;
 
-                    allPropertyGroupCollection[currId] = propertyGroupCollection;
+                        var propertyGroupCollection = new PropertyGroupCollection(result
+                            //get all rows that have a group id
+                            .Where(x => x.pgId != null)
+                            //filter based on the current content type
+                            .Where(x => x.contentTypeId == currId)
+                            //turn that into a custom object containing only the group info
+                            .Select(x => new { GroupId = x.pgId, SortOrder = x.pgSortOrder, Text = x.pgText, Key = x.pgKey })
+                            //get distinct data by id
+                            .DistinctBy(x => (int)x.GroupId)
+                            //for each of these groups, create a group object with it's associated properties
+                            .Select(group => new PropertyGroup(new PropertyTypeCollection(
+                                result
+                                    .Where(row => row.pgId == group.GroupId && row.ptId != null)
+                                    .Select(row => new PropertyType(row.dtPropEdAlias, Enum<DataTypeDatabaseType>.Parse(row.dtDbType), row.ptAlias)
+                                    {
+                                        //fill in the rest of the property type properties
+                                        Description = row.ptDesc,
+                                        DataTypeDefinitionId = row.dtId,
+                                        Id = row.ptId,
+                                        Key = row.ptUniqueID,
+                                        Mandatory = Convert.ToBoolean(row.ptMandatory),
+                                        Name = row.ptName,
+                                        PropertyGroupId = new Lazy<int>(() => group.GroupId, false),
+                                        SortOrder = row.ptSortOrder,
+                                        ValidationRegExp = row.ptRegExp
+                                    })))
+                            {
+                                //fill in the rest of the group properties
+                                Id = group.GroupId,
+                                Name = group.Text,
+                                SortOrder = group.SortOrder,
+                                Key = group.Key
+                            }).ToArray());
 
-                    //Create the property type collection now (that don't have groups)
+                        allPropertyGroupCollection[currId] = propertyGroupCollection;
 
-                    var propertyTypeCollection = new PropertyTypeCollection(result
-                        .Where(x => x.pgId == null)
-                        //filter based on the current content type
-                        .Where(x => x.contentTypeId == currId)
-                        .Select(row => new PropertyType(row.dtPropEdAlias, Enum<DataTypeDatabaseType>.Parse(row.dtDbType), row.ptAlias)
-                        {
-                            //fill in the rest of the property type properties
-                            Description = row.ptDesc,
-                            DataTypeDefinitionId = row.dtId,
-                            Id = row.ptId,
-                            Key = row.ptUniqueID,
-                            Mandatory = Convert.ToBoolean(row.ptMandatory),
-                            Name = row.ptName,
-                            PropertyGroupId = null,
-                            SortOrder = row.ptSortOrder,
-                            ValidationRegExp = row.ptRegExp
-                        }).ToArray());
+                        //Create the property type collection now (that don't have groups)
 
-                    allPropertyTypeCollection[currId] = propertyTypeCollection;
+                        var propertyTypeCollection = new PropertyTypeCollection(result
+                            .Where(x => x.pgId == null)
+                            //filter based on the current content type
+                            .Where(x => x.contentTypeId == currId)
+                            .Select(row => new PropertyType(row.dtPropEdAlias, Enum<DataTypeDatabaseType>.Parse(row.dtDbType), row.ptAlias)
+                            {
+                                //fill in the rest of the property type properties
+                                Description = row.ptDesc,
+                                DataTypeDefinitionId = row.dtId,
+                                Id = row.ptId,
+                                Key = row.ptUniqueID,
+                                Mandatory = Convert.ToBoolean(row.ptMandatory),
+                                Name = row.ptName,
+                                PropertyGroupId = null,
+                                SortOrder = row.ptSortOrder,
+                                ValidationRegExp = row.ptRegExp
+                            }).ToArray());
+
+                        allPropertyTypeCollection[currId] = propertyTypeCollection;
+                    }
+
                 }
-
-
             }
 
         }
