@@ -27,8 +27,8 @@ namespace Umbraco.Web.Editors
             long totalRecords;
             var dateQuery = sinceDate.HasValue ? Query<IAuditItem>.Builder.Where(x => x.CreateDate >= sinceDate) : null;
             var result = Services.AuditService.GetPagedItemsByEntity(id, pageNumber - 1, pageSize, out totalRecords, orderDirection, customFilter: dateQuery);
-            var mapped = result.Select(item => Mapper.Map<AuditLog>(item));        
-            
+            var mapped = result.Select(item => Mapper.Map<AuditLog>(item));
+
             var page = new PagedResult<AuditLog>(totalRecords, pageNumber, pageSize)
             {
                 Items = MapAvatarsAndNames(mapped)
@@ -45,7 +45,7 @@ namespace Umbraco.Web.Editors
         {
             long totalRecords;
             var dateQuery = sinceDate.HasValue ? Query<IAuditItem>.Builder.Where(x => x.CreateDate >= sinceDate) : null;
-            var result = Services.AuditService.GetPagedItemsByUser(Security.GetUserId(), pageNumber - 1, pageSize, out totalRecords, orderDirection, customFilter:dateQuery);
+            var result = Services.AuditService.GetPagedItemsByUser(Security.GetUserId(), pageNumber - 1, pageSize, out totalRecords, orderDirection, customFilter: dateQuery);
             var mapped = Mapper.Map<IEnumerable<AuditLog>>(result);
             return new PagedResult<AuditLog>(totalRecords, pageNumber, pageSize)
             {
@@ -60,7 +60,7 @@ namespace Umbraco.Web.Editors
             var result = Services.AuditService.GetPagedItemsByEntity(id, 1, int.MaxValue, out totalRecords);
             return Mapper.Map<IEnumerable<AuditLog>>(result);
         }
-       
+
         [Obsolete("Use GetPagedCurrentUserLog instead")]
         public IEnumerable<AuditLog> GetCurrentUserLog(AuditType logType, DateTime? sinceDate)
         {
@@ -70,10 +70,10 @@ namespace Umbraco.Web.Editors
                 sinceDate = DateTime.Now.Subtract(new TimeSpan(7, 0, 0, 0, 0));
 
             var dateQuery = sinceDate.HasValue ? Query<IAuditItem>.Builder.Where(x => x.CreateDate >= sinceDate) : null;
-            var result = Services.AuditService.GetPagedItemsByUser(Security.GetUserId(), 0, int.MaxValue, out totalRecords, auditTypeFilter: new[] {logType},customFilter: dateQuery);
+            var result = Services.AuditService.GetPagedItemsByUser(Security.GetUserId(), 0, int.MaxValue, out totalRecords, auditTypeFilter: new[] { logType }, customFilter: dateQuery);
             return Mapper.Map<IEnumerable<AuditLog>>(result);
         }
-        
+
         public IEnumerable<AuditLog> GetLog(AuditType logType, DateTime? sinceDate)
         {
             if (sinceDate == null)
@@ -87,12 +87,9 @@ namespace Umbraco.Web.Editors
         {
             var mappedItems = items.ToList();
             var userIds = mappedItems.Select(x => x.UserId).ToArray();
-            var users = Services.UserService.GetUsersById(userIds)
-                .ToDictionary(x => x.Id, x => x.GetUserAvatarUrls(ApplicationContext.ApplicationCache.RuntimeCache));
             var userNames = Services.UserService.GetUsersById(userIds).ToDictionary(x => x.Id, x => x.Name);
             foreach (var item in mappedItems)
             {
-                item.UserAvatars = users[item.UserId];
                 item.UserName = userNames[item.UserId];
             }
             return mappedItems;
